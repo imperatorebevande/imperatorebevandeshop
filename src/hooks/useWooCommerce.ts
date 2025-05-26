@@ -1,4 +1,3 @@
-
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { 
   wooCommerceService, 
@@ -96,14 +95,14 @@ export const useWooCommerceSaleProducts = (
   });
 };
 
-// Hook per prodotti featured
-export const useWooCommerceFeaturedProducts = (
+// Hook per prodotti più venduti (sostituisce featured)
+export const useWooCommerceBestSellingProducts = (
   params: any = {},
   options?: Partial<UseQueryOptions<WooCommerceProduct[], Error>>
 ) => {
   return useQuery({
-    queryKey: ['woocommerce-featured-products', params],
-    queryFn: () => wooCommerceService.getFeaturedProducts(params),
+    queryKey: ['woocommerce-best-selling-products', params],
+    queryFn: () => wooCommerceService.getProducts({ ...params, orderby: 'popularity', order: 'desc' }),
     staleTime: 10 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
     ...options,

@@ -1,14 +1,13 @@
-
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight, Star, Truck, Shield, Headphones, MapPin, Clock, Droplets } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useWooCommerceFeaturedProducts, useWooCommerceSaleProducts } from '@/hooks/useWooCommerce';
+import { useWooCommerceBestSellingProducts, useWooCommerceSaleProducts } from '@/hooks/useWooCommerce';
 
 const Index = () => {
-  const { data: featuredProducts = [], isLoading: featuredLoading } = useWooCommerceFeaturedProducts({ per_page: 4 });
+  const { data: bestSellingProducts = [], isLoading: bestSellingLoading } = useWooCommerceBestSellingProducts({ per_page: 4 });
   const { data: saleProducts = [], isLoading: saleLoading } = useWooCommerceSaleProducts({ per_page: 4 });
 
   // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard
@@ -22,7 +21,7 @@ const Index = () => {
     reviews: product.rating_count || 0,
   });
 
-  const transformedFeaturedProducts = featuredProducts.map(transformWooCommerceProduct);
+  const transformedBestSellingProducts = bestSellingProducts.map(transformWooCommerceProduct);
   const transformedSaleProducts = saleProducts.map(transformWooCommerceProduct);
 
   return (
@@ -88,25 +87,25 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Products */}
+      {/* Prodotti Più Acquistati */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-              Prodotti in Evidenza
+              Prodotti Più Acquistati
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              I nostri prodotti più popolari selezionati per te
+              I prodotti preferiti dai nostri clienti
             </p>
           </div>
           
-          {featuredLoading ? (
+          {bestSellingLoading ? (
             <div className="text-center py-8">
-              <p>Caricamento prodotti in evidenza...</p>
+              <p>Caricamento prodotti più acquistati...</p>
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              {transformedFeaturedProducts.map((product) => (
+              {transformedBestSellingProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
