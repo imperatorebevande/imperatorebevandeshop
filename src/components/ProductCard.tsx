@@ -53,6 +53,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
     ? product.name.substring(0, 60) + '...' 
     : product.name;
 
+  // Check if rating should be displayed (must be a number greater than 0)
+  const shouldShowRating = product.rating && typeof product.rating === 'number' && product.rating > 0;
+
   return (
     <Link to={`/product/${product.id}`}>
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
@@ -85,7 +88,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             {truncatedName}
           </h3>
           
-          {product.rating && product.rating > 0 && (
+          {shouldShowRating && (
             <div className="flex items-center mb-2">
               <div className="flex text-yellow-400">
                 {[...Array(5)].map((_, i) => (
