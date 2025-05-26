@@ -40,10 +40,12 @@ const Header = () => {
             <Link to="/products" className="text-gray-700 hover:text-gray-900 transition-colors">
               Prodotti
             </Link>
-            <Button variant="ghost" size="sm">
-              <User className="w-4 h-4 mr-2" />
-              Account
-            </Button>
+            <Link to="/account">
+              <Button variant="ghost" size="sm">
+                <User className="w-4 h-4 mr-2" />
+                Account
+              </Button>
+            </Link>
             <Link to="/cart" className="relative">
               <Button variant="ghost" size="sm">
                 <ShoppingCart className="w-4 h-4" />
@@ -92,10 +94,10 @@ const Header = () => {
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 Carrello ({itemCount})
               </Link>
-              <Button variant="ghost" size="sm" className="justify-start">
+              <Link to="/account" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors">
                 <User className="w-4 h-4 mr-2" />
                 Account
-              </Button>
+              </Link>
             </div>
           </nav>
         )}
