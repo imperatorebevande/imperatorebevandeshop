@@ -4,31 +4,72 @@ import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { products, categories } from '@/data/products';
-import { Filter, Grid3X3, List } from 'lucide-react';
+import { Filter, Grid3X3, List, Loader2 } from 'lucide-react';
+import { useWooCommerceProducts, useWooCommerceCategories } from '@/hooks/useWooCommerce';
 
 const Products = () => {
-  const [selectedCategory, setSelectedCategory] = useState('Tutti');
-  const [sortBy, setSortBy] = useState('name');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [sortBy, setSortBy] = useState('date');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const filteredProducts = products.filter(product => 
-    selectedCategory === 'Tutti' || product.category === selectedCategory
-  );
-
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case 'price-low':
-        return a.price - b.price;
-      case 'price-high':
-        return b.price - a.price;
-      case 'rating':
-        return b.rating - a.rating;
-      case 'name':
-      default:
-        return a.name.localeCompare(b.name);
-    }
+  // Recupera prodotti da WooCommerce
+  const { 
+    data: products = [], 
+    isLoading: productsLoading, 
+    error: productsError 
+  } = useWooCommerceProducts({
+    per_page: 20,
+    category: selectedCategory || undefined,
+    orderby: sortBy as any,
+    order: 'desc'
   });
+
+  // Recupera categorie da WooCommerce
+  const { 
+    data: categories = [], 
+    isLoading: categoriesLoading 
+  } = useWooCommerceCategories({
+    per_page: 50,
+    hide_empty: true
+  });
+
+  // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard
+  const transformedProducts = products.map(product => ({
+    id: product.id,
+    name: product.name,
+    price: parseFloat(product.price) || 0,
+    originalPrice: product.regular_price && product.sale_price 
+      ? parseFloat(product.regular_price) 
+      : undefined,
+    image: product.images[0]?.src || '/placeholder.svg',
+    rating: parseFloat(product.average_rating) || 0,
+    reviews: product.rating_count || 0,
+  }));
+
+  if (productsError) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h3 className="text-2xl font-semibold mb-2 text-red-600">
+              Errore di connessione
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Non è possibile connettersi al negozio WooCommerce
+            </p>
+            <Button
+              onClick={() => window.location.reload()}
+              className="gradient-primary"
+            >
+              Riprova
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -41,7 +82,7 @@ const Products = () => {
             I Nostri Prodotti
           </h1>
           <p className="text-gray-600 text-lg">
-            Scopri la nostra vasta gamma di prodotti tecnologici
+            Scopri la nostra vasta gamma di prodotti dal negozio Imperatore Bevande
           </p>
         </div>
 
@@ -55,15 +96,25 @@ const Products = () => {
               </div>
               
               <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={selectedCategory === '' ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setSelectedCategory('')}
+                  className={selectedCategory === '' ? "gradient-primary" : ""}
+                  disabled={categoriesLoading}
+                >
+                  Tutti
+                </Button>
                 {categories.map((category) => (
                   <Button
-                    key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
+                    key={category.id}
+                    variant={selectedCategory === category.id.toString() ? "default" : "outline"}
                     size="sm"
-                    onClick={() => setSelectedCategory(category)}
-                    className={selectedCategory === category ? "gradient-primary" : ""}
+                    onClick={() => setSelectedCategory(category.id.toString())}
+                    className={selectedCategory === category.id.toString() ? "gradient-primary" : ""}
+                    disabled={categoriesLoading}
                   >
-                    {category}
+                    {category.name} ({category.count})
                   </Button>
                 ))}
               </div>
@@ -75,9 +126,10 @@ const Products = () => {
                   <SelectValue placeholder="Ordina per" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="name">Nome A-Z</SelectItem>
-                  <SelectItem value="price-low">Prezzo: Basso - Alto</SelectItem>
-                  <SelectItem value="price-high">Prezzo: Alto - Basso</SelectItem>
+                  <SelectItem value="date">Più recenti</SelectItem>
+                  <SelectItem value="title">Nome A-Z</SelectItem>
+                  <SelectItem value="price">Prezzo: Basso - Alto</SelectItem>
+                  <SelectItem value="popularity">Popolarità</SelectItem>
                   <SelectItem value="rating">Valutazione</SelectItem>
                 </SelectContent>
               </Select>
@@ -104,31 +156,45 @@ const Products = () => {
           </div>
         </div>
 
+        {/* Loading State */}
+        {productsLoading && (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-600" />
+              <p className="text-gray-600">Caricamento prodotti...</p>
+            </div>
+          </div>
+        )}
+
         {/* Products Count */}
-        <div className="mb-6">
-          <p className="text-gray-600">
-            Visualizzando {sortedProducts.length} di {products.length} prodotti
-            {selectedCategory !== 'Tutti' && (
-              <span className="ml-2 text-purple-600 font-medium">
-                in "{selectedCategory}"
-              </span>
-            )}
-          </p>
-        </div>
+        {!productsLoading && (
+          <div className="mb-6">
+            <p className="text-gray-600">
+              Visualizzando {transformedProducts.length} prodotti
+              {selectedCategory && categories.find(c => c.id.toString() === selectedCategory) && (
+                <span className="ml-2 text-purple-600 font-medium">
+                  in "{categories.find(c => c.id.toString() === selectedCategory)?.name}"
+                </span>
+              )}
+            </p>
+          </div>
+        )}
 
         {/* Products Grid */}
-        <div className={
-          viewMode === 'grid' 
-            ? "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-            : "space-y-4"
-        }>
-          {sortedProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {!productsLoading && (
+          <div className={
+            viewMode === 'grid' 
+              ? "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+              : "space-y-4"
+          }>
+            {transformedProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
 
         {/* No Products Message */}
-        {sortedProducts.length === 0 && (
+        {!productsLoading && transformedProducts.length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-2xl font-semibold mb-2">Nessun prodotto trovato</h3>
@@ -136,7 +202,7 @@ const Products = () => {
               Prova a cambiare i filtri o cerca in una categoria diversa
             </p>
             <Button
-              onClick={() => setSelectedCategory('Tutti')}
+              onClick={() => setSelectedCategory('')}
               className="gradient-primary"
             >
               Mostra Tutti i Prodotti

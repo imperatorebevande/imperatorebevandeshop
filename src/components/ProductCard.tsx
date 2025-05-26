@@ -44,9 +44,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
     toast.info('Funzionalità wishlist in arrivo!');
   };
 
-  const discountPercentage = product.originalPrice 
+  const discountPercentage = product.originalPrice && product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : null;
+
+  // Gestisci nomi di prodotti molto lunghi
+  const truncatedName = product.name.length > 60 
+    ? product.name.substring(0, 60) + '...' 
+    : product.name;
 
   return (
     <Link to={`/product/${product.id}`}>
@@ -56,6 +61,9 @@ const ProductCard = ({ product }: ProductCardProps) => {
             src={product.image}
             alt={product.name}
             className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              e.currentTarget.src = '/placeholder.svg';
+            }}
           />
           {discountPercentage && (
             <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-semibold">
@@ -73,11 +81,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
         
         <CardContent className="p-4">
-          <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors">
-            {product.name}
+          <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors min-h-[3.5rem]">
+            {truncatedName}
           </h3>
           
-          {product.rating && (
+          {product.rating && product.rating > 0 && (
             <div className="flex items-center mb-2">
               <div className="flex text-yellow-400">
                 {[...Array(5)].map((_, i) => (
@@ -86,18 +94,18 @@ const ProductCard = ({ product }: ProductCardProps) => {
                   </span>
                 ))}
               </div>
-              {product.reviews && (
+              {product.reviews && product.reviews > 0 && (
                 <span className="text-sm text-gray-500 ml-2">({product.reviews})</span>
               )}
             </div>
           )}
           
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mt-auto">
             <div className="flex items-center space-x-2">
               <span className="text-xl font-bold text-purple-600">
                 €{product.price.toFixed(2)}
               </span>
-              {product.originalPrice && (
+              {product.originalPrice && product.originalPrice > product.price && (
                 <span className="text-sm text-gray-500 line-through">
                   €{product.originalPrice.toFixed(2)}
                 </span>

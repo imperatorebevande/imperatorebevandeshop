@@ -1,203 +1,247 @@
 
-// Configurazione per le API WooCommerce
-interface WooCommerceConfig {
-  baseUrl: string;
-  consumerKey: string;
-  consumerSecret: string;
-}
+import axios, { AxiosInstance } from 'axios';
 
-// Interfacce per i dati WooCommerce
 export interface WooCommerceProduct {
   id: number;
   name: string;
   slug: string;
   permalink: string;
+  date_created: string;
+  date_created_gmt: string;
+  date_modified: string;
+  date_modified_gmt: string;
+  type: string;
+  status: string;
+  featured: boolean;
+  catalog_visibility: string;
   description: string;
   short_description: string;
+  sku: string;
   price: string;
   regular_price: string;
   sale_price: string;
+  date_on_sale_from: string | null;
+  date_on_sale_from_gmt: string | null;
+  date_on_sale_to: string | null;
+  date_on_sale_to_gmt: string | null;
   on_sale: boolean;
-  images: Array<{
-    id: number;
-    src: string;
-    alt: string;
-  }>;
-  categories: Array<{
-    id: number;
-    name: string;
-    slug: string;
-  }>;
-  stock_status: 'instock' | 'outofstock' | 'onbackorder';
-  stock_quantity: number;
+  purchasable: boolean;
+  total_sales: number;
+  virtual: boolean;
+  downloadable: boolean;
+  downloads: any[];
+  download_limit: number;
+  download_expiry: number;
+  external_url: string;
+  button_text: string;
+  tax_status: string;
+  tax_class: string;
+  manage_stock: boolean;
+  stock_quantity: number | null;
+  backorders: string;
+  backorders_allowed: boolean;
+  backordered: boolean;
+  low_stock_amount: number | null;
+  sold_individually: boolean;
+  weight: string;
+  dimensions: {
+    length: string;
+    width: string;
+    height: string;
+  };
+  shipping_required: boolean;
+  shipping_taxable: boolean;
+  shipping_class: string;
+  shipping_class_id: number;
+  reviews_allowed: boolean;
   average_rating: string;
   rating_count: number;
-  attributes: Array<{
+  upsell_ids: number[];
+  cross_sell_ids: number[];
+  parent_id: number;
+  purchase_note: string;
+  categories: WooCommerceCategory[];
+  tags: any[];
+  images: {
     id: number;
+    date_created: string;
+    date_created_gmt: string;
+    date_modified: string;
+    date_modified_gmt: string;
+    src: string;
     name: string;
-    options: string[];
-  }>;
+    alt: string;
+  }[];
+  attributes: any[];
+  default_attributes: any[];
+  variations: number[];
+  grouped_products: number[];
+  menu_order: number;
+  price_html: string;
+  related_ids: number[];
+  meta_data: any[];
+  stock_status: string;
 }
 
 export interface WooCommerceCategory {
   id: number;
   name: string;
   slug: string;
+  parent: number;
   description: string;
+  display: string;
   image: {
     id: number;
+    date_created: string;
+    date_created_gmt: string;
+    date_modified: string;
+    date_modified_gmt: string;
     src: string;
+    name: string;
     alt: string;
   } | null;
+  menu_order: number;
   count: number;
 }
 
 class WooCommerceService {
-  private config: WooCommerceConfig | null = null;
+  private api: AxiosInstance;
+  private isConfigured = false;
 
-  // Inizializza la configurazione
-  init(config: WooCommerceConfig) {
-    this.config = config;
-  }
-
-  // Genera le credenziali di autenticazione
-  private getAuthString(): string {
-    if (!this.config) {
-      throw new Error('WooCommerce non configurato. Chiama init() prima.');
-    }
-    
-    const credentials = btoa(`${this.config.consumerKey}:${this.config.consumerSecret}`);
-    return `Basic ${credentials}`;
-  }
-
-  // Metodo generico per fare richieste API
-  private async makeRequest(endpoint: string, params: Record<string, any> = {}): Promise<any> {
-    if (!this.config) {
-      throw new Error('WooCommerce non configurato. Chiama init() prima.');
-    }
-
-    const url = new URL(`${this.config.baseUrl}/wp-json/wc/v3/${endpoint}`);
-    
-    // Aggiungi parametri alla query string
-    Object.keys(params).forEach(key => {
-      if (params[key] !== undefined && params[key] !== null) {
-        url.searchParams.append(key, params[key].toString());
-      }
+  constructor() {
+    // Configurazione automatica con le tue credenziali
+    this.api = axios.create({
+      baseURL: 'https://imperatorebevande.it/wp-json/wc/v3',
+      auth: {
+        username: 'ck_130da21fbbeddc098a110b2d43a56de1d5e43904',
+        password: 'cs_a8b506ead451a64501a90e870c6e006de3359262'
+      },
+      timeout: 10000,
     });
+    this.isConfigured = true;
+
+    // Interceptor per gestire errori
+    this.api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        console.error('WooCommerce API Error:', error.response?.data || error.message);
+        throw error;
+      }
+    );
+  }
+
+  // Metodo per verificare se il servizio è configurato
+  isReady(): boolean {
+    return this.isConfigured;
+  }
+
+  // Ottenere tutti i prodotti
+  async getProducts(params: any = {}): Promise<WooCommerceProduct[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
 
     try {
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: {
-          'Authorization': this.getAuthString(),
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Errore API WooCommerce: ${response.status} ${response.statusText}`);
-      }
-
-      return await response.json();
+      const response = await this.api.get('/products', { params });
+      console.log('WooCommerce products fetched:', response.data.length);
+      return response.data;
     } catch (error) {
-      console.error('Errore nella richiesta WooCommerce:', error);
+      console.error('Errore nel recupero dei prodotti:', error);
       throw error;
     }
   }
 
-  // Ottieni tutti i prodotti
-  async getProducts(params: {
-    page?: number;
-    per_page?: number;
-    category?: string;
-    search?: string;
-    orderby?: 'date' | 'id' | 'title' | 'popularity' | 'rating' | 'price';
-    order?: 'asc' | 'desc';
-    on_sale?: boolean;
-    featured?: boolean;
-    status?: 'publish' | 'draft' | 'pending' | 'private';
-  } = {}): Promise<WooCommerceProduct[]> {
-    return await this.makeRequest('products', {
-      per_page: 20,
-      status: 'publish',
-      ...params,
-    });
-  }
-
-  // Ottieni un singolo prodotto
+  // Ottenere un singolo prodotto
   async getProduct(id: number): Promise<WooCommerceProduct> {
-    return await this.makeRequest(`products/${id}`);
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.get(`/products/${id}`);
+      console.log('WooCommerce product fetched:', response.data.name);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero del prodotto:', error);
+      throw error;
+    }
   }
 
-  // Ottieni tutte le categorie
-  async getCategories(params: {
-    page?: number;
-    per_page?: number;
-    orderby?: 'id' | 'name' | 'slug' | 'count';
-    order?: 'asc' | 'desc';
-    hide_empty?: boolean;
-  } = {}): Promise<WooCommerceCategory[]> {
-    return await this.makeRequest('products/categories', {
-      per_page: 100,
-      hide_empty: true,
-      ...params,
-    });
+  // Ottenere le categorie
+  async getCategories(params: any = {}): Promise<WooCommerceCategory[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.get('/products/categories', { params });
+      console.log('WooCommerce categories fetched:', response.data.length);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero delle categorie:', error);
+      throw error;
+    }
   }
 
-  // Cerca prodotti
+  // Cercare prodotti
   async searchProducts(query: string, params: any = {}): Promise<WooCommerceProduct[]> {
-    return await this.getProducts({
-      search: query,
-      ...params,
-    });
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const searchParams = { ...params, search: query };
+      const response = await this.api.get('/products', { params: searchParams });
+      console.log('WooCommerce search results:', response.data.length);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nella ricerca prodotti:', error);
+      throw error;
+    }
   }
 
-  // Ottieni prodotti in offerta
+  // Ottenere prodotti in offerta
   async getSaleProducts(params: any = {}): Promise<WooCommerceProduct[]> {
-    return await this.getProducts({
-      on_sale: true,
-      ...params,
-    });
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const saleParams = { ...params, on_sale: true };
+      const response = await this.api.get('/products', { params: saleParams });
+      console.log('WooCommerce sale products fetched:', response.data.length);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero prodotti in offerta:', error);
+      throw error;
+    }
   }
 
-  // Ottieni prodotti featured
+  // Ottenere prodotti featured
   async getFeaturedProducts(params: any = {}): Promise<WooCommerceProduct[]> {
-    return await this.getProducts({
-      featured: true,
-      ...params,
-    });
-  }
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
 
-  // Converti prodotto WooCommerce al formato dell'app
-  convertToAppProduct(wooProduct: WooCommerceProduct): any {
-    return {
-      id: wooProduct.id,
-      name: wooProduct.name,
-      price: parseFloat(wooProduct.price),
-      originalPrice: wooProduct.sale_price ? parseFloat(wooProduct.regular_price) : undefined,
-      image: wooProduct.images[0]?.src || '/placeholder.svg',
-      category: wooProduct.categories[0]?.name || 'Generale',
-      description: wooProduct.short_description || wooProduct.description,
-      features: wooProduct.attributes.map(attr => 
-        `${attr.name}: ${attr.options.join(', ')}`
-      ),
-      rating: parseFloat(wooProduct.average_rating) || 0,
-      reviews: wooProduct.rating_count || 0,
-      inStock: wooProduct.stock_status === 'instock',
-      slug: wooProduct.slug,
-      permalink: wooProduct.permalink,
-    };
+    try {
+      const featuredParams = { ...params, featured: true };
+      const response = await this.api.get('/products', { params: featuredParams });
+      console.log('WooCommerce featured products fetched:', response.data.length);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero prodotti featured:', error);
+      throw error;
+    }
   }
 }
 
 // Istanza singleton del servizio
 export const wooCommerceService = new WooCommerceService();
 
-// Hook personalizzato per usare WooCommerce con React Query
+// Hook per la configurazione (manteniamo per compatibilità)
 export const useWooCommerceConfig = () => {
-  const initWooCommerce = (config: WooCommerceConfig) => {
-    wooCommerceService.init(config);
-    console.log('WooCommerce configurato con successo');
+  const initWooCommerce = (config: any) => {
+    console.log('WooCommerce già configurato automaticamente');
   };
 
   return { initWooCommerce };
