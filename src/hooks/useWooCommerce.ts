@@ -20,7 +20,7 @@ export const useWooCommerceProducts = (
     on_sale?: boolean;
     featured?: boolean;
   } = {},
-  options?: UseQueryOptions<WooCommerceProduct[]>
+  options?: Partial<UseQueryOptions<WooCommerceProduct[], Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-products', params],
@@ -34,7 +34,7 @@ export const useWooCommerceProducts = (
 // Hook per ottenere un singolo prodotto
 export const useWooCommerceProduct = (
   id: number,
-  options?: UseQueryOptions<WooCommerceProduct>
+  options?: Partial<UseQueryOptions<WooCommerceProduct, Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-product', id],
@@ -55,7 +55,7 @@ export const useWooCommerceCategories = (
     order?: 'asc' | 'desc';
     hide_empty?: boolean;
   } = {},
-  options?: UseQueryOptions<WooCommerceCategory[]>
+  options?: Partial<UseQueryOptions<WooCommerceCategory[], Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-categories', params],
@@ -70,7 +70,7 @@ export const useWooCommerceCategories = (
 export const useWooCommerceSearch = (
   query: string,
   params: any = {},
-  options?: UseQueryOptions<WooCommerceProduct[]>
+  options?: Partial<UseQueryOptions<WooCommerceProduct[], Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-search', query, params],
@@ -85,7 +85,7 @@ export const useWooCommerceSearch = (
 // Hook per prodotti in offerta
 export const useWooCommerceSaleProducts = (
   params: any = {},
-  options?: UseQueryOptions<WooCommerceProduct[]>
+  options?: Partial<UseQueryOptions<WooCommerceProduct[], Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-sale-products', params],
@@ -99,7 +99,7 @@ export const useWooCommerceSaleProducts = (
 // Hook per prodotti featured
 export const useWooCommerceFeaturedProducts = (
   params: any = {},
-  options?: UseQueryOptions<WooCommerceProduct[]>
+  options?: Partial<UseQueryOptions<WooCommerceProduct[], Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-featured-products', params],
@@ -115,7 +115,7 @@ export const useWooCommerceFeaturedProducts = (
 // Hook per ottenere tutti i clienti
 export const useWooCommerceCustomers = (
   params: any = {},
-  options?: UseQueryOptions<WooCommerceCustomer[]>
+  options?: Partial<UseQueryOptions<WooCommerceCustomer[], Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-customers', params],
@@ -129,7 +129,7 @@ export const useWooCommerceCustomers = (
 // Hook per ottenere un singolo cliente
 export const useWooCommerceCustomer = (
   id: number,
-  options?: UseQueryOptions<WooCommerceCustomer>
+  options?: Partial<UseQueryOptions<WooCommerceCustomer, Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-customer', id],
@@ -144,7 +144,7 @@ export const useWooCommerceCustomer = (
 // Hook per cercare cliente per email
 export const useWooCommerceCustomerByEmail = (
   email: string,
-  options?: UseQueryOptions<WooCommerceCustomer[]>
+  options?: Partial<UseQueryOptions<WooCommerceCustomer[], Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-customer-email', email],
@@ -159,7 +159,7 @@ export const useWooCommerceCustomerByEmail = (
 // Hook per ottenere tutti gli ordini
 export const useWooCommerceOrders = (
   params: any = {},
-  options?: UseQueryOptions<WooCommerceOrder[]>
+  options?: Partial<UseQueryOptions<WooCommerceOrder[], Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-orders', params],
@@ -174,7 +174,7 @@ export const useWooCommerceOrders = (
 export const useWooCommerceCustomerOrders = (
   customerId: number,
   params: any = {},
-  options?: UseQueryOptions<WooCommerceOrder[]>
+  options?: Partial<UseQueryOptions<WooCommerceOrder[], Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-customer-orders', customerId, params],
@@ -189,7 +189,7 @@ export const useWooCommerceCustomerOrders = (
 // Hook per ottenere un singolo ordine
 export const useWooCommerceOrder = (
   id: number,
-  options?: UseQueryOptions<WooCommerceOrder>
+  options?: Partial<UseQueryOptions<WooCommerceOrder, Error>>
 ) => {
   return useQuery({
     queryKey: ['woocommerce-order', id],
@@ -200,4 +200,3 @@ export const useWooCommerceOrder = (
     ...options,
   });
 };
-
