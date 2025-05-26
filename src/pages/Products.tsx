@@ -1,28 +1,51 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Filter, Grid3X3, List, Loader2 } from 'lucide-react';
-import { useWooCommerceProducts, useWooCommerceCategories } from '@/hooks/useWooCommerce';
+import { useWooCommerceProducts, useWooCommerceCategories, useWooCommerceSearch } from '@/hooks/useWooCommerce';
 
 const Products = () => {
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get('search') || '';
+  
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Recupera prodotti da WooCommerce
-  const { 
-    data: products = [], 
-    isLoading: productsLoading, 
-    error: productsError 
-  } = useWooCommerceProducts({
+  // Usa la ricerca se c'è una query, altrimenti carica tutti i prodotti
+  const shouldUseSearch = searchQuery.length > 0;
+
+  // Hook per ricerca prodotti
+  const searchResults = useWooCommerceSearch(
+    searchQuery,
+    {
+      per_page: 20,
+      category: selectedCategory || undefined,
+      orderby: sortBy as any,
+      order: 'desc'
+    },
+    {
+      enabled: shouldUseSearch
+    }
+  );
+
+  // Hook per tutti i prodotti (quando non c'è ricerca)
+  const allProductsResults = useWooCommerceProducts({
     per_page: 20,
     category: selectedCategory || undefined,
     orderby: sortBy as any,
     order: 'desc'
+  }, {
+    enabled: !shouldUseSearch
   });
+
+  // Seleziona i risultati appropriati
+  const { data: products = [], isLoading: productsLoading, error: productsError } = 
+    shouldUseSearch ? searchResults : allProductsResults;
 
   // Recupera categorie da WooCommerce
   const { 
@@ -33,7 +56,14 @@ const Products = () => {
     hide_empty: true
   });
 
-  // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard - con controlli più robusti
+  // Reset categoria quando cambia la ricerca
+  useEffect(() => {
+    if (searchQuery) {
+      setSelectedCategory('');
+    }
+  }, [searchQuery]);
+
+  // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard
   const transformedProducts = products.map(product => {
     console.log('Transforming product:', product.name, product);
     return {
@@ -51,6 +81,7 @@ const Products = () => {
 
   console.log('Products from API:', products.length);
   console.log('Transformed products:', transformedProducts.length);
+  console.log('Search query:', searchQuery);
 
   if (productsError) {
     return (
@@ -85,10 +116,13 @@ const Products = () => {
         {/* Page Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-4 text-gradient">
-            I Nostri Prodotti
+            {searchQuery ? `Risultati per "${searchQuery}"` : 'I Nostri Prodotti'}
           </h1>
           <p className="text-gray-600 text-lg">
-            Scopri la nostra vasta gamma di prodotti dal negozio Imperatore Bevande
+            {searchQuery 
+              ? `Prodotti trovati per la tua ricerca`
+              : 'Scopri la nostra vasta gamma di prodotti dal negozio Imperatore Bevande'
+            }
           </p>
         </div>
 
@@ -166,8 +200,10 @@ const Products = () => {
         {productsLoading && (
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-600" />
-              <p className="text-gray-600">Caricamento prodotti...</p>
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+              <p className="text-gray-600">
+                {searchQuery ? 'Ricerca in corso...' : 'Caricamento prodotti...'}
+              </p>
             </div>
           </div>
         )}
@@ -176,9 +212,12 @@ const Products = () => {
         {!productsLoading && (
           <div className="mb-6">
             <p className="text-gray-600">
-              Visualizzando {transformedProducts.length} prodotti
+              {searchQuery 
+                ? `Trovati ${transformedProducts.length} prodotti per "${searchQuery}"`
+                : `Visualizzando ${transformedProducts.length} prodotti`
+              }
               {selectedCategory && categories.find(c => c.id.toString() === selectedCategory) && (
-                <span className="ml-2 text-purple-600 font-medium">
+                <span className="ml-2 text-blue-600 font-medium">
                   in "{categories.find(c => c.id.toString() === selectedCategory)?.name}"
                 </span>
               )}
@@ -203,15 +242,25 @@ const Products = () => {
         {!productsLoading && transformedProducts.length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-2xl font-semibold mb-2">Nessun prodotto trovato</h3>
+            <h3 className="text-2xl font-semibold mb-2">
+              {searchQuery ? 'Nessun risultato trovato' : 'Nessun prodotto trovato'}
+            </h3>
             <p className="text-gray-600 mb-6">
-              Prova a cambiare i filtri o cerca in una categoria diversa
+              {searchQuery 
+                ? `Nessun prodotto trovato per "${searchQuery}". Prova con termini diversi.`
+                : 'Prova a cambiare i filtri o cerca in una categoria diversa'
+              }
             </p>
             <Button
-              onClick={() => setSelectedCategory('')}
+              onClick={() => {
+                setSelectedCategory('');
+                if (searchQuery) {
+                  window.location.href = '/products';
+                }
+              }}
               className="gradient-primary"
             >
-              Mostra Tutti i Prodotti
+              {searchQuery ? 'Mostra Tutti i Prodotti' : 'Rimuovi Filtri'}
             </Button>
           </div>
         )}
