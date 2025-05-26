@@ -20,7 +20,7 @@ export const useWooCommerceProducts = (
     queryKey: ['woocommerce-products', params],
     queryFn: () => wooCommerceService.getProducts(params),
     staleTime: 5 * 60 * 1000, // 5 minuti
-    cacheTime: 10 * 60 * 1000, // 10 minuti
+    gcTime: 10 * 60 * 1000, // 10 minuti
     ...options,
   });
 };
@@ -35,7 +35,7 @@ export const useWooCommerceProduct = (
     queryFn: () => wooCommerceService.getProduct(id),
     enabled: !!id,
     staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     ...options,
   });
 };
@@ -55,7 +55,7 @@ export const useWooCommerceCategories = (
     queryKey: ['woocommerce-categories', params],
     queryFn: () => wooCommerceService.getCategories(params),
     staleTime: 10 * 60 * 1000, // 10 minuti
-    cacheTime: 30 * 60 * 1000, // 30 minuti
+    gcTime: 30 * 60 * 1000, // 30 minuti
     ...options,
   });
 };
@@ -71,7 +71,7 @@ export const useWooCommerceSearch = (
     queryFn: () => wooCommerceService.searchProducts(query, params),
     enabled: !!query && query.length > 2,
     staleTime: 2 * 60 * 1000, // 2 minuti
-    cacheTime: 5 * 60 * 1000, // 5 minuti
+    gcTime: 5 * 60 * 1000, // 5 minuti
     ...options,
   });
 };
@@ -85,7 +85,7 @@ export const useWooCommerceSaleProducts = (
     queryKey: ['woocommerce-sale-products', params],
     queryFn: () => wooCommerceService.getSaleProducts(params),
     staleTime: 5 * 60 * 1000,
-    cacheTime: 10 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     ...options,
   });
 };
@@ -99,7 +99,7 @@ export const useWooCommerceFeaturedProducts = (
     queryKey: ['woocommerce-featured-products', params],
     queryFn: () => wooCommerceService.getFeaturedProducts(params),
     staleTime: 10 * 60 * 1000,
-    cacheTime: 30 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
     ...options,
   });
 };
