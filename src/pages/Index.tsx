@@ -4,12 +4,26 @@ import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight, Star, Truck, Shield, Headphones } from 'lucide-react';
-import { products } from '@/data/products';
 import { Link } from 'react-router-dom';
+import { useWooCommerceFeaturedProducts, useWooCommerceSaleProducts } from '@/hooks/useWooCommerce';
 
 const Index = () => {
-  const featuredProducts = products.slice(0, 4);
-  const discountedProducts = products.filter(p => p.originalPrice).slice(0, 4);
+  const { data: featuredProducts = [], isLoading: featuredLoading } = useWooCommerceFeaturedProducts({ per_page: 4 });
+  const { data: saleProducts = [], isLoading: saleLoading } = useWooCommerceSaleProducts({ per_page: 4 });
+
+  // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard
+  const transformWooCommerceProduct = (product: any) => ({
+    id: product.id,
+    name: product.name,
+    price: parseFloat(product.price),
+    originalPrice: product.regular_price ? parseFloat(product.regular_price) : undefined,
+    image: product.images?.[0]?.src || '/placeholder.svg',
+    rating: parseFloat(product.average_rating) || 0,
+    reviews: product.rating_count || 0,
+  });
+
+  const transformedFeaturedProducts = featuredProducts.map(transformWooCommerceProduct);
+  const transformedSaleProducts = saleProducts.map(transformWooCommerceProduct);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -82,11 +96,17 @@ const Index = () => {
             </p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {featuredLoading ? (
+            <div className="text-center py-8">
+              <p>Caricamento prodotti in evidenza...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {transformedFeaturedProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
           
           <div className="text-center">
             <Link to="/products">
@@ -109,11 +129,17 @@ const Index = () => {
             <p className="text-gray-600">Sconti limitati nel tempo!</p>
           </div>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {discountedProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {saleLoading ? (
+            <div className="text-center py-8">
+              <p>Caricamento offerte...</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {transformedSaleProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
