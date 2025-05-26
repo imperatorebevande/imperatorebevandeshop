@@ -1,6 +1,12 @@
 
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
-import { wooCommerceService, WooCommerceProduct, WooCommerceCategory } from '@/services/woocommerce';
+import { 
+  wooCommerceService, 
+  WooCommerceProduct, 
+  WooCommerceCategory,
+  WooCommerceCustomer,
+  WooCommerceOrder
+} from '@/services/woocommerce';
 
 // Hook per ottenere tutti i prodotti
 export const useWooCommerceProducts = (
@@ -103,3 +109,95 @@ export const useWooCommerceFeaturedProducts = (
     ...options,
   });
 };
+
+// NUOVI HOOK PER CLIENTI E ORDINI
+
+// Hook per ottenere tutti i clienti
+export const useWooCommerceCustomers = (
+  params: any = {},
+  options?: UseQueryOptions<WooCommerceCustomer[]>
+) => {
+  return useQuery({
+    queryKey: ['woocommerce-customers', params],
+    queryFn: () => wooCommerceService.getCustomers(params),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    ...options,
+  });
+};
+
+// Hook per ottenere un singolo cliente
+export const useWooCommerceCustomer = (
+  id: number,
+  options?: UseQueryOptions<WooCommerceCustomer>
+) => {
+  return useQuery({
+    queryKey: ['woocommerce-customer', id],
+    queryFn: () => wooCommerceService.getCustomer(id),
+    enabled: !!id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    ...options,
+  });
+};
+
+// Hook per cercare cliente per email
+export const useWooCommerceCustomerByEmail = (
+  email: string,
+  options?: UseQueryOptions<WooCommerceCustomer[]>
+) => {
+  return useQuery({
+    queryKey: ['woocommerce-customer-email', email],
+    queryFn: () => wooCommerceService.getCustomerByEmail(email),
+    enabled: !!email && email.includes('@'),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    ...options,
+  });
+};
+
+// Hook per ottenere tutti gli ordini
+export const useWooCommerceOrders = (
+  params: any = {},
+  options?: UseQueryOptions<WooCommerceOrder[]>
+) => {
+  return useQuery({
+    queryKey: ['woocommerce-orders', params],
+    queryFn: () => wooCommerceService.getOrders(params),
+    staleTime: 2 * 60 * 1000, // 2 minuti per ordini più aggiornati
+    gcTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+// Hook per ottenere ordini di un cliente specifico
+export const useWooCommerceCustomerOrders = (
+  customerId: number,
+  params: any = {},
+  options?: UseQueryOptions<WooCommerceOrder[]>
+) => {
+  return useQuery({
+    queryKey: ['woocommerce-customer-orders', customerId, params],
+    queryFn: () => wooCommerceService.getCustomerOrders(customerId, params),
+    enabled: !!customerId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+// Hook per ottenere un singolo ordine
+export const useWooCommerceOrder = (
+  id: number,
+  options?: UseQueryOptions<WooCommerceOrder>
+) => {
+  return useQuery({
+    queryKey: ['woocommerce-order', id],
+    queryFn: () => wooCommerceService.getOrder(id),
+    enabled: !!id,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+

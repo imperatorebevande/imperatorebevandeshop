@@ -1,4 +1,3 @@
-
 import axios, { AxiosInstance } from 'axios';
 
 export interface WooCommerceProduct {
@@ -102,6 +101,136 @@ export interface WooCommerceCategory {
   } | null;
   menu_order: number;
   count: number;
+}
+
+export interface WooCommerceCustomer {
+  id: number;
+  date_created: string;
+  date_created_gmt: string;
+  date_modified: string;
+  date_modified_gmt: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+  username: string;
+  billing: {
+    first_name: string;
+    last_name: string;
+    company: string;
+    address_1: string;
+    address_2: string;
+    city: string;
+    state: string;
+    postcode: string;
+    country: string;
+    email: string;
+    phone: string;
+  };
+  shipping: {
+    first_name: string;
+    last_name: string;
+    company: string;
+    address_1: string;
+    address_2: string;
+    city: string;
+    state: string;
+    postcode: string;
+    country: string;
+  };
+  is_paying_customer: boolean;
+  avatar_url: string;
+  meta_data: any[];
+}
+
+export interface WooCommerceOrder {
+  id: number;
+  parent_id: number;
+  status: string;
+  currency: string;
+  version: string;
+  prices_include_tax: boolean;
+  date_created: string;
+  date_modified: string;
+  discount_total: string;
+  discount_tax: string;
+  shipping_total: string;
+  shipping_tax: string;
+  cart_tax: string;
+  total: string;
+  total_tax: string;
+  customer_id: number;
+  order_key: string;
+  billing: {
+    first_name: string;
+    last_name: string;
+    company: string;
+    address_1: string;
+    address_2: string;
+    city: string;
+    state: string;
+    postcode: string;
+    country: string;
+    email: string;
+    phone: string;
+  };
+  shipping: {
+    first_name: string;
+    last_name: string;
+    company: string;
+    address_1: string;
+    address_2: string;
+    city: string;
+    state: string;
+    postcode: string;
+    country: string;
+  };
+  payment_method: string;
+  payment_method_title: string;
+  transaction_id: string;
+  customer_ip_address: string;
+  customer_user_agent: string;
+  created_via: string;
+  customer_note: string;
+  date_completed: string | null;
+  date_paid: string | null;
+  cart_hash: string;
+  number: string;
+  meta_data: any[];
+  line_items: {
+    id: number;
+    name: string;
+    product_id: number;
+    variation_id: number;
+    quantity: number;
+    tax_class: string;
+    subtotal: string;
+    subtotal_tax: string;
+    total: string;
+    total_tax: string;
+    taxes: any[];
+    meta_data: any[];
+    sku: string;
+    price: number;
+    image: {
+      id: number;
+      src: string;
+    };
+  }[];
+  tax_lines: any[];
+  shipping_lines: any[];
+  fee_lines: any[];
+  coupon_lines: any[];
+  refunds: any[];
+  payment_url: string;
+  is_editable: boolean;
+  needs_payment: boolean;
+  needs_processing: boolean;
+  date_created_gmt: string;
+  date_modified_gmt: string;
+  date_completed_gmt: string | null;
+  date_paid_gmt: string | null;
+  currency_symbol: string;
 }
 
 class WooCommerceService {
@@ -230,6 +359,107 @@ class WooCommerceService {
       return response.data;
     } catch (error) {
       console.error('Errore nel recupero prodotti featured:', error);
+      throw error;
+    }
+  }
+
+  // NUOVI METODI PER GESTIRE I CLIENTI E ORDINI
+
+  // Ottenere tutti i clienti
+  async getCustomers(params: any = {}): Promise<WooCommerceCustomer[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.get('/customers', { params });
+      console.log('WooCommerce customers fetched:', response.data.length);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero dei clienti:', error);
+      throw error;
+    }
+  }
+
+  // Ottenere un singolo cliente
+  async getCustomer(id: number): Promise<WooCommerceCustomer> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.get(`/customers/${id}`);
+      console.log('WooCommerce customer fetched:', response.data.email);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero del cliente:', error);
+      throw error;
+    }
+  }
+
+  // Cercare cliente per email
+  async getCustomerByEmail(email: string): Promise<WooCommerceCustomer[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.get('/customers', { 
+        params: { search: email } 
+      });
+      console.log('WooCommerce customer search by email:', response.data.length);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nella ricerca cliente per email:', error);
+      throw error;
+    }
+  }
+
+  // Ottenere tutti gli ordini
+  async getOrders(params: any = {}): Promise<WooCommerceOrder[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.get('/orders', { params });
+      console.log('WooCommerce orders fetched:', response.data.length);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero degli ordini:', error);
+      throw error;
+    }
+  }
+
+  // Ottenere ordini di un cliente specifico
+  async getCustomerOrders(customerId: number, params: any = {}): Promise<WooCommerceOrder[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const orderParams = { ...params, customer: customerId };
+      const response = await this.api.get('/orders', { params: orderParams });
+      console.log('WooCommerce customer orders fetched:', response.data.length);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero degli ordini del cliente:', error);
+      throw error;
+    }
+  }
+
+  // Ottenere un singolo ordine
+  async getOrder(id: number): Promise<WooCommerceOrder> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.get(`/orders/${id}`);
+      console.log('WooCommerce order fetched:', response.data.number);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero dell\'ordine:', error);
       throw error;
     }
   }
