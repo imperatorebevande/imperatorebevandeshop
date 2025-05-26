@@ -163,24 +163,16 @@ const Cart = () => {
                 
                 <div className="flex justify-between">
                   <span>Spedizione:</span>
-                  <span className="text-green-600">
-                    {state.total >= 50 ? 'Gratuita' : '€4.99'}
+                  <span className="text-green-600 font-semibold">
+                    Gratuita
                   </span>
                 </div>
-                
-                {state.total < 50 && (
-                  <div className="text-sm text-gray-600 bg-yellow-50 p-3 rounded-md">
-                    Aggiungi €{(50 - state.total).toFixed(2)} per la spedizione gratuita!
-                  </div>
-                )}
                 
                 <hr />
                 
                 <div className="flex justify-between text-lg font-bold">
                   <span>Totale:</span>
-                  <span>
-                    €{(state.total + (state.total >= 50 ? 0 : 4.99)).toFixed(2)}
-                  </span>
+                  <span>€{state.total.toFixed(2)}</span>
                 </div>
 
                 <Button size="lg" className="w-full gradient-primary hover:opacity-90">
@@ -191,6 +183,7 @@ const Cart = () => {
                 <div className="text-center text-sm text-gray-500">
                   <p>🔒 Pagamento sicuro e protetto</p>
                   <p>✓ Garanzia soddisfatti o rimborsati</p>
+                  <p>🚚 Spedizione sempre gratuita</p>
                 </div>
               </CardContent>
             </Card>
