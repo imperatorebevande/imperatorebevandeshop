@@ -33,18 +33,24 @@ const Products = () => {
     hide_empty: true
   });
 
-  // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard
-  const transformedProducts = products.map(product => ({
-    id: product.id,
-    name: product.name,
-    price: parseFloat(product.price) || 0,
-    originalPrice: product.regular_price && product.sale_price 
-      ? parseFloat(product.regular_price) 
-      : undefined,
-    image: product.images[0]?.src || '/placeholder.svg',
-    rating: parseFloat(product.average_rating) || 0,
-    reviews: product.rating_count || 0,
-  }));
+  // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard - con controlli più robusti
+  const transformedProducts = products.map(product => {
+    console.log('Transforming product:', product.name, product);
+    return {
+      id: product.id,
+      name: product.name || 'Prodotto senza nome',
+      price: product.price ? parseFloat(product.price) : 0,
+      originalPrice: product.regular_price && product.sale_price && parseFloat(product.regular_price) > parseFloat(product.sale_price)
+        ? parseFloat(product.regular_price) 
+        : undefined,
+      image: product.images && product.images.length > 0 ? product.images[0].src : '/placeholder.svg',
+      rating: product.average_rating ? parseFloat(product.average_rating) : 0,
+      reviews: product.rating_count || 0,
+    };
+  });
+
+  console.log('Products from API:', products.length);
+  console.log('Transformed products:', transformedProducts.length);
 
   if (productsError) {
     return (
@@ -181,7 +187,7 @@ const Products = () => {
         )}
 
         {/* Products Grid */}
-        {!productsLoading && (
+        {!productsLoading && transformedProducts.length > 0 && (
           <div className={
             viewMode === 'grid' 
               ? "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"

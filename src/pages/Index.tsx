@@ -3,7 +3,7 @@ import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Star, Truck, Shield, Headphones } from 'lucide-react';
+import { ArrowRight, Star, Truck, Shield, Headphones, MapPin, Clock, Droplets } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useWooCommerceFeaturedProducts, useWooCommerceSaleProducts } from '@/hooks/useWooCommerce';
 
@@ -33,12 +33,16 @@ const Index = () => {
       <section className="gradient-primary text-white py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl md:text-6xl font-bold mb-6">
-            Il Tuo Shop
-            <span className="block text-yellow-300">del Futuro</span>
+            Imperatore
+            <span className="block text-yellow-300">Bevande</span>
           </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Scopri i migliori prodotti tech con spedizione veloce e garanzia di qualità
+          <p className="text-xl md:text-2xl mb-8 opacity-90 max-w-3xl mx-auto">
+            Consegna di acqua e bevande direttamente a casa tua a Bari
           </p>
+          <div className="flex items-center justify-center gap-2 mb-8 text-lg">
+            <MapPin className="w-6 h-6 text-yellow-300" />
+            <span>Servizio di consegna a domicilio su Bari</span>
+          </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/products">
               <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 font-semibold px-8 py-3">
@@ -60,24 +64,24 @@ const Index = () => {
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
                 <Truck className="w-12 h-12 mx-auto mb-4 text-purple-600" />
-                <h3 className="text-xl font-semibold mb-2">Spedizione Veloce</h3>
-                <p className="text-gray-600">Consegna gratuita per ordini sopra i 50€</p>
+                <h3 className="text-xl font-semibold mb-2">Consegna Veloce</h3>
+                <p className="text-gray-600">Consegna gratuita a Bari per ordini sopra i 30€</p>
               </CardContent>
             </Card>
             
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
-                <Shield className="w-12 h-12 mx-auto mb-4 text-purple-600" />
-                <h3 className="text-xl font-semibold mb-2">Garanzia Totale</h3>
-                <p className="text-gray-600">2 anni di garanzia su tutti i prodotti</p>
+                <Droplets className="w-12 h-12 mx-auto mb-4 text-purple-600" />
+                <h3 className="text-xl font-semibold mb-2">Acqua di Qualità</h3>
+                <p className="text-gray-600">Acqua naturale e bevande delle migliori marche</p>
               </CardContent>
             </Card>
             
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
-                <Headphones className="w-12 h-12 mx-auto mb-4 text-purple-600" />
-                <h3 className="text-xl font-semibold mb-2">Supporto 24/7</h3>
-                <p className="text-gray-600">Assistenza clienti sempre disponibile</p>
+                <Clock className="w-12 h-12 mx-auto mb-4 text-purple-600" />
+                <h3 className="text-xl font-semibold mb-2">Orari Flessibili</h3>
+                <p className="text-gray-600">Consegne dal lunedì al sabato negli orari che preferisci</p>
               </CardContent>
             </Card>
           </div>
@@ -155,19 +159,19 @@ const Index = () => {
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                name: "Marco Rossi",
+                name: "Maria Rossi",
                 rating: 5,
-                review: "Ottima qualità e spedizione velocissima! Consiglio vivamente questo shop.",
+                review: "Servizio eccellente! Consegna puntuale e acqua sempre fresca. Consigliatissimo!",
               },
               {
-                name: "Laura Bianchi",
+                name: "Giuseppe Bianchi",
                 rating: 5,
-                review: "Prodotti eccellenti e assistenza clienti fantastica. Tornerò sicuramente!",
+                review: "Finalmente un servizio di consegna acqua affidabile a Bari. Prezzi competitivi e qualità ottima.",
               },
               {
-                name: "Giuseppe Verdi",
+                name: "Anna Verdi",
                 rating: 4,
-                review: "Buon rapporto qualità-prezzo e molte opzioni di pagamento. Molto soddisfatto.",
+                review: "Molto comodo ordinare online. I fattorini sono sempre gentili e puntuali.",
               },
             ].map((review, index) => (
               <Card key={index} className="p-6">
@@ -196,9 +200,9 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-xl font-bold mb-4 text-gradient">ShopApp</h3>
+              <h3 className="text-xl font-bold mb-4 text-gradient">Imperatore Bevande</h3>
               <p className="text-gray-400">
-                Il tuo negozio online di fiducia per tecnologia e innovazione.
+                Consegna di acqua e bevande a domicilio su Bari. Qualità e puntualità garantite.
               </p>
             </div>
             
@@ -213,28 +217,28 @@ const Index = () => {
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Assistenza</h4>
+              <h4 className="font-semibold mb-4">Servizi</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Spedizioni</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Resi</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Garanzia</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Consegna a Domicilio</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Zona di Consegna</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Orari di Consegna</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Modalità di Pagamento</a></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4">Seguici</h4>
+              <h4 className="font-semibold mb-4">Contatti</h4>
               <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Facebook</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Instagram</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Twitter</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">YouTube</a></li>
+                <li>📞 Tel: +39 XXX XXX XXXX</li>
+                <li>📧 Email: info@imperatorebevande.it</li>
+                <li>📍 Bari, Puglia</li>
+                <li>🕒 Lun-Sab: 8:00-18:00</li>
               </ul>
             </div>
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 ShopApp. Tutti i diritti riservati.</p>
+            <p>&copy; 2024 Imperatore Bevande. Tutti i diritti riservati.</p>
           </div>
         </div>
       </footer>
