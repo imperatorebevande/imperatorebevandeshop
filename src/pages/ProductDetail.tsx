@@ -235,7 +235,7 @@ const ProductDetail = () => {
                 <CardContent className="p-0 text-center">
                   <Truck className="w-8 h-8 mx-auto mb-2 text-purple-600" />
                   <div className="text-sm font-medium">Spedizione Gratuita</div>
-                  <div className="text-xs text-gray-500">Su ordini > 50€</div>
+                  <div className="text-xs text-gray-500">Su ordini &gt; 50€</div>
                 </CardContent>
               </Card>
               
