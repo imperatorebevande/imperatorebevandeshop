@@ -14,7 +14,6 @@ const ProductDetail = () => {
   const { id } = useParams();
   const { dispatch } = useCart();
   const [quantity, setQuantity] = useState(1);
-  const [selectedImage, setSelectedImage] = useState(0);
 
   // Recupera il prodotto da WooCommerce
   const { 
@@ -94,11 +93,6 @@ const ProductDetail = () => {
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : null;
 
-  // Usa tutte le immagini disponibili o ripeti la prima
-  const productImages = wooProduct.images && wooProduct.images.length > 0 
-    ? wooProduct.images.map(img => img.src)
-    : [product.image, product.image, product.image];
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -115,196 +109,163 @@ const ProductDetail = () => {
           </div>
         </nav>
 
-        <div className="grid lg:grid-cols-2 gap-12">
-          {/* Product Images */}
-          <div>
-            <div className="mb-4 relative">
-              <img
-                src={productImages[selectedImage]}
-                alt={product.name}
-                className="w-full h-96 object-cover rounded-lg"
-                onError={(e) => {
-                  e.currentTarget.src = '/placeholder.svg';
-                }}
-              />
-              {discountPercentage && (
-                <Badge className="absolute top-4 left-4 bg-red-500 text-white">
-                  -{discountPercentage}%
-                </Badge>
-              )}
-            </div>
-            
-            <div className="flex space-x-2">
-              {productImages.slice(0, 3).map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`w-20 h-20 rounded-md overflow-hidden border-2 ${
-                    selectedImage === index ? 'border-purple-500' : 'border-gray-200'
-                  }`}
-                >
-                  <img
-                    src={image}
-                    alt={`${product.name} ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = '/placeholder.svg';
-                    }}
-                  />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Product Info */}
-          <div>
-            <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
-            
-            {/* Rating */}
-            <div className="flex items-center mb-4">
-              <div className="flex text-yellow-400 mr-2">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-5 h-5 ${
-                      i < Math.floor(product.rating) ? 'fill-current' : ''
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-gray-600">({product.reviews} recensioni)</span>
-            </div>
-
-            {/* Price */}
-            <div className="mb-6">
-              <div className="flex items-center space-x-3">
-                <span className="text-3xl font-bold text-purple-600">
-                  €{product.price.toFixed(2)}
-                </span>
-                {product.originalPrice && (
-                  <span className="text-xl text-gray-500 line-through">
-                    €{product.originalPrice.toFixed(2)}
-                  </span>
+        {/* Product Card Layout */}
+        <Card className="overflow-hidden">
+          <CardContent className="p-6">
+            <div className="flex gap-6">
+              {/* Product Image - Left Side */}
+              <div className="flex-shrink-0 relative">
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-[150px] h-[150px] object-cover rounded-lg bg-white p-2"
+                  onError={(e) => {
+                    e.currentTarget.src = '/placeholder.svg';
+                  }}
+                />
+                {discountPercentage && (
+                  <Badge className="absolute top-2 left-2 bg-red-500 text-white">
+                    -{discountPercentage}%
+                  </Badge>
                 )}
               </div>
-              {discountPercentage && (
-                <span className="text-green-600 font-medium">
-                  Risparmi €{(product.originalPrice! - product.price).toFixed(2)}!
-                </span>
-              )}
-            </div>
 
-            {/* Stock Status */}
-            <div className="mb-6">
-              {product.inStock ? (
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  ✓ Disponibile
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                  ✗ Non disponibile
-                </Badge>
-              )}
-            </div>
+              {/* Product Info - Right Side */}
+              <div className="flex-1">
+                <h1 className="text-2xl font-bold mb-3">{product.name}</h1>
+                
+                {/* Rating */}
+                {product.rating > 0 && (
+                  <div className="flex items-center mb-3">
+                    <div className="flex text-yellow-400 mr-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`w-4 h-4 ${
+                            i < Math.floor(product.rating) ? 'fill-current' : ''
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-sm text-gray-600">({product.reviews} recensioni)</span>
+                  </div>
+                )}
 
-            {/* Description */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2">Descrizione</h3>
-              <div 
-                className="text-gray-600"
-                dangerouslySetInnerHTML={{ 
-                  __html: product.description.replace(/<[^>]*>/g, '') 
-                }}
-              />
-            </div>
+                {/* Price */}
+                <div className="mb-4">
+                  <div className="flex items-center space-x-3">
+                    <span className="text-2xl font-bold text-purple-600">
+                      €{product.price.toFixed(2)}
+                    </span>
+                    {product.originalPrice && (
+                      <span className="text-lg text-gray-500 line-through">
+                        €{product.originalPrice.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                  {discountPercentage && (
+                    <span className="text-green-600 font-medium text-sm">
+                      Risparmi €{(product.originalPrice! - product.price).toFixed(2)}!
+                    </span>
+                  )}
+                </div>
 
-            {/* Features */}
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-2">Caratteristiche</h3>
-              <ul className="space-y-2">
-                {product.features.map((feature, index) => (
-                  <li key={index} className="flex items-center">
-                    <span className="w-2 h-2 bg-purple-500 rounded-full mr-3"></span>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
+                {/* Stock Status */}
+                <div className="mb-4">
+                  {product.inStock ? (
+                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                      ✓ Disponibile
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                      ✗ Non disponibile
+                    </Badge>
+                  )}
+                </div>
 
-            {/* Quantity and Add to Cart */}
-            {product.inStock && (
-              <div className="mb-6">
-                <div className="flex items-center space-x-4 mb-4">
-                  <label className="font-medium">Quantità:</label>
-                  <div className="flex items-center border rounded-md">
+                {/* Description */}
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold mb-2">Descrizione</h3>
+                  <div 
+                    className="text-gray-600 text-sm"
+                    dangerouslySetInnerHTML={{ 
+                      __html: product.description.replace(/<[^>]*>/g, '') 
+                    }}
+                  />
+                </div>
+
+                {/* Quantity and Add to Cart */}
+                {product.inStock && (
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <label className="font-medium text-sm">Quantità:</label>
+                      <div className="flex items-center border rounded-md">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                          className="px-3 h-8"
+                        >
+                          -
+                        </Button>
+                        <span className="px-3 py-1 border-x text-sm">{quantity}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setQuantity(quantity + 1)}
+                          className="px-3 h-8"
+                        >
+                          +
+                        </Button>
+                      </div>
+                    </div>
+
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-3"
+                      className="gradient-primary hover:opacity-90"
+                      onClick={handleAddToCart}
                     >
-                      -
+                      <ShoppingCart className="w-4 h-4 mr-2" />
+                      Aggiungi al Carrello
                     </Button>
-                    <span className="px-4 py-2 border-x">{quantity}</span>
+                    
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="px-3"
+                      variant="outline"
+                      onClick={() => toast.info('Funzionalità wishlist in arrivo!')}
                     >
-                      +
+                      <Heart className="w-4 h-4" />
                     </Button>
                   </div>
-                </div>
-
-                <div className="flex space-x-4">
-                  <Button
-                    size="lg"
-                    className="flex-1 gradient-primary hover:opacity-90"
-                    onClick={handleAddToCart}
-                  >
-                    <ShoppingCart className="w-5 h-5 mr-2" />
-                    Aggiungi al Carrello
-                  </Button>
-                  
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={() => toast.info('Funzionalità wishlist in arrivo!')}
-                  >
-                    <Heart className="w-5 h-5" />
-                  </Button>
-                </div>
+                )}
               </div>
-            )}
-
-            {/* Shipping Info */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card className="p-4">
-                <CardContent className="p-0 text-center">
-                  <Truck className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                  <div className="text-sm font-medium">Spedizione Gratuita</div>
-                  <div className="text-xs text-gray-500">Su ordini &gt; 50€</div>
-                </CardContent>
-              </Card>
-              
-              <Card className="p-4">
-                <CardContent className="p-0 text-center">
-                  <RotateCcw className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                  <div className="text-sm font-medium">Reso Gratuito</div>
-                  <div className="text-xs text-gray-500">Entro 30 giorni</div>
-                </CardContent>
-              </Card>
-              
-              <Card className="p-4">
-                <CardContent className="p-0 text-center">
-                  <Shield className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-                  <div className="text-sm font-medium">Garanzia</div>
-                  <div className="text-xs text-gray-500">2 anni</div>
-                </CardContent>
-              </Card>
             </div>
-          </div>
+          </CardContent>
+        </Card>
+
+        {/* Shipping Info */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+          <Card className="p-4">
+            <CardContent className="p-0 text-center">
+              <Truck className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+              <div className="text-sm font-medium">Spedizione Gratuita</div>
+              <div className="text-xs text-gray-500">Su ordini &gt; 50€</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="p-4">
+            <CardContent className="p-0 text-center">
+              <RotateCcw className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+              <div className="text-sm font-medium">Reso Gratuito</div>
+              <div className="text-xs text-gray-500">Entro 30 giorni</div>
+            </CardContent>
+          </Card>
+          
+          <Card className="p-4">
+            <CardContent className="p-0 text-center">
+              <Shield className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+              <div className="text-sm font-medium">Garanzia</div>
+              <div className="text-xs text-gray-500">2 anni</div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
