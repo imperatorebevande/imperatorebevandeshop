@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
-import { products } from '@/data/products';
-import { ShoppingCart, Heart, Star, ArrowLeft, Truck, Shield, RotateCcw } from 'lucide-react';
+import { useWooCommerceProduct } from '@/hooks/useWooCommerce';
+import { ShoppingCart, Heart, Star, ArrowLeft, Truck, Shield, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ProductDetail = () => {
@@ -16,14 +16,34 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
 
-  const product = products.find(p => p.id === parseInt(id || '0'));
+  // Recupera il prodotto da WooCommerce
+  const { 
+    data: wooProduct, 
+    isLoading, 
+    error 
+  } = useWooCommerceProduct(parseInt(id || '0'));
 
-  if (!product) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-16 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-600" />
+            <p className="text-gray-600">Caricamento prodotto...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !wooProduct) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
         <div className="container mx-auto px-4 py-16 text-center">
           <h1 className="text-4xl font-bold mb-4">Prodotto non trovato</h1>
+          <p className="text-gray-600 mb-6">Il prodotto che stai cercando non esiste o è stato rimosso.</p>
           <Link to="/products">
             <Button className="gradient-primary">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -34,6 +54,26 @@ const ProductDetail = () => {
       </div>
     );
   }
+
+  // Trasforma il prodotto WooCommerce nel formato locale
+  const product = {
+    id: wooProduct.id,
+    name: wooProduct.name || 'Prodotto senza nome',
+    price: wooProduct.price ? parseFloat(wooProduct.price) : 0,
+    originalPrice: wooProduct.regular_price && wooProduct.sale_price && parseFloat(wooProduct.regular_price) > parseFloat(wooProduct.sale_price)
+      ? parseFloat(wooProduct.regular_price) 
+      : undefined,
+    image: wooProduct.images && wooProduct.images.length > 0 ? wooProduct.images[0].src : '/placeholder.svg',
+    rating: wooProduct.average_rating ? parseFloat(wooProduct.average_rating) : 0,
+    reviews: wooProduct.rating_count || 0,
+    description: wooProduct.short_description || wooProduct.description || 'Nessuna descrizione disponibile',
+    inStock: wooProduct.stock_status === 'instock',
+    features: [
+      'Prodotto di qualità',
+      'Consegna rapida a Bari',
+      'Garanzia di freschezza'
+    ]
+  };
 
   const handleAddToCart = () => {
     for (let i = 0; i < quantity; i++) {
@@ -54,12 +94,10 @@ const ProductDetail = () => {
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : null;
 
-  // Mock multiple images for demonstration
-  const productImages = [
-    product.image,
-    product.image,
-    product.image,
-  ];
+  // Usa tutte le immagini disponibili o ripeti la prima
+  const productImages = wooProduct.images && wooProduct.images.length > 0 
+    ? wooProduct.images.map(img => img.src)
+    : [product.image, product.image, product.image];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -80,11 +118,14 @@ const ProductDetail = () => {
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Product Images */}
           <div>
-            <div className="mb-4">
+            <div className="mb-4 relative">
               <img
                 src={productImages[selectedImage]}
                 alt={product.name}
                 className="w-full h-96 object-cover rounded-lg"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
               />
               {discountPercentage && (
                 <Badge className="absolute top-4 left-4 bg-red-500 text-white">
@@ -94,7 +135,7 @@ const ProductDetail = () => {
             </div>
             
             <div className="flex space-x-2">
-              {productImages.map((image, index) => (
+              {productImages.slice(0, 3).map((image, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImage(index)}
@@ -106,6 +147,9 @@ const ProductDetail = () => {
                     src={image}
                     alt={`${product.name} ${index + 1}`}
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = '/placeholder.svg';
+                    }}
                   />
                 </button>
               ))}
@@ -166,7 +210,12 @@ const ProductDetail = () => {
             {/* Description */}
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-2">Descrizione</h3>
-              <p className="text-gray-600">{product.description}</p>
+              <div 
+                className="text-gray-600"
+                dangerouslySetInnerHTML={{ 
+                  __html: product.description.replace(/<[^>]*>/g, '') 
+                }}
+              />
             </div>
 
             {/* Features */}
