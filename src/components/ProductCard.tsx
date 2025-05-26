@@ -56,11 +56,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
   return (
     <Link to={`/product/${product.id}`}>
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
-        <div className="relative overflow-hidden">
+        <div className="relative overflow-hidden flex justify-center items-center bg-gray-50">
           <img
             src={product.image}
             alt={product.name}
-            className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-[150px] h-[150px] object-cover group-hover:scale-105 transition-transform duration-300"
             onError={(e) => {
               e.currentTarget.src = '/placeholder.svg';
             }}
