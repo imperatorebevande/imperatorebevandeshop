@@ -81,7 +81,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </div>
         
         <CardContent className="p-4">
-          <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-purple-600 transition-colors min-h-[3.5rem]">
+          <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors min-h-[3.5rem]">
             {truncatedName}
           </h3>
           
@@ -102,7 +102,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           
           <div className="flex items-center justify-between mt-auto">
             <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold text-purple-600">
+              <span className="text-xl font-bold text-blue-600">
                 €{product.price.toFixed(2)}
               </span>
               {product.originalPrice && product.originalPrice > product.price && (
@@ -114,7 +114,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             
             <Button
               size="sm"
-              className="gradient-primary hover:opacity-90 transition-opacity"
+              className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white transition-all"
               onClick={handleAddToCart}
             >
               <ShoppingCart className="w-4 h-4 mr-1" />

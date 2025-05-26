@@ -30,27 +30,27 @@ const Index = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="gradient-primary text-white py-20">
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-5xl md:text-6xl font-bold mb-6">
             Imperatore
-            <span className="block text-yellow-300">Bevande</span>
+            <span className="block text-blue-200">Bevande</span>
           </h1>
           <p className="text-xl md:text-2xl mb-8 opacity-90 max-w-3xl mx-auto">
             Consegna di acqua e bevande direttamente a casa tua a Bari
           </p>
           <div className="flex items-center justify-center gap-2 mb-8 text-lg">
-            <MapPin className="w-6 h-6 text-yellow-300" />
+            <MapPin className="w-6 h-6 text-blue-200" />
             <span>Servizio di consegna a domicilio su Bari</span>
           </div>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/products">
-              <Button size="lg" className="bg-white text-purple-600 hover:bg-gray-100 font-semibold px-8 py-3">
+              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-8 py-3">
                 Scopri i Prodotti
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-purple-600 px-8 py-3">
+            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-3">
               Offerte Speciali
             </Button>
           </div>
@@ -63,7 +63,7 @@ const Index = () => {
           <div className="grid md:grid-cols-3 gap-8">
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
-                <Truck className="w-12 h-12 mx-auto mb-4 text-purple-600" />
+                <Truck className="w-12 h-12 mx-auto mb-4 text-blue-600" />
                 <h3 className="text-xl font-semibold mb-2">Consegna Veloce</h3>
                 <p className="text-gray-600">Consegna gratuita a Bari per ordini sopra i 30€</p>
               </CardContent>
@@ -71,7 +71,7 @@ const Index = () => {
             
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
-                <Droplets className="w-12 h-12 mx-auto mb-4 text-purple-600" />
+                <Droplets className="w-12 h-12 mx-auto mb-4 text-blue-600" />
                 <h3 className="text-xl font-semibold mb-2">Acqua di Qualità</h3>
                 <p className="text-gray-600">Acqua naturale e bevande delle migliori marche</p>
               </CardContent>
@@ -79,7 +79,7 @@ const Index = () => {
             
             <Card className="text-center p-6 hover:shadow-lg transition-shadow">
               <CardContent className="pt-6">
-                <Clock className="w-12 h-12 mx-auto mb-4 text-purple-600" />
+                <Clock className="w-12 h-12 mx-auto mb-4 text-blue-600" />
                 <h3 className="text-xl font-semibold mb-2">Orari Flessibili</h3>
                 <p className="text-gray-600">Consegne dal lunedì al sabato negli orari che preferisci</p>
               </CardContent>
@@ -92,7 +92,7 @@ const Index = () => {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gradient">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
               Prodotti in Evidenza
             </h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
@@ -114,7 +114,7 @@ const Index = () => {
           
           <div className="text-center">
             <Link to="/products">
-              <Button size="lg" className="gradient-primary hover:opacity-90">
+              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white">
                 Vedi Tutti i Prodotti
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
@@ -124,7 +124,7 @@ const Index = () => {
       </section>
 
       {/* Special Offers */}
-      <section className="py-16 bg-gradient-to-r from-pink-100 to-purple-100">
+      <section className="py-16 bg-gradient-to-r from-blue-50 to-blue-100">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
@@ -200,7 +200,7 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-xl font-bold mb-4 text-gradient">Imperatore Bevande</h3>
+              <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Imperatore Bevande</h3>
               <p className="text-gray-400">
                 Consegna di acqua e bevande a domicilio su Bari. Qualità e puntualità garantite.
               </p>
