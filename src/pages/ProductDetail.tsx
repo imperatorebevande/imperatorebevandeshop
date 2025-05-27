@@ -2,11 +2,12 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from '@/components/Header';
+import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
-import { useWooCommerceProduct } from '@/hooks/useWooCommerce';
+import { useWooCommerceProduct, useWooCommerceProducts } from '@/hooks/useWooCommerce';
 import { ShoppingCart, Heart, Star, ArrowLeft, Truck, Shield, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -21,6 +22,20 @@ const ProductDetail = () => {
     isLoading, 
     error 
   } = useWooCommerceProduct(parseInt(id || '0'));
+
+  // Recupera prodotti correlati della stessa categoria
+  const categoryId = wooProduct?.categories?.[0]?.id;
+  const { 
+    data: relatedWooProducts, 
+    isLoading: isLoadingRelated 
+  } = useWooCommerceProducts(
+    { 
+      category: categoryId?.toString(),
+      per_page: 4,
+      exclude: [parseInt(id || '0')] 
+    },
+    { enabled: !!categoryId }
+  );
 
   if (isLoading) {
     return (
@@ -66,7 +81,7 @@ const ProductDetail = () => {
     rating: wooProduct.average_rating ? parseFloat(wooProduct.average_rating) : 0,
     reviews: wooProduct.rating_count || 0,
     description: wooProduct.short_description || wooProduct.description || 'Nessuna descrizione disponibile',
-    inStock: wooProduct.stock_status === 'instock', // Use WooCommerce stock status
+    inStock: wooProduct.stock_status === 'instock',
     stock_status: wooProduct.stock_status,
     features: [
       'Prodotto di qualità',
@@ -74,6 +89,21 @@ const ProductDetail = () => {
       'Garanzia di freschezza'
     ]
   };
+
+  // Trasforma prodotti correlati nel formato locale
+  const relatedProducts = relatedWooProducts?.map(wooProduct => ({
+    id: wooProduct.id,
+    name: wooProduct.name || 'Prodotto senza nome',
+    price: wooProduct.price ? parseFloat(wooProduct.price) : 0,
+    originalPrice: wooProduct.regular_price && wooProduct.sale_price && parseFloat(wooProduct.regular_price) > parseFloat(wooProduct.sale_price)
+      ? parseFloat(wooProduct.regular_price) 
+      : undefined,
+    image: wooProduct.images && wooProduct.images.length > 0 ? wooProduct.images[0].src : '/placeholder.svg',
+    rating: wooProduct.average_rating ? parseFloat(wooProduct.average_rating) : 0,
+    reviews: wooProduct.rating_count || 0,
+    inStock: wooProduct.stock_status === 'instock',
+    stock_status: wooProduct.stock_status
+  })) || [];
 
   console.log('Product stock status:', wooProduct.stock_status, 'Is in stock:', product.inStock);
 
@@ -286,6 +316,25 @@ const ProductDetail = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Related Products Section */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold mb-6 text-gray-800">Prodotti Correlati</h2>
+            {isLoadingRelated ? (
+              <div className="text-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-purple-600" />
+                <p className="text-gray-600">Caricamento prodotti correlati...</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {relatedProducts.map((relatedProduct) => (
+                  <ProductCard key={relatedProduct.id} product={relatedProduct} />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
