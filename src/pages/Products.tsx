@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -121,9 +120,9 @@ const Products = () => {
     })
   };
 
-  // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard
+  // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard includendo stock status
   const transformedProducts = products.map(product => {
-    console.log('Transforming product:', product.name, product);
+    console.log('Transforming product:', product.name, 'Stock status:', product.stock_status);
     return {
       id: product.id,
       name: product.name || 'Prodotto senza nome',
@@ -134,6 +133,8 @@ const Products = () => {
       image: product.images && product.images.length > 0 ? product.images[0].src : '/placeholder.svg',
       rating: product.average_rating ? parseFloat(product.average_rating) : 0,
       reviews: product.rating_count || 0,
+      stock_status: product.stock_status, // Include WooCommerce stock status
+      inStock: product.stock_status === 'instock', // Explicit stock check
     };
   });
 

@@ -16,6 +16,7 @@ interface Product {
   rating?: number;
   reviews?: number;
   inStock?: boolean;
+  stock_status?: string; // Added WooCommerce stock status
 }
 
 interface ProductCardProps {
@@ -24,7 +25,9 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const { dispatch } = useCart();
-  const isAvailable = product.inStock !== false; // Default to available if not specified
+  
+  // Check stock availability from WooCommerce data
+  const isAvailable = product.stock_status === 'instock' || (product.inStock !== false && !product.stock_status);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -67,7 +70,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
   return (
     <Link to={`/product/${product.id}`}>
-      <Card className={`group overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 ${!isAvailable ? 'opacity-75' : ''}`}>
+      <Card className={`group overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 ${!isAvailable ? 'opacity-75 grayscale' : ''}`}>
         <div className="relative overflow-hidden flex justify-center items-center bg-white p-4">
           <img
             src={product.image}

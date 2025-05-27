@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -53,7 +54,7 @@ const ProductDetail = () => {
     );
   }
 
-  // Trasforma il prodotto WooCommerce nel formato locale
+  // Trasforma il prodotto WooCommerce nel formato locale con controllo stock
   const product = {
     id: wooProduct.id,
     name: wooProduct.name || 'Prodotto senza nome',
@@ -65,13 +66,16 @@ const ProductDetail = () => {
     rating: wooProduct.average_rating ? parseFloat(wooProduct.average_rating) : 0,
     reviews: wooProduct.rating_count || 0,
     description: wooProduct.short_description || wooProduct.description || 'Nessuna descrizione disponibile',
-    inStock: wooProduct.stock_status === 'instock',
+    inStock: wooProduct.stock_status === 'instock', // Use WooCommerce stock status
+    stock_status: wooProduct.stock_status,
     features: [
       'Prodotto di qualità',
       'Consegna rapida a Bari',
       'Garanzia di freschezza'
     ]
   };
+
+  console.log('Product stock status:', wooProduct.stock_status, 'Is in stock:', product.inStock);
 
   const handleAddToCart = () => {
     if (!product.inStock) {
@@ -122,7 +126,7 @@ const ProductDetail = () => {
                 <img
                   src={product.image}
                   alt={product.name}
-                  className="w-[150px] h-[150px] object-cover rounded-lg bg-white p-2"
+                  className={`w-[150px] h-[150px] object-cover rounded-lg bg-white p-2 ${!product.inStock ? 'grayscale opacity-75' : ''}`}
                   onError={(e) => {
                     e.currentTarget.src = '/placeholder.svg';
                   }}
@@ -203,9 +207,9 @@ const ProductDetail = () => {
                   />
                 </div>
 
-                {/* Quantity and Add to Cart - Updated to handle availability */}
+                {/* Quantity and Add to Cart - Only show if in stock */}
                 <div className="flex items-center space-x-4">
-                  {product.inStock && (
+                  {product.inStock ? (
                     <>
                       <div className="flex items-center space-x-2">
                         <label className="font-medium text-sm">Quantità:</label>
@@ -238,11 +242,9 @@ const ProductDetail = () => {
                         Aggiungi al Carrello
                       </Button>
                     </>
-                  )}
-                  
-                  {!product.inStock && (
-                    <div className="text-gray-500 text-sm">
-                      Questo prodotto non è attualmente disponibile
+                  ) : (
+                    <div className="text-gray-500 text-sm font-medium bg-gray-100 px-4 py-2 rounded-md">
+                      Questo prodotto non è attualmente disponibile per l'acquisto
                     </div>
                   )}
                   

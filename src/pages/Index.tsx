@@ -1,3 +1,4 @@
+
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
@@ -10,7 +11,7 @@ const Index = () => {
   const { data: bestSellingProducts = [], isLoading: bestSellingLoading } = useWooCommerceBestSellingProducts({ per_page: 4 });
   const { data: saleProducts = [], isLoading: saleLoading } = useWooCommerceSaleProducts({ per_page: 4 });
 
-  // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard
+  // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard includendo stock status
   const transformWooCommerceProduct = (product: any) => ({
     id: product.id,
     name: product.name,
@@ -19,6 +20,8 @@ const Index = () => {
     image: product.images?.[0]?.src || '/placeholder.svg',
     rating: parseFloat(product.average_rating) || 0,
     reviews: product.rating_count || 0,
+    stock_status: product.stock_status, // Include WooCommerce stock status
+    inStock: product.stock_status === 'instock', // Explicit stock check
   });
 
   const transformedBestSellingProducts = bestSellingProducts.map(transformWooCommerceProduct);
@@ -194,7 +197,6 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">
