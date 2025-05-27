@@ -463,6 +463,70 @@ class WooCommerceService {
       throw error;
     }
   }
+
+  // NUOVO METODO PER CREARE ORDINI
+  async createOrder(orderData: {
+    customer_id?: number;
+    billing: {
+      first_name: string;
+      last_name: string;
+      address_1: string;
+      city: string;
+      state: string;
+      postcode: string;
+      country: string;
+      email: string;
+      phone: string;
+    };
+    shipping: {
+      first_name: string;
+      last_name: string;
+      address_1: string;
+      city: string;
+      state: string;
+      postcode: string;
+      country: string;
+    };
+    line_items: {
+      product_id: number;
+      quantity: number;
+    }[];
+    payment_method: string;
+    payment_method_title: string;
+    status?: string;
+  }): Promise<WooCommerceOrder> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.post('/orders', orderData);
+      console.log('WooCommerce order created:', response.data.number);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nella creazione dell\'ordine:', error);
+      throw error;
+    }
+  }
+
+  // METODO PER AGGIORNARE LO STOCK DEI PRODOTTI
+  async updateProductStock(productId: number, stockQuantity: number): Promise<WooCommerceProduct> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.put(`/products/${productId}`, {
+        stock_quantity: stockQuantity,
+        manage_stock: true
+      });
+      console.log('Product stock updated:', response.data.name);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento dello stock:', error);
+      throw error;
+    }
+  }
 }
 
 // Istanza singleton del servizio

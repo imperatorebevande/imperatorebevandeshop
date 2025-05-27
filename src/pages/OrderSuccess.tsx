@@ -1,14 +1,21 @@
 
 import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, ArrowLeft, Package } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { CheckCircle, Package, Truck, Home } from 'lucide-react';
 
 const OrderSuccess = () => {
+  const location = useLocation();
+  const orderData = location.state as { 
+    orderNumber?: string; 
+    orderId?: number; 
+    total?: string; 
+  } | null;
+
   useEffect(() => {
-    // Scroll to top quando la pagina si carica
+    // Scroll to top when component mounts
     window.scrollTo(0, 0);
   }, []);
 
@@ -17,70 +24,73 @@ const OrderSuccess = () => {
       <Header />
       
       <div className="container mx-auto px-4 py-16">
-        <div className="max-w-2xl mx-auto text-center">
-          <Card>
-            <CardHeader>
-              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-12 h-12 text-green-600" />
+        <Card className="max-w-2xl mx-auto text-center">
+          <CardContent className="pt-12 pb-8">
+            <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
+            
+            <h1 className="text-3xl font-bold text-green-700 mb-4">
+              Ordine Completato!
+            </h1>
+            
+            <p className="text-gray-600 mb-6">
+              Grazie per il tuo acquisto. Il tuo ordine è stato ricevuto e sarà processato a breve.
+            </p>
+
+            {orderData && (
+              <div className="bg-green-50 p-6 rounded-lg mb-8">
+                <div className="space-y-2">
+                  <p className="text-lg font-semibold">
+                    Numero Ordine: <span className="text-green-700">#{orderData.orderNumber}</span>
+                  </p>
+                  {orderData.total && (
+                    <p className="text-lg">
+                      Totale: <span className="font-semibold">€{parseFloat(orderData.total).toFixed(2)}</span>
+                    </p>
+                  )}
+                </div>
               </div>
-              <CardTitle className="text-3xl text-green-600">
-                Ordine Completato!
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <p className="text-gray-600 text-lg">
-                Grazie per il tuo acquisto! Il tuo ordine è stato registrato con successo.
+            )}
+
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div className="flex items-center justify-center p-4 bg-blue-50 rounded-lg">
+                <Package className="w-8 h-8 text-blue-600 mr-3" />
+                <div className="text-left">
+                  <h3 className="font-semibold text-blue-700">Preparazione</h3>
+                  <p className="text-sm text-blue-600">Il tuo ordine sarà preparato entro 24 ore</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-center p-4 bg-blue-50 rounded-lg">
+                <Truck className="w-8 h-8 text-blue-600 mr-3" />
+                <div className="text-left">
+                  <h3 className="font-semibold text-blue-700">Consegna</h3>
+                  <p className="text-sm text-blue-600">Consegna gratuita a Bari</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Riceverai una email di conferma con i dettagli del tuo ordine e il tracking della spedizione.
               </p>
               
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <div className="flex items-center justify-center mb-4">
-                  <Package className="w-8 h-8 text-blue-600 mr-3" />
-                  <span className="text-lg font-semibold">Numero Ordine: #12345</span>
-                </div>
-                <p className="text-gray-600">
-                  Riceverai una email di conferma con tutti i dettagli del tuo ordine 
-                  e le informazioni per il tracking della spedizione.
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl mb-2">📧</div>
-                    <h3 className="font-semibold mb-1">Email di Conferma</h3>
-                    <p className="text-sm text-gray-600">Entro 5 minuti</p>
-                  </div>
-                  
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl mb-2">🚚</div>
-                    <h3 className="font-semibold mb-1">Spedizione</h3>
-                    <p className="text-sm text-gray-600">Entro 24-48 ore</p>
-                  </div>
-                </div>
-              </div>
-
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/products">
-                  <Button variant="outline" size="lg">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Continua lo Shopping
+                <Link to="/">
+                  <Button className="gradient-primary">
+                    <Home className="w-4 h-4 mr-2" />
+                    Torna alla Home
                   </Button>
                 </Link>
                 
-                <Link to="/account">
-                  <Button size="lg" className="gradient-primary">
-                    Visualizza i Tuoi Ordini
+                <Link to="/products">
+                  <Button variant="outline">
+                    Continua a Comprare
                   </Button>
                 </Link>
               </div>
-
-              <div className="text-center text-sm text-gray-500 space-y-1">
-                <p>Per qualsiasi domanda, contattaci:</p>
-                <p>📞 +39 123 456 7890 | 📧 info@imperatobevande.it</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

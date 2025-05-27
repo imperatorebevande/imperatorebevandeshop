@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -10,10 +9,12 @@ import { useCart } from '@/context/CartContext';
 import { useWooCommerceCustomer } from '@/hooks/useWooCommerce';
 import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useCreateWooCommerceOrder } from '@/hooks/useWooCommerce';
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
   const navigate = useNavigate();
+  const createOrder = useCreateWooCommerceOrder();
   
   // Per ora usiamo l'ID cliente 1 - in un'app reale questo verrebbe dall'autenticazione
   const customerId = 1;
@@ -61,13 +62,64 @@ const Checkout = () => {
     e.preventDefault();
     setIsProcessing(true);
 
-    // Simula elaborazione pagamento
-    setTimeout(() => {
+    try {
+      // Prepara i dati dell'ordine per WooCommerce
+      const orderData = {
+        customer_id: customerId, // ID del cliente attuale
+        billing: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          address_1: formData.address,
+          city: formData.city,
+          state: formData.province,
+          postcode: formData.postalCode,
+          country: 'IT',
+          email: formData.email,
+          phone: formData.phone,
+        },
+        shipping: {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          address_1: formData.address,
+          city: formData.city,
+          state: formData.province,
+          postcode: formData.postalCode,
+          country: 'IT',
+        },
+        line_items: state.items.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+        })),
+        payment_method: paymentMethod,
+        payment_method_title: 
+          paymentMethod === 'card' ? 'Carta di Credito/Debito' :
+          paymentMethod === 'paypal' ? 'PayPal' : 'Contrassegno',
+        status: 'processing',
+      };
+
+      // Invia l'ordine a WooCommerce
+      const wooCommerceOrder = await createOrder(orderData);
+      
+      console.log('Ordine WooCommerce creato:', wooCommerceOrder);
+      
+      // Svuota il carrello locale
       dispatch({ type: 'CLEAR_CART' });
-      toast.success('Ordine completato con successo!');
-      navigate('/order-success');
+      
+      toast.success(`Ordine #${wooCommerceOrder.number} completato con successo!`);
+      navigate('/order-success', { 
+        state: { 
+          orderNumber: wooCommerceOrder.number,
+          orderId: wooCommerceOrder.id,
+          total: wooCommerceOrder.total 
+        } 
+      });
+      
+    } catch (error) {
+      console.error('Errore durante la creazione dell\'ordine:', error);
+      toast.error('Errore durante la creazione dell\'ordine. Riprova più tardi.');
+    } finally {
       setIsProcessing(false);
-    }, 2000);
+    }
   };
 
   const isFormValid = () => {

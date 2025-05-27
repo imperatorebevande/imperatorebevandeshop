@@ -199,3 +199,17 @@ export const useWooCommerceOrder = (
     ...options,
   });
 };
+
+// NUOVO HOOK PER CREARE ORDINI
+export const useCreateWooCommerceOrder = () => {
+  return async (orderData: any) => {
+    return await wooCommerceService.createOrder(orderData);
+  };
+};
+
+// HOOK PER AGGIORNARE LO STOCK
+export const useUpdateProductStock = () => {
+  return async (productId: number, stockQuantity: number) => {
+    return await wooCommerceService.updateProductStock(productId, stockQuantity);
+  };
+};
