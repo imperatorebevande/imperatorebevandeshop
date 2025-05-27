@@ -527,6 +527,22 @@ class WooCommerceService {
       throw error;
     }
   }
+
+  // NUOVO METODO PER OTTENERE I METODI DI PAGAMENTO DISPONIBILI
+  async getPaymentGateways(): Promise<any[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.get('/payment_gateways');
+      console.log('WooCommerce payment gateways fetched:', response.data.length);
+      return response.data.filter((gateway: any) => gateway.enabled === true);
+    } catch (error) {
+      console.error('Errore nel recupero dei metodi di pagamento:', error);
+      throw error;
+    }
+  }
 }
 
 // Istanza singleton del servizio

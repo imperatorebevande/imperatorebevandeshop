@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCart } from '@/context/CartContext';
-import { useWooCommerceCustomer } from '@/hooks/useWooCommerce';
+import { useWooCommerceCustomer, useWooCommercePaymentGateways } from '@/hooks/useWooCommerce';
 import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreateWooCommerceOrder } from '@/hooks/useWooCommerce';
@@ -19,6 +19,7 @@ const Checkout = () => {
   // Per ora usiamo l'ID cliente 1 - in un'app reale questo verrebbe dall'autenticazione
   const customerId = 1;
   const { data: customer, isLoading: customerLoading } = useWooCommerceCustomer(customerId);
+  const { data: paymentGateways, isLoading: paymentGatewaysLoading } = useWooCommercePaymentGateways();
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -31,7 +32,7 @@ const Checkout = () => {
     province: '',
   });
 
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   // Precompila i dati dal profilo utente quando vengono caricati
@@ -50,6 +51,13 @@ const Checkout = () => {
     }
   }, [customer]);
 
+  // Imposta il primo metodo di pagamento disponibile come default
+  useEffect(() => {
+    if (paymentGateways && paymentGateways.length > 0 && !paymentMethod) {
+      setPaymentMethod(paymentGateways[0].id);
+    }
+  }, [paymentGateways, paymentMethod]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -63,6 +71,9 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
+      // Trova il metodo di pagamento selezionato per ottenere il titolo
+      const selectedPaymentGateway = paymentGateways?.find(gateway => gateway.id === paymentMethod);
+      
       // Prepara i dati dell'ordine per WooCommerce
       const orderData = {
         customer_id: customerId, // ID del cliente attuale
@@ -91,9 +102,7 @@ const Checkout = () => {
           quantity: item.quantity,
         })),
         payment_method: paymentMethod,
-        payment_method_title: 
-          paymentMethod === 'card' ? 'Carta di Credito/Debito' :
-          paymentMethod === 'paypal' ? 'PayPal' : 'Contrassegno',
+        payment_method_title: selectedPaymentGateway?.title || paymentMethod,
         status: 'processing',
       };
 
@@ -123,7 +132,7 @@ const Checkout = () => {
   };
 
   const isFormValid = () => {
-    return Object.values(formData).every(value => value.trim() !== '');
+    return Object.values(formData).every(value => value.trim() !== '') && paymentMethod;
   };
 
   if (state.items.length === 0) {
@@ -292,54 +301,66 @@ const Checkout = () => {
                 <CardTitle className="flex items-center">
                   <CreditCard className="w-5 h-5 mr-2" />
                   Metodo di Pagamento
+                  {paymentGatewaysLoading && (
+                    <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 gap-3">
-                    <label className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="card"
-                        checked={paymentMethod === 'card'}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="text-blue-600"
-                      />
-                      <CreditCard className="w-5 h-5" />
-                      <span>Carta di Credito/Debito</span>
-                    </label>
-                    
-                    <label className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="paypal"
-                        checked={paymentMethod === 'paypal'}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="text-blue-600"
-                      />
-                      <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">
-                        P
-                      </div>
-                      <span>PayPal</span>
-                    </label>
-                    
-                    <label className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
-                      <input
-                        type="radio"
-                        name="payment"
-                        value="cash"
-                        checked={paymentMethod === 'cash'}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                        className="text-blue-600"
-                      />
-                      <div className="w-5 h-5 bg-green-600 rounded flex items-center justify-center text-white text-xs">
-                        €
-                      </div>
-                      <span>Contrassegno</span>
-                    </label>
-                  </div>
+                  {paymentGatewaysLoading ? (
+                    <div className="text-center py-4">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                      <p className="text-sm text-gray-500 mt-2">Caricamento metodi di pagamento...</p>
+                    </div>
+                  ) : paymentGateways && paymentGateways.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-3">
+                      {paymentGateways.map((gateway) => (
+                        <label 
+                          key={gateway.id}
+                          className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50"
+                        >
+                          <input
+                            type="radio"
+                            name="payment"
+                            value={gateway.id}
+                            checked={paymentMethod === gateway.id}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                            className="text-blue-600"
+                            disabled={paymentGatewaysLoading}
+                          />
+                          <div className="flex items-center space-x-2">
+                            {/* Icona personalizzata basata sul tipo di gateway */}
+                            {gateway.id.includes('stripe') || gateway.id.includes('card') ? (
+                              <CreditCard className="w-5 h-5" />
+                            ) : gateway.id.includes('paypal') ? (
+                              <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center text-white text-xs font-bold">
+                                P
+                              </div>
+                            ) : gateway.id.includes('cod') || gateway.id.includes('cash') ? (
+                              <div className="w-5 h-5 bg-green-600 rounded flex items-center justify-center text-white text-xs">
+                                €
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5 bg-gray-600 rounded flex items-center justify-center text-white text-xs">
+                                •
+                              </div>
+                            )}
+                            <div>
+                              <span className="font-medium">{gateway.title}</span>
+                              {gateway.description && (
+                                <p className="text-sm text-gray-500">{gateway.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500">Nessun metodo di pagamento disponibile</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

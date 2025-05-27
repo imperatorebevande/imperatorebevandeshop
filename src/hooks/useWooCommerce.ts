@@ -213,3 +213,16 @@ export const useUpdateProductStock = () => {
     return await wooCommerceService.updateProductStock(productId, stockQuantity);
   };
 };
+
+// NUOVO HOOK PER OTTENERE I METODI DI PAGAMENTO
+export const useWooCommercePaymentGateways = (
+  options?: Partial<UseQueryOptions<any[], Error>>
+) => {
+  return useQuery({
+    queryKey: ['woocommerce-payment-gateways'],
+    queryFn: () => wooCommerceService.getPaymentGateways(),
+    staleTime: 30 * 60 * 1000, // 30 minuti - i metodi di pagamento cambiano raramente
+    gcTime: 60 * 60 * 1000, // 1 ora
+    ...options,
+  });
+};
