@@ -42,7 +42,7 @@ const Checkout = () => {
         firstName: customer.first_name || '',
         lastName: customer.last_name || '',
         email: customer.email || '',
-        phone: '', // Phone field will remain empty as it's not available in the customer object
+        phone: customer.billing.phone || '',
         address: customer.shipping.address_1 || customer.billing.address_1 || '',
         city: customer.shipping.city || customer.billing.city || '',
         postalCode: customer.shipping.postcode || customer.billing.postcode || '',
