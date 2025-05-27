@@ -225,31 +225,38 @@ const ProductDetail = () => {
           <Card className="p-4">
             <CardContent className="p-0 text-center">
               <Truck className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-              <div className="text-sm font-medium">Spedizione Gratuita</div>
-              <div className="text-xs text-gray-500">Su ordini &gt; 50€</div>
+              <div className="text-sm font-medium">Consegna Sempre GRATUITA</div>
+              <div className="text-xs text-gray-500">
+            </div>
             </CardContent>
           </Card>
           
           <Card className="p-4">
             <CardContent className="p-0 text-center">
               <RotateCcw className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-              <div className="text-sm font-medium">Reso Gratuito</div>
-              <div className="text-xs text-gray-500">Entro 30 giorni</div>
+              <div className="text-sm font-medium">
+            </div>
+              <div className="text-xs text-gray-500">
+            </div>
             </CardContent>
           </Card>
           
           <Card className="p-4">
             <CardContent className="p-0 text-center">
               <Shield className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-              <div className="text-sm font-medium">Garanzia</div>
-              <div className="text-xs text-gray-500">2 anni</div>
+              <div className="text-sm font-medium">Questo prodotto è presente nei nostri magazzini e sarà consegnato a distanza di un solo giorno lavorativo.
+
+⏳ TEMPI DI ATTESA NULLI
+
+Ordina OGGI , consegnamo DOMANI 😁</div>
+              <div className="text-xs text-gray-500">c</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Related Products Section */}
         {relatedProducts.length > 0 && <div className="mt-12">
-            <h2 className="text-2xl font-bold mb-6 text-gray-800">Prodotti Correlati</h2>
+            <h2 className="text-2xl mb-6 text-gray-800 font-bold text-center">Prodotti Simili a quello selezionato</h2>
             {isLoadingRelated ? <div className="text-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-purple-600" />
                 <p className="text-gray-600">Caricamento prodotti correlati...</p>
