@@ -17,7 +17,7 @@ const Products = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('date');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [activeMainFilter, setActiveMainFilter] = useState('tutti');
+  const [activeMainFilter, setActiveMainFilter] = useState('acqua'); // Default to ACQUA
 
   // Usa la ricerca se c'è una query, altrimenti carica tutti i prodotti
   const shouldUseSearch = searchQuery.length > 0;
@@ -66,40 +66,58 @@ const Products = () => {
     }
   }, [searchQuery]);
 
-  // Organizza le categorie per filtri principali
+  // Organizza le categorie per filtri principali aggiornati
   const organizedCategories = {
-    bevande: categories.filter(cat => 
-      cat.name.toLowerCase().includes('bevanda') || 
-      cat.name.toLowerCase().includes('drink') ||
-      cat.name.toLowerCase().includes('acqua') ||
-      cat.name.toLowerCase().includes('succo') ||
-      cat.name.toLowerCase().includes('bibita')
+    acqua: categories.filter(cat => 
+      cat.name.toLowerCase().includes('acqua') || 
+      cat.name.toLowerCase().includes('water') ||
+      cat.name.toLowerCase().includes('minerale')
     ),
-    alcolici: categories.filter(cat => 
+    birre: categories.filter(cat => 
+      cat.name.toLowerCase().includes('birra') || 
+      cat.name.toLowerCase().includes('beer') ||
+      cat.name.toLowerCase().includes('lager') ||
+      cat.name.toLowerCase().includes('ale')
+    ),
+    vino: categories.filter(cat => 
       cat.name.toLowerCase().includes('vino') || 
-      cat.name.toLowerCase().includes('birra') ||
-      cat.name.toLowerCase().includes('liquore') ||
-      cat.name.toLowerCase().includes('whisky') ||
-      cat.name.toLowerCase().includes('vodka') ||
-      cat.name.toLowerCase().includes('rum')
+      cat.name.toLowerCase().includes('wine') ||
+      cat.name.toLowerCase().includes('rosso') ||
+      cat.name.toLowerCase().includes('bianco') ||
+      cat.name.toLowerCase().includes('prosecco')
     ),
     alimentari: categories.filter(cat => 
       cat.name.toLowerCase().includes('cibo') || 
       cat.name.toLowerCase().includes('snack') ||
       cat.name.toLowerCase().includes('dolce') ||
       cat.name.toLowerCase().includes('pasta') ||
-      cat.name.toLowerCase().includes('conserve')
+      cat.name.toLowerCase().includes('conserve') ||
+      cat.name.toLowerCase().includes('alimentari') ||
+      cat.name.toLowerCase().includes('food')
+    ),
+    bevande: categories.filter(cat => 
+      cat.name.toLowerCase().includes('bevanda') || 
+      cat.name.toLowerCase().includes('drink') ||
+      cat.name.toLowerCase().includes('succo') ||
+      cat.name.toLowerCase().includes('bibita') ||
+      cat.name.toLowerCase().includes('cola') ||
+      cat.name.toLowerCase().includes('soft')
     ),
     altri: categories.filter(cat => {
       const name = cat.name.toLowerCase();
-      return !name.includes('bevanda') && !name.includes('drink') && 
-             !name.includes('acqua') && !name.includes('succo') && 
-             !name.includes('bibita') && !name.includes('vino') && 
-             !name.includes('birra') && !name.includes('liquore') && 
-             !name.includes('whisky') && !name.includes('vodka') && 
-             !name.includes('rum') && !name.includes('cibo') && 
-             !name.includes('snack') && !name.includes('dolce') && 
-             !name.includes('pasta') && !name.includes('conserve');
+      return !name.includes('acqua') && !name.includes('water') && 
+             !name.includes('minerale') && !name.includes('birra') && 
+             !name.includes('beer') && !name.includes('lager') && 
+             !name.includes('ale') && !name.includes('vino') && 
+             !name.includes('wine') && !name.includes('rosso') && 
+             !name.includes('bianco') && !name.includes('prosecco') &&
+             !name.includes('cibo') && !name.includes('snack') && 
+             !name.includes('dolce') && !name.includes('pasta') && 
+             !name.includes('conserve') && !name.includes('alimentari') && 
+             !name.includes('food') && !name.includes('bevanda') && 
+             !name.includes('drink') && !name.includes('succo') && 
+             !name.includes('bibita') && !name.includes('cola') && 
+             !name.includes('soft');
     })
   };
 
@@ -150,12 +168,16 @@ const Products = () => {
 
   const getCategoriesForFilter = (filterType: string) => {
     switch (filterType) {
-      case 'bevande':
-        return organizedCategories.bevande;
-      case 'alcolici':
-        return organizedCategories.alcolici;
+      case 'acqua':
+        return organizedCategories.acqua;
+      case 'birre':
+        return organizedCategories.birre;
+      case 'vino':
+        return organizedCategories.vino;
       case 'alimentari':
         return organizedCategories.alimentari;
+      case 'bevande':
+        return organizedCategories.bevande;
       case 'altri':
         return organizedCategories.altri;
       default:
@@ -189,12 +211,13 @@ const Products = () => {
           </div>
 
           <Tabs value={activeMainFilter} onValueChange={setActiveMainFilter} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-6">
+            <TabsList className="grid w-full grid-cols-6 mb-6">
               <TabsTrigger value="tutti">Tutti</TabsTrigger>
-              <TabsTrigger value="bevande">Bevande</TabsTrigger>
-              <TabsTrigger value="alcolici">Alcolici</TabsTrigger>
+              <TabsTrigger value="acqua">ACQUA</TabsTrigger>
+              <TabsTrigger value="birre">BIRRE</TabsTrigger>
+              <TabsTrigger value="vino">VINO</TabsTrigger>
               <TabsTrigger value="alimentari">Alimentari</TabsTrigger>
-              <TabsTrigger value="altri">Altri</TabsTrigger>
+              <TabsTrigger value="bevande">Bevande</TabsTrigger>
             </TabsList>
 
             <TabsContent value="tutti" className="mt-4">
@@ -222,7 +245,7 @@ const Products = () => {
               </div>
             </TabsContent>
 
-            {['bevande', 'alcolici', 'alimentari', 'altri'].map((filterType) => (
+            {['acqua', 'birre', 'vino', 'alimentari', 'bevande'].map((filterType) => (
               <TabsContent key={filterType} value={filterType} className="mt-4">
                 <div className="space-y-4">
                   <div className="flex flex-wrap gap-2 mb-4">
@@ -232,36 +255,32 @@ const Products = () => {
                       onClick={() => setSelectedCategory('')}
                       className={selectedCategory === '' ? "gradient-primary" : ""}
                     >
-                      Tutti {filterType}
+                      Tutti {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
                     </Button>
                   </div>
                   
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="subcategories">
-                      <AccordionTrigger>
-                        Sottocategorie {filterType.charAt(0).toUpperCase() + filterType.slice(1)} ({getCategoriesForFilter(filterType).length})
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="flex flex-wrap gap-2 pt-2">
-                          {getCategoriesForFilter(filterType).map((category) => (
-                            <Button
-                              key={category.id}
-                              variant={selectedCategory === category.id.toString() ? "default" : "outline"}
-                              size="sm"
-                              onClick={() => setSelectedCategory(category.id.toString())}
-                              className={selectedCategory === category.id.toString() ? "gradient-primary" : ""}
-                              disabled={categoriesLoading}
-                            >
-                              {category.name} ({category.count})
-                            </Button>
-                          ))}
-                          {getCategoriesForFilter(filterType).length === 0 && (
-                            <p className="text-gray-500 text-sm">Nessuna sottocategoria disponibile</p>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-lg mb-3">
+                      Sottocategorie {filterType.charAt(0).toUpperCase() + filterType.slice(1)} ({getCategoriesForFilter(filterType).length})
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {getCategoriesForFilter(filterType).map((category) => (
+                        <Button
+                          key={category.id}
+                          variant={selectedCategory === category.id.toString() ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedCategory(category.id.toString())}
+                          className={selectedCategory === category.id.toString() ? "gradient-primary" : ""}
+                          disabled={categoriesLoading}
+                        >
+                          {category.name} ({category.count})
+                        </Button>
+                      ))}
+                      {getCategoriesForFilter(filterType).length === 0 && (
+                        <p className="text-gray-500 text-sm">Nessuna sottocategoria disponibile</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
             ))}
@@ -363,7 +382,7 @@ const Products = () => {
             <Button
               onClick={() => {
                 setSelectedCategory('');
-                setActiveMainFilter('tutti');
+                setActiveMainFilter('acqua');
                 if (searchQuery) {
                   window.location.href = '/products';
                 }
