@@ -66,45 +66,48 @@ const Products = () => {
     }
   }, [searchQuery]);
 
-  // Organizza le categorie per filtri principali aggiornati (senza alimentari)
+  // Organizza le categorie usando i nomi esatti da WooCommerce
   const organizedCategories = {
-    acqua: categories.filter(cat => 
-      cat.name.toLowerCase().includes('acqua') || 
-      cat.name.toLowerCase().includes('water') ||
-      cat.name.toLowerCase().includes('minerale')
-    ),
-    birre: categories.filter(cat => 
-      cat.name.toLowerCase().includes('birra') || 
-      cat.name.toLowerCase().includes('beer') ||
-      cat.name.toLowerCase().includes('lager') ||
-      cat.name.toLowerCase().includes('ale')
-    ),
-    vino: categories.filter(cat => 
-      cat.name.toLowerCase().includes('vino') || 
-      cat.name.toLowerCase().includes('wine') ||
-      cat.name.toLowerCase().includes('rosso') ||
-      cat.name.toLowerCase().includes('bianco') ||
-      cat.name.toLowerCase().includes('prosecco')
-    ),
-    bevande: categories.filter(cat => 
-      cat.name.toLowerCase().includes('bevanda') || 
-      cat.name.toLowerCase().includes('drink') ||
-      cat.name.toLowerCase().includes('succo') ||
-      cat.name.toLowerCase().includes('bibita') ||
-      cat.name.toLowerCase().includes('cola') ||
-      cat.name.toLowerCase().includes('soft')
-    ),
+    acqua: categories.filter(cat => {
+      const name = cat.name.toLowerCase();
+      return name === 'acqua' || 
+             name.includes('acqua effervescente') || 
+             name.includes('acqua frizzante') || 
+             name.includes('acqua naturale') ||
+             name.includes('acqua minerale');
+    }),
+    birre: categories.filter(cat => {
+      const name = cat.name.toLowerCase();
+      return name === 'birra' || 
+             name.includes('birra da') || 
+             name.includes('birra in lattina');
+    }),
+    vino: categories.filter(cat => {
+      const name = cat.name.toLowerCase();
+      return name === 'vino';
+    }),
+    bevande: categories.filter(cat => {
+      const name = cat.name.toLowerCase();
+      return name === 'bevande' || 
+             name === 'altre bevande' || 
+             name === 'cocacola' || 
+             name === 'fanta' || 
+             name === 'schweppes' ||
+             (name.includes('sanbenedetto') && !name.includes('acqua')) ||
+             (name.includes('sanpellegrino') && !name.includes('acqua'));
+    }),
     altri: categories.filter(cat => {
       const name = cat.name.toLowerCase();
-      return !name.includes('acqua') && !name.includes('water') && 
-             !name.includes('minerale') && !name.includes('birra') && 
-             !name.includes('beer') && !name.includes('lager') && 
-             !name.includes('ale') && !name.includes('vino') && 
-             !name.includes('wine') && !name.includes('rosso') && 
-             !name.includes('bianco') && !name.includes('prosecco') &&
-             !name.includes('bevanda') && !name.includes('drink') && 
-             !name.includes('succo') && !name.includes('bibita') && 
-             !name.includes('cola') && !name.includes('soft');
+      // Escludi categorie già assegnate ad altre macro-categorie
+      return !name.includes('acqua') && 
+             !name.includes('birra') && 
+             !name.includes('vino') && 
+             !name.includes('bevande') &&
+             name !== 'cocacola' && 
+             name !== 'fanta' && 
+             name !== 'schweppes' &&
+             !name.includes('sanbenedetto') &&
+             !name.includes('sanpellegrino');
     })
   };
 
@@ -121,8 +124,8 @@ const Products = () => {
       image: product.images && product.images.length > 0 ? product.images[0].src : '/placeholder.svg',
       rating: product.average_rating ? parseFloat(product.average_rating) : 0,
       reviews: product.rating_count || 0,
-      stock_status: product.stock_status, // Include WooCommerce stock status
-      inStock: product.stock_status === 'instock', // Explicit stock check
+      stock_status: product.stock_status,
+      inStock: product.stock_status === 'instock',
     };
   });
 
@@ -214,18 +217,53 @@ const Products = () => {
   // Funzione per gestire il click sulla categoria principale
   const handleMainCategoryClick = (category: string) => {
     setActiveMainFilter(category);
-    // Quando clicco su una categoria principale, carica tutti i prodotti di quella categoria
-    if (category !== 'tutti') {
-      // Trova tutte le sottocategorie di questa categoria principale
-      const subcategories = getCategoriesForFilter(category);
-      if (subcategories.length > 0) {
-        // Per ora imposta la prima sottocategoria, ma mostra tutti i prodotti della macro categoria
-        setSelectedCategory('');
-      }
-    } else {
-      setSelectedCategory('');
-    }
+    setSelectedCategory(''); // Reset sottocategoria quando cambia macro categoria
   };
+
+  // Ottieni le categorie ID per il filtro della macro categoria
+  const getMainCategoryIds = (filterType: string) => {
+    const categoriesForFilter = getCategoriesForFilter(filterType);
+    return categoriesForFilter.map(cat => cat.id.toString()).join(',');
+  };
+
+  // Hook per prodotti della macro categoria (quando non c'è sottocategoria selezionata)
+  const mainCategoryProducts = useWooCommerceProducts({
+    per_page: 50,
+    category: !selectedCategory && activeMainFilter !== 'tutti' ? getMainCategoryIds(activeMainFilter) : undefined,
+    orderby: sortBy as any,
+    order: 'desc'
+  }, {
+    enabled: !shouldUseSearch && !selectedCategory && activeMainFilter !== 'tutti'
+  });
+
+  // Usa i prodotti della macro categoria se non c'è sottocategoria selezionata
+  const finalProducts = !selectedCategory && activeMainFilter !== 'tutti' && !shouldUseSearch 
+    ? mainCategoryProducts.data || [] 
+    : products;
+
+  const finalTransformedProducts = finalProducts.map(product => ({
+    id: product.id,
+    name: product.name || 'Prodotto senza nome',
+    price: product.price ? parseFloat(product.price) : 0,
+    originalPrice: product.regular_price && product.sale_price && parseFloat(product.regular_price) > parseFloat(product.sale_price)
+      ? parseFloat(product.regular_price) 
+      : undefined,
+    image: product.images && product.images.length > 0 ? product.images[0].src : '/placeholder.svg',
+    rating: product.average_rating ? parseFloat(product.average_rating) : 0,
+    reviews: product.rating_count || 0,
+    stock_status: product.stock_status,
+    inStock: product.stock_status === 'instock',
+  }));
+
+  const finalSortedProducts = finalTransformedProducts.sort((a, b) => {
+    if (a.inStock && !b.inStock) return -1;
+    if (!a.inStock && b.inStock) return 1;
+    return 0;
+  });
+
+  const isMainCategoryLoading = !selectedCategory && activeMainFilter !== 'tutti' && !shouldUseSearch 
+    ? mainCategoryProducts.isLoading 
+    : productsLoading;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -253,13 +291,7 @@ const Products = () => {
           </div>
 
           <Tabs value={activeMainFilter} onValueChange={handleMainCategoryClick} className="w-full">
-            <TabsList className="grid w-full grid-cols-5 mb-6 bg-gray-100 p-1 rounded-lg">
-              <TabsTrigger 
-                value="tutti"
-                className={getCategoryButtonClass('tutti', activeMainFilter === 'tutti')}
-              >
-                Tutti
-              </TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 mb-6 bg-gray-100 p-1 rounded-lg">
               <TabsTrigger 
                 value="acqua"
                 className={getCategoryButtonClass('acqua', activeMainFilter === 'acqua')}
@@ -285,31 +317,6 @@ const Products = () => {
                 🥤 BEVANDE
               </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="tutti" className="mt-4">
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant={selectedCategory === '' ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory('')}
-                  className={selectedCategory === '' ? "gradient-primary" : ""}
-                >
-                  Tutte le Categorie
-                </Button>
-                {categories.slice(0, 8).map((category) => (
-                  <Button
-                    key={category.id}
-                    variant={selectedCategory === category.id.toString() ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(category.id.toString())}
-                    className={selectedCategory === category.id.toString() ? "gradient-primary" : ""}
-                    disabled={categoriesLoading}
-                  >
-                    {category.name} ({category.count})
-                  </Button>
-                ))}
-              </div>
-            </TabsContent>
 
             {['acqua', 'birre', 'vino', 'bevande'].map((filterType) => (
               <TabsContent key={filterType} value={filterType} className="mt-4">
@@ -391,7 +398,7 @@ const Products = () => {
         </div>
 
         {/* Loading State */}
-        {productsLoading && (
+        {isMainCategoryLoading && (
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
               <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
@@ -403,16 +410,21 @@ const Products = () => {
         )}
 
         {/* Products Count */}
-        {!productsLoading && (
+        {!isMainCategoryLoading && (
           <div className="mb-6">
             <p className="text-gray-600">
               {searchQuery 
-                ? `Trovati ${sortedProducts.length} prodotti per "${searchQuery}"`
-                : `Visualizzando ${sortedProducts.length} prodotti`
+                ? `Trovati ${finalSortedProducts.length} prodotti per "${searchQuery}"`
+                : `Visualizzando ${finalSortedProducts.length} prodotti`
               }
               {selectedCategory && categories.find(c => c.id.toString() === selectedCategory) && (
                 <span className="ml-2 text-blue-600 font-medium">
                   in "{categories.find(c => c.id.toString() === selectedCategory)?.name}"
+                </span>
+              )}
+              {!selectedCategory && activeMainFilter !== 'tutti' && (
+                <span className="ml-2 text-blue-600 font-medium">
+                  in categoria "{activeMainFilter.toUpperCase()}"
                 </span>
               )}
             </p>
@@ -420,20 +432,20 @@ const Products = () => {
         )}
 
         {/* Products Grid */}
-        {!productsLoading && sortedProducts.length > 0 && (
+        {!isMainCategoryLoading && finalSortedProducts.length > 0 && (
           <div className={
             viewMode === 'grid' 
               ? "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
               : "space-y-4"
           }>
-            {sortedProducts.map((product) => (
+            {finalSortedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}
 
         {/* No Products Message */}
-        {!productsLoading && sortedProducts.length === 0 && (
+        {!isMainCategoryLoading && finalSortedProducts.length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-2xl font-semibold mb-2">
