@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -39,7 +40,7 @@ const Checkout = () => {
         firstName: customer.first_name || '',
         lastName: customer.last_name || '',
         email: customer.email || '',
-        phone: customer.billing.phone || customer.shipping.phone || '',
+        phone: '', // Phone field will remain empty as it's not available in the customer object
         address: customer.shipping.address_1 || customer.billing.address_1 || '',
         city: customer.shipping.city || customer.billing.city || '',
         postalCode: customer.shipping.postcode || customer.billing.postcode || '',
