@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -75,6 +74,11 @@ const ProductDetail = () => {
   };
 
   const handleAddToCart = () => {
+    if (!product.inStock) {
+      toast.error('Prodotto non disponibile');
+      return;
+    }
+    
     for (let i = 0; i < quantity; i++) {
       dispatch({
         type: 'ADD_ITEM',
@@ -123,7 +127,12 @@ const ProductDetail = () => {
                     e.currentTarget.src = '/placeholder.svg';
                   }}
                 />
-                {discountPercentage && (
+                {!product.inStock && (
+                  <Badge className="absolute top-2 left-2 bg-red-500 text-white">
+                    Non Disponibile
+                  </Badge>
+                )}
+                {product.inStock && discountPercentage && (
                   <Badge className="absolute top-2 left-2 bg-red-500 text-white">
                     -{discountPercentage}%
                   </Badge>
@@ -163,7 +172,7 @@ const ProductDetail = () => {
                       </span>
                     )}
                   </div>
-                  {discountPercentage && (
+                  {discountPercentage && product.inStock && (
                     <span className="text-green-600 font-medium text-sm">
                       Risparmi €{(product.originalPrice! - product.price).toFixed(2)}!
                     </span>
@@ -194,48 +203,56 @@ const ProductDetail = () => {
                   />
                 </div>
 
-                {/* Quantity and Add to Cart */}
-                {product.inStock && (
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <label className="font-medium text-sm">Quantità:</label>
-                      <div className="flex items-center border rounded-md">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          className="px-3 h-8"
-                        >
-                          -
-                        </Button>
-                        <span className="px-3 py-1 border-x text-sm">{quantity}</span>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setQuantity(quantity + 1)}
-                          className="px-3 h-8"
-                        >
-                          +
-                        </Button>
+                {/* Quantity and Add to Cart - Updated to handle availability */}
+                <div className="flex items-center space-x-4">
+                  {product.inStock && (
+                    <>
+                      <div className="flex items-center space-x-2">
+                        <label className="font-medium text-sm">Quantità:</label>
+                        <div className="flex items-center border rounded-md">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            className="px-3 h-8"
+                          >
+                            -
+                          </Button>
+                          <span className="px-3 py-1 border-x text-sm">{quantity}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setQuantity(quantity + 1)}
+                            className="px-3 h-8"
+                          >
+                            +
+                          </Button>
+                        </div>
                       </div>
-                    </div>
 
-                    <Button
-                      className="gradient-primary hover:opacity-90"
-                      onClick={handleAddToCart}
-                    >
-                      <ShoppingCart className="w-4 h-4 mr-2" />
-                      Aggiungi al Carrello
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => toast.info('Funzionalità wishlist in arrivo!')}
-                    >
-                      <Heart className="w-4 h-4" />
-                    </Button>
-                  </div>
-                )}
+                      <Button
+                        className="gradient-primary hover:opacity-90"
+                        onClick={handleAddToCart}
+                      >
+                        <ShoppingCart className="w-4 h-4 mr-2" />
+                        Aggiungi al Carrello
+                      </Button>
+                    </>
+                  )}
+                  
+                  {!product.inStock && (
+                    <div className="text-gray-500 text-sm">
+                      Questo prodotto non è attualmente disponibile
+                    </div>
+                  )}
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => toast.info('Funzionalità wishlist in arrivo!')}
+                  >
+                    <Heart className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

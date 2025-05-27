@@ -1,6 +1,7 @@
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { ShoppingCart, Heart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { Link } from 'react-router-dom';
@@ -14,6 +15,7 @@ interface Product {
   originalPrice?: number;
   rating?: number;
   reviews?: number;
+  inStock?: boolean;
 }
 
 interface ProductCardProps {
@@ -22,10 +24,17 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const { dispatch } = useCart();
+  const isAvailable = product.inStock !== false; // Default to available if not specified
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    if (!isAvailable) {
+      toast.error('Prodotto non disponibile');
+      return;
+    }
+    
     dispatch({
       type: 'ADD_ITEM',
       payload: {
@@ -58,7 +67,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
   return (
     <Link to={`/product/${product.id}`}>
-      <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+      <Card className={`group overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 ${!isAvailable ? 'opacity-75' : ''}`}>
         <div className="relative overflow-hidden flex justify-center items-center bg-white p-4">
           <img
             src={product.image}
@@ -68,7 +77,12 @@ const ProductCard = ({ product }: ProductCardProps) => {
               e.currentTarget.src = '/placeholder.svg';
             }}
           />
-          {discountPercentage && (
+          {!isAvailable && (
+            <Badge className="absolute top-2 left-2 bg-red-500 text-white">
+              Non Disponibile
+            </Badge>
+          )}
+          {isAvailable && discountPercentage && (
             <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-semibold">
               -{discountPercentage}%
             </div>
@@ -117,11 +131,16 @@ const ProductCard = ({ product }: ProductCardProps) => {
             
             <Button
               size="sm"
-              className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white transition-all"
+              className={`transition-all ${
+                isAvailable 
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white' 
+                  : 'bg-gray-400 text-gray-600 cursor-not-allowed'
+              }`}
               onClick={handleAddToCart}
+              disabled={!isAvailable}
             >
               <ShoppingCart className="w-4 h-4 mr-1" />
-              Aggiungi
+              {isAvailable ? 'Aggiungi' : 'Non Disponibile'}
             </Button>
           </div>
         </CardContent>

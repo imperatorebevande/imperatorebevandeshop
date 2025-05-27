@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -7,12 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCart } from '@/context/CartContext';
-import { ArrowLeft, CreditCard, Truck, ShieldCheck } from 'lucide-react';
+import { useWooCommerceCustomer } from '@/hooks/useWooCommerce';
+import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
   const navigate = useNavigate();
+  
+  // Per ora usiamo l'ID cliente 1 - in un'app reale questo verrebbe dall'autenticazione
+  const customerId = 1;
+  const { data: customer, isLoading: customerLoading } = useWooCommerceCustomer(customerId);
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -27,6 +31,22 @@ const Checkout = () => {
 
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Precompila i dati dal profilo utente quando vengono caricati
+  useEffect(() => {
+    if (customer) {
+      setFormData({
+        firstName: customer.first_name || '',
+        lastName: customer.last_name || '',
+        email: customer.email || '',
+        phone: customer.billing.phone || customer.shipping.phone || '',
+        address: customer.shipping.address_1 || customer.billing.address_1 || '',
+        city: customer.shipping.city || customer.billing.city || '',
+        postalCode: customer.shipping.postcode || customer.billing.postcode || '',
+        province: customer.shipping.state || customer.billing.state || '',
+      });
+    }
+  }, [customer]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -104,6 +124,9 @@ const Checkout = () => {
                 <CardTitle className="flex items-center">
                   <Truck className="w-5 h-5 mr-2" />
                   Dati di Spedizione
+                  {customerLoading && (
+                    <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -117,6 +140,7 @@ const Checkout = () => {
                         value={formData.firstName}
                         onChange={handleInputChange}
                         required
+                        disabled={customerLoading}
                       />
                     </div>
                     <div>
@@ -127,6 +151,7 @@ const Checkout = () => {
                         value={formData.lastName}
                         onChange={handleInputChange}
                         required
+                        disabled={customerLoading}
                       />
                     </div>
                   </div>
@@ -140,6 +165,7 @@ const Checkout = () => {
                       value={formData.email}
                       onChange={handleInputChange}
                       required
+                      disabled={customerLoading}
                     />
                   </div>
                   
@@ -152,6 +178,7 @@ const Checkout = () => {
                       value={formData.phone}
                       onChange={handleInputChange}
                       required
+                      disabled={customerLoading}
                     />
                   </div>
                   
@@ -163,6 +190,7 @@ const Checkout = () => {
                       value={formData.address}
                       onChange={handleInputChange}
                       required
+                      disabled={customerLoading}
                     />
                   </div>
                   
@@ -175,6 +203,7 @@ const Checkout = () => {
                         value={formData.city}
                         onChange={handleInputChange}
                         required
+                        disabled={customerLoading}
                       />
                     </div>
                     <div>
@@ -185,6 +214,7 @@ const Checkout = () => {
                         value={formData.postalCode}
                         onChange={handleInputChange}
                         required
+                        disabled={customerLoading}
                       />
                     </div>
                   </div>
@@ -197,6 +227,7 @@ const Checkout = () => {
                       value={formData.province}
                       onChange={handleInputChange}
                       required
+                      disabled={customerLoading}
                     />
                   </div>
                 </form>
@@ -309,7 +340,7 @@ const Checkout = () => {
 
                 <Button 
                   onClick={handleSubmit}
-                  disabled={!isFormValid() || isProcessing}
+                  disabled={!isFormValid() || isProcessing || customerLoading}
                   size="lg" 
                   className="w-full gradient-primary hover:opacity-90"
                 >
