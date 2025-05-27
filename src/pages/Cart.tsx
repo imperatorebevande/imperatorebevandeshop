@@ -175,10 +175,12 @@ const Cart = () => {
                   <span>€{state.total.toFixed(2)}</span>
                 </div>
 
-                <Button size="lg" className="w-full gradient-primary hover:opacity-90">
-                  <CreditCard className="w-5 h-5 mr-2" />
-                  Procedi al Checkout
-                </Button>
+                <Link to="/checkout">
+                  <Button size="lg" className="w-full gradient-primary hover:opacity-90">
+                    <CreditCard className="w-5 h-5 mr-2" />
+                    Procedi al Checkout
+                  </Button>
+                </Link>
 
                 <div className="text-center text-sm text-gray-500">
                   <p>🔒 Pagamento sicuro e protetto</p>
