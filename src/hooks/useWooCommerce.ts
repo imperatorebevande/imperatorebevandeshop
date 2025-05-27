@@ -1,3 +1,4 @@
+
 import { useQuery, UseQueryOptions } from '@tanstack/react-query';
 import { 
   wooCommerceService, 
@@ -18,6 +19,7 @@ export const useWooCommerceProducts = (
     order?: 'asc' | 'desc';
     on_sale?: boolean;
     featured?: boolean;
+    exclude?: number[];
   } = {},
   options?: Partial<UseQueryOptions<WooCommerceProduct[], Error>>
 ) => {

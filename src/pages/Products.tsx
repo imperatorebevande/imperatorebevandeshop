@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/Header';
@@ -65,7 +66,7 @@ const Products = () => {
     }
   }, [searchQuery]);
 
-  // Organizza le categorie per filtri principali aggiornati
+  // Organizza le categorie per filtri principali aggiornati (senza alimentari)
   const organizedCategories = {
     acqua: categories.filter(cat => 
       cat.name.toLowerCase().includes('acqua') || 
@@ -85,15 +86,6 @@ const Products = () => {
       cat.name.toLowerCase().includes('bianco') ||
       cat.name.toLowerCase().includes('prosecco')
     ),
-    alimentari: categories.filter(cat => 
-      cat.name.toLowerCase().includes('cibo') || 
-      cat.name.toLowerCase().includes('snack') ||
-      cat.name.toLowerCase().includes('dolce') ||
-      cat.name.toLowerCase().includes('pasta') ||
-      cat.name.toLowerCase().includes('conserve') ||
-      cat.name.toLowerCase().includes('alimentari') ||
-      cat.name.toLowerCase().includes('food')
-    ),
     bevande: categories.filter(cat => 
       cat.name.toLowerCase().includes('bevanda') || 
       cat.name.toLowerCase().includes('drink') ||
@@ -110,13 +102,9 @@ const Products = () => {
              !name.includes('ale') && !name.includes('vino') && 
              !name.includes('wine') && !name.includes('rosso') && 
              !name.includes('bianco') && !name.includes('prosecco') &&
-             !name.includes('cibo') && !name.includes('snack') && 
-             !name.includes('dolce') && !name.includes('pasta') && 
-             !name.includes('conserve') && !name.includes('alimentari') && 
-             !name.includes('food') && !name.includes('bevanda') && 
-             !name.includes('drink') && !name.includes('succo') && 
-             !name.includes('bibita') && !name.includes('cola') && 
-             !name.includes('soft');
+             !name.includes('bevanda') && !name.includes('drink') && 
+             !name.includes('succo') && !name.includes('bibita') && 
+             !name.includes('cola') && !name.includes('soft');
     })
   };
 
@@ -136,6 +124,13 @@ const Products = () => {
       stock_status: product.stock_status, // Include WooCommerce stock status
       inStock: product.stock_status === 'instock', // Explicit stock check
     };
+  });
+
+  // Filtra prodotti disponibili per primi
+  const sortedProducts = transformedProducts.sort((a, b) => {
+    if (a.inStock && !b.inStock) return -1;
+    if (!a.inStock && b.inStock) return 1;
+    return 0;
   });
 
   console.log('Products from API:', products.length);
@@ -175,14 +170,60 @@ const Products = () => {
         return organizedCategories.birre;
       case 'vino':
         return organizedCategories.vino;
-      case 'alimentari':
-        return organizedCategories.alimentari;
       case 'bevande':
         return organizedCategories.bevande;
       case 'altri':
         return organizedCategories.altri;
       default:
         return categories;
+    }
+  };
+
+  // Funzione per ottenere i colori dei bottoni delle categorie principali
+  const getCategoryButtonClass = (category: string, isSelected: boolean) => {
+    const baseClass = "font-medium transition-all duration-200 ";
+    if (isSelected) {
+      switch (category) {
+        case 'acqua':
+          return baseClass + "bg-blue-500 text-white hover:bg-blue-600";
+        case 'birre':
+          return baseClass + "bg-yellow-500 text-white hover:bg-yellow-600";
+        case 'vino':
+          return baseClass + "bg-purple-500 text-white hover:bg-purple-600";
+        case 'bevande':
+          return baseClass + "bg-green-500 text-white hover:bg-green-600";
+        default:
+          return baseClass + "bg-gray-500 text-white hover:bg-gray-600";
+      }
+    } else {
+      switch (category) {
+        case 'acqua':
+          return baseClass + "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100";
+        case 'birre':
+          return baseClass + "bg-yellow-50 text-yellow-700 border border-yellow-200 hover:bg-yellow-100";
+        case 'vino':
+          return baseClass + "bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100";
+        case 'bevande':
+          return baseClass + "bg-green-50 text-green-700 border border-green-200 hover:bg-green-100";
+        default:
+          return baseClass + "bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100";
+      }
+    }
+  };
+
+  // Funzione per gestire il click sulla categoria principale
+  const handleMainCategoryClick = (category: string) => {
+    setActiveMainFilter(category);
+    // Quando clicco su una categoria principale, carica tutti i prodotti di quella categoria
+    if (category !== 'tutti') {
+      // Trova tutte le sottocategorie di questa categoria principale
+      const subcategories = getCategoriesForFilter(category);
+      if (subcategories.length > 0) {
+        // Per ora imposta la prima sottocategoria, ma mostra tutti i prodotti della macro categoria
+        setSelectedCategory('');
+      }
+    } else {
+      setSelectedCategory('');
     }
   };
 
@@ -211,14 +252,38 @@ const Products = () => {
             <span className="font-medium text-lg">Filtri Prodotti</span>
           </div>
 
-          <Tabs value={activeMainFilter} onValueChange={setActiveMainFilter} className="w-full">
-            <TabsList className="grid w-full grid-cols-6 mb-6">
-              <TabsTrigger value="tutti">Tutti</TabsTrigger>
-              <TabsTrigger value="acqua">ACQUA</TabsTrigger>
-              <TabsTrigger value="birre">BIRRE</TabsTrigger>
-              <TabsTrigger value="vino">VINO</TabsTrigger>
-              <TabsTrigger value="alimentari">Alimentari</TabsTrigger>
-              <TabsTrigger value="bevande">Bevande</TabsTrigger>
+          <Tabs value={activeMainFilter} onValueChange={handleMainCategoryClick} className="w-full">
+            <TabsList className="grid w-full grid-cols-5 mb-6 bg-gray-100 p-1 rounded-lg">
+              <TabsTrigger 
+                value="tutti"
+                className={getCategoryButtonClass('tutti', activeMainFilter === 'tutti')}
+              >
+                Tutti
+              </TabsTrigger>
+              <TabsTrigger 
+                value="acqua"
+                className={getCategoryButtonClass('acqua', activeMainFilter === 'acqua')}
+              >
+                💧 ACQUA
+              </TabsTrigger>
+              <TabsTrigger 
+                value="birre"
+                className={getCategoryButtonClass('birre', activeMainFilter === 'birre')}
+              >
+                🍺 BIRRE
+              </TabsTrigger>
+              <TabsTrigger 
+                value="vino"
+                className={getCategoryButtonClass('vino', activeMainFilter === 'vino')}
+              >
+                🍷 VINO
+              </TabsTrigger>
+              <TabsTrigger 
+                value="bevande"
+                className={getCategoryButtonClass('bevande', activeMainFilter === 'bevande')}
+              >
+                🥤 BEVANDE
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="tutti" className="mt-4">
@@ -246,7 +311,7 @@ const Products = () => {
               </div>
             </TabsContent>
 
-            {['acqua', 'birre', 'vino', 'alimentari', 'bevande'].map((filterType) => (
+            {['acqua', 'birre', 'vino', 'bevande'].map((filterType) => (
               <TabsContent key={filterType} value={filterType} className="mt-4">
                 <div className="space-y-4">
                   <div className="flex flex-wrap gap-2 mb-4">
@@ -254,7 +319,7 @@ const Products = () => {
                       variant={selectedCategory === '' ? "default" : "outline"}
                       size="sm"
                       onClick={() => setSelectedCategory('')}
-                      className={selectedCategory === '' ? "gradient-primary" : ""}
+                      className={selectedCategory === '' ? getCategoryButtonClass(filterType, true) : getCategoryButtonClass(filterType, false)}
                     >
                       Tutti {filterType.charAt(0).toUpperCase() + filterType.slice(1)}
                     </Button>
@@ -271,7 +336,7 @@ const Products = () => {
                           variant={selectedCategory === category.id.toString() ? "default" : "outline"}
                           size="sm"
                           onClick={() => setSelectedCategory(category.id.toString())}
-                          className={selectedCategory === category.id.toString() ? "gradient-primary" : ""}
+                          className={selectedCategory === category.id.toString() ? getCategoryButtonClass(filterType, true) : getCategoryButtonClass(filterType, false)}
                           disabled={categoriesLoading}
                         >
                           {category.name} ({category.count})
@@ -342,8 +407,8 @@ const Products = () => {
           <div className="mb-6">
             <p className="text-gray-600">
               {searchQuery 
-                ? `Trovati ${transformedProducts.length} prodotti per "${searchQuery}"`
-                : `Visualizzando ${transformedProducts.length} prodotti`
+                ? `Trovati ${sortedProducts.length} prodotti per "${searchQuery}"`
+                : `Visualizzando ${sortedProducts.length} prodotti`
               }
               {selectedCategory && categories.find(c => c.id.toString() === selectedCategory) && (
                 <span className="ml-2 text-blue-600 font-medium">
@@ -355,20 +420,20 @@ const Products = () => {
         )}
 
         {/* Products Grid */}
-        {!productsLoading && transformedProducts.length > 0 && (
+        {!productsLoading && sortedProducts.length > 0 && (
           <div className={
             viewMode === 'grid' 
               ? "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
               : "space-y-4"
           }>
-            {transformedProducts.map((product) => (
+            {sortedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}
 
         {/* No Products Message */}
-        {!productsLoading && transformedProducts.length === 0 && (
+        {!productsLoading && sortedProducts.length === 0 && (
           <div className="text-center py-16">
             <div className="text-6xl mb-4">🔍</div>
             <h3 className="text-2xl font-semibold mb-2">
