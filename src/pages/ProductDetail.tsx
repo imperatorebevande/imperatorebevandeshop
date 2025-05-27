@@ -211,7 +211,7 @@ const ProductDetail = () => {
                       Questo prodotto non è attualmente disponibile per l'acquisto
                     </div>}
                   
-                  <Button variant="outline" onClick={() => toast.info('Funzionalità wishlist in arrivo!')}>
+                  <Button variant="outline" onClick={() => toast.info('Funzionalità wishlist in arrivo!')} className="rounded-sm">
                     <Heart className="w-4 h-4" />
                   </Button>
                 </div>
@@ -256,7 +256,7 @@ Ordina OGGI , consegnamo DOMANI 😁</div>
 
         {/* Related Products Section */}
         {relatedProducts.length > 0 && <div className="mt-12">
-            <h2 className="text-2xl mb-6 text-gray-800 font-bold text-center">Prodotti Simili a quello selezionato</h2>
+            <h2 className="text-2xl mb-6 font-bold text-center text-red-700">Prodotti Simili a quello selezionato</h2>
             {isLoadingRelated ? <div className="text-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-purple-600" />
                 <p className="text-gray-600">Caricamento prodotti correlati...</p>
