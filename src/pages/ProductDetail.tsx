@@ -134,9 +134,9 @@ const ProductDetail = () => {
         {/* Product Card Layout */}
         <Card className="overflow-hidden">
           <CardContent className="p-6">
-            <div className="flex gap-6">
+            <div className="flex flex-col md:flex-row gap-6">
               {/* Product Image */}
-              <div className="flex-shrink-0 relative">
+              <div className="flex-shrink-0 relative mx-auto md:mx-0">
                 <img 
                   src={product.image} 
                   alt={product.name} 
@@ -161,7 +161,7 @@ const ProductDetail = () => {
 
               {/* Product Info */}
               <div className="flex-1">
-                <h1 className="text-2xl font-bold mb-3">{product.name}</h1>
+                <h1 className="text-2xl font-bold mb-3" style={{color: '#A40800'}}>{product.name}</h1>
                 
                 {/* Rating */}
                 {product.rating > 0 && (
