@@ -103,4 +103,19 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+  
+  /* Breakpoint extra-small per dispositivi molto piccoli */
+  @media (min-width: 475px) {
+    .xs\:grid-cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  
+  /* Utility per line-clamp */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }

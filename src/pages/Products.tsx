@@ -12,7 +12,7 @@ const Products = () => {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [sortBy, setSortBy] = useState('date');
+  const [sortBy, setSortBy] = useState('price');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [activeMainFilter, setActiveMainFilter] = useState('acqua'); // Default to ACQUA
 
@@ -34,7 +34,7 @@ const Products = () => {
     per_page: 20,
     category: selectedCategory || undefined,
     orderby: sortBy as any,
-    order: 'desc'
+    order: sortBy === 'price' ? 'asc' : 'desc'
   }, {
     enabled: !shouldUseSearch
   });
@@ -90,6 +90,28 @@ const Products = () => {
   // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard includendo stock status
   const transformedProducts = products.map(product => {
     console.log('Transforming product:', product.name, 'Stock status:', product.stock_status);
+    console.log('Description:', product.description);
+    console.log('Short description length:', product.short_description ? product.short_description.length : 'undefined');
+    
+    // Aggiungi log per clean description
+    const description = product.description || product.short_description || '';
+    const cleanDescription = description.replace(/<[^>]*>/g, '').trim();
+    console.log('Clean description:', cleanDescription);
+    
+    // Determina la categoria principale del prodotto
+    const getMainCategory = (product: any) => {
+      if (!product.categories || product.categories.length === 0) return undefined;
+      
+      const categoryName = product.categories[0].name.toLowerCase();
+      
+      if (categoryName.includes('acqua')) return 'acqua';
+      if (categoryName.includes('birra')) return 'birra';
+      if (categoryName.includes('vino')) return 'vino';
+      if (categoryName.includes('bevande') || categoryName.includes('coca') || categoryName.includes('fanta') || categoryName.includes('schweppes')) return 'bevande';
+      
+      return 'altri';
+    };
+    
     return {
       id: product.id,
       name: product.name || 'Prodotto senza nome',
@@ -99,7 +121,9 @@ const Products = () => {
       rating: product.average_rating ? parseFloat(product.average_rating) : 0,
       reviews: product.rating_count || 0,
       stock_status: product.stock_status,
-      inStock: product.stock_status === 'instock'
+      inStock: product.stock_status === 'instock',
+      category: getMainCategory(product),
+      description: product.description || product.short_description || ''
     };
   });
 
@@ -197,29 +221,49 @@ const Products = () => {
     per_page: 50,
     category: !selectedCategory && activeMainFilter !== 'tutti' ? getMainCategoryIds(activeMainFilter) : undefined,
     orderby: sortBy as any,
-    order: 'desc'
+    order: sortBy === 'price' ? 'asc' : 'desc'
   }, {
     enabled: !shouldUseSearch && !selectedCategory && activeMainFilter !== 'tutti'
   });
 
   // Usa i prodotti della macro categoria se non c'è sottocategoria selezionata
   const finalProducts = !selectedCategory && activeMainFilter !== 'tutti' && !shouldUseSearch ? mainCategoryProducts.data || [] : products;
-  const finalTransformedProducts = finalProducts.map(product => ({
-    id: product.id,
-    name: product.name || 'Prodotto senza nome',
-    price: product.price ? parseFloat(product.price) : 0,
-    originalPrice: product.regular_price && product.sale_price && parseFloat(product.regular_price) > parseFloat(product.sale_price) ? parseFloat(product.regular_price) : undefined,
-    image: product.images && product.images.length > 0 ? product.images[0].src : '/placeholder.svg',
-    rating: product.average_rating ? parseFloat(product.average_rating) : 0,
-    reviews: product.rating_count || 0,
-    stock_status: product.stock_status,
-    inStock: product.stock_status === 'instock'
-  }));
-  const finalSortedProducts = finalTransformedProducts.sort((a, b) => {
-    if (a.inStock && !b.inStock) return -1;
-    if (!a.inStock && b.inStock) return 1;
-    return 0;
+  const finalTransformedProducts = finalProducts.map(product => {
+    // Determina la categoria principale del prodotto
+    const getMainCategory = (product: any) => {
+      if (!product.categories || product.categories.length === 0) return undefined;
+      
+      const categoryName = product.categories[0].name.toLowerCase();
+      
+      if (categoryName.includes('acqua')) return 'acqua';
+      if (categoryName.includes('birra')) return 'birra';
+      if (categoryName.includes('vino')) return 'vino';
+      if (categoryName.includes('bevande') || categoryName.includes('coca') || categoryName.includes('fanta') || categoryName.includes('schweppes')) return 'bevande';
+      
+      return 'altri';
+    };
+    
+    return {
+      id: product.id,
+      name: product.name || 'Prodotto senza nome',
+      price: product.price ? parseFloat(product.price) : 0,
+      originalPrice: product.regular_price && product.sale_price && parseFloat(product.regular_price) > parseFloat(product.sale_price) ? parseFloat(product.regular_price) : undefined,
+      image: product.images && product.images.length > 0 ? product.images[0].src : '/placeholder.svg',
+      rating: product.average_rating ? parseFloat(product.average_rating) : 0,
+      reviews: product.rating_count || 0,
+      stock_status: product.stock_status,
+      inStock: product.stock_status === 'instock',
+      category: getMainCategory(product),
+      description: product.description || product.short_description || ''
+    };
   });
+  const finalSortedProducts = finalTransformedProducts
+    .filter(product => product.inStock) // Filtra solo prodotti disponibili
+    .sort((a, b) => {
+      if (a.inStock && !b.inStock) return -1;
+      if (!a.inStock && b.inStock) return 1;
+      return 0;
+    });
   const isMainCategoryLoading = !selectedCategory && activeMainFilter !== 'tutti' && !shouldUseSearch ? mainCategoryProducts.isLoading : productsLoading;
   return <div className="min-h-screen bg-gray-50">
       <Header />
@@ -236,25 +280,39 @@ const Products = () => {
         </div>
 
         {/* Filtri Organizzati */}
-        <div className="bg-white p-6 rounded-lg shadow-sm mb-8">
-          <div className="flex items-center gap-2 mb-6">
-            <Filter className="w-5 h-5 text-gray-500" />
-            <span className="font-medium text-lg">Filtri Prodotti</span>
+        <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-8 backdrop-blur-sm">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
+              <Filter className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-semibold text-xl bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">Filtri Prodotti</span>
           </div>
 
           <Tabs value={activeMainFilter} onValueChange={handleMainCategoryClick} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 mb-6 bg-gray-100 p-1 rounded-lg">
-              <TabsTrigger value="acqua" className={getCategoryButtonClass('acqua', activeMainFilter === 'acqua')}>
-                💧 ACQUA
+            <TabsList className="grid w-full grid-cols-4 mb-6 bg-gradient-to-r from-gray-100 to-gray-200 p-1.5 rounded-xl shadow-inner">
+              <TabsTrigger value="acqua" className={getCategoryButtonClass('acqua', activeMainFilter === 'acqua') + " rounded-lg mx-1"}>
+                <span className="flex items-center gap-2">
+                  <span className="text-lg">💧</span>
+                  <span className="font-semibold">ACQUA</span>
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="birre" className={getCategoryButtonClass('birre', activeMainFilter === 'birre')}>
-                🍺 BIRRE
+              <TabsTrigger value="birre" className={getCategoryButtonClass('birre', activeMainFilter === 'birre') + " rounded-lg mx-1"}>
+                <span className="flex items-center gap-2">
+                  <span className="text-lg">🍺</span>
+                  <span className="font-semibold">BIRRE</span>
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="vino" className={getCategoryButtonClass('vino', activeMainFilter === 'vino')}>
-                🍷 VINO
+              <TabsTrigger value="vino" className={getCategoryButtonClass('vino', activeMainFilter === 'vino') + " rounded-lg mx-1"}>
+                <span className="flex items-center gap-2">
+                  <span className="text-lg">🍷</span>
+                  <span className="font-semibold">VINO</span>
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="bevande" className={getCategoryButtonClass('bevande', activeMainFilter === 'bevande')}>
-                🥤 BEVANDE
+              <TabsTrigger value="bevande" className={getCategoryButtonClass('bevande', activeMainFilter === 'bevande') + " rounded-lg mx-1"}>
+                <span className="flex items-center gap-2">
+                  <span className="text-lg">🥤</span>
+                  <span className="font-semibold">BEVANDE</span>
+                </span>
               </TabsTrigger>
             </TabsList>
 
@@ -332,10 +390,19 @@ const Products = () => {
             </p>
           </div>}
 
-        {/* Products Grid */}
-        {!isMainCategoryLoading && finalSortedProducts.length > 0 && <div className={viewMode === 'grid' ? "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "space-y-4"}>
-            {finalSortedProducts.map(product => <ProductCard key={product.id} product={product} />)}
-          </div>}
+        {/* Products Grid - layout responsive migliorato */}
+        {!isMainCategoryLoading && finalSortedProducts.length > 0 && (
+          <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+            <div className={viewMode === 'grid' ? 
+              "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-2 sm:gap-4 lg:gap-6" : 
+              "space-y-4"
+            }>
+              {finalSortedProducts.map(product => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* No Products Message */}
         {!isMainCategoryLoading && finalSortedProducts.length === 0 && <div className="text-center py-16">

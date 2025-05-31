@@ -83,7 +83,7 @@ const Cart = () => {
                       <h3 className="font-semibold text-lg truncate">
                         {item.name}
                       </h3>
-                      <p className="text-purple-600 font-bold text-xl">
+                      <p className="font-bold text-xl" style={{color: '#A40800'}}>
                         €{item.price.toFixed(2)}
                       </p>
                     </div>
@@ -158,7 +158,7 @@ const Cart = () => {
               <CardContent className="space-y-4">
                 <div className="flex justify-between">
                   <span>Subtotale:</span>
-                  <span>€{state.total.toFixed(2)}</span>
+                  <span style={{color: '#A40800'}}>€{state.total.toFixed(2)}</span>
                 </div>
                 
                 <div className="flex justify-between">
@@ -172,7 +172,7 @@ const Cart = () => {
                 
                 <div className="flex justify-between text-lg font-bold">
                   <span>Totale:</span>
-                  <span>€{state.total.toFixed(2)}</span>
+                  <span style={{color: '#A40800'}}>€{state.total.toFixed(2)}</span>
                 </div>
 
                 <Link to="/checkout">

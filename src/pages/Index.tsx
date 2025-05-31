@@ -12,17 +12,34 @@ const Index = () => {
   const { data: saleProducts = [], isLoading: saleLoading } = useWooCommerceSaleProducts({ per_page: 4 });
 
   // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard includendo stock status
-  const transformWooCommerceProduct = (product: any) => ({
-    id: product.id,
-    name: product.name,
-    price: parseFloat(product.price),
-    originalPrice: product.regular_price ? parseFloat(product.regular_price) : undefined,
-    image: product.images?.[0]?.src || '/placeholder.svg',
-    rating: parseFloat(product.average_rating) || 0,
-    reviews: product.rating_count || 0,
-    stock_status: product.stock_status, // Include WooCommerce stock status
-    inStock: product.stock_status === 'instock', // Explicit stock check
-  });
+  const transformWooCommerceProduct = (product: any) => {
+    const getMainCategory = (product: any): string => {
+      if (!product.categories || product.categories.length === 0) return 'altri';
+      
+      const categoryName = product.categories[0].name.toLowerCase();
+      
+      if (categoryName.includes('acqua')) return 'acqua';
+      if (categoryName.includes('birra')) return 'birra';
+      if (categoryName.includes('vino')) return 'vino';
+      if (categoryName.includes('bevande') || categoryName.includes('coca') || categoryName.includes('fanta') || categoryName.includes('schweppes')) return 'bevande';
+      
+      return 'altri';
+    };
+    
+    return {
+      id: product.id,
+      name: product.name,
+      price: parseFloat(product.price),
+      originalPrice: product.regular_price && product.sale_price && parseFloat(product.regular_price) > parseFloat(product.sale_price) ? parseFloat(product.regular_price) : undefined,
+      image: product.images?.[0]?.src || '/placeholder.svg',
+      rating: parseFloat(product.average_rating) || 0,
+      reviews: product.rating_count || 0,
+      stock_status: product.stock_status,
+      inStock: product.stock_status === 'instock',
+      category: getMainCategory(product),
+      description: product.description || product.short_description || '' // Aggiunta descrizione
+    };
+  };
 
   const transformedBestSellingProducts = bestSellingProducts.map(transformWooCommerceProduct);
   const transformedSaleProducts = saleProducts.map(transformWooCommerceProduct);
@@ -32,20 +49,20 @@ const Index = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
+      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-8 sm:py-12 lg:py-20">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6">
             Imperatore
             <span className="block text-blue-200">Bevande</span>
           </h1>
-          <p className="text-xl md:text-2xl mb-8 opacity-90 max-w-3xl mx-auto">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 opacity-90 max-w-3xl mx-auto px-2">
             Consegna di acqua e bevande direttamente a casa tua a Bari
           </p>
-          <div className="flex items-center justify-center gap-2 mb-8 text-lg">
-            <MapPin className="w-6 h-6 text-blue-200" />
-            <span>Servizio di consegna a domicilio su Bari</span>
+          <div className="flex items-center justify-center gap-2 mb-6 sm:mb-8 text-sm sm:text-base lg:text-lg">
+            <MapPin className="w-4 h-4 sm:w-6 sm:h-6 text-blue-200" />
+            <span className="px-2">Servizio di consegna a domicilio su Bari</span>
           </div>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
             <Link to="/products">
               <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-8 py-3">
                 Scopri i Prodotti
@@ -107,7 +124,7 @@ const Index = () => {
               <p>Caricamento prodotti più acquistati...</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-6 mb-8">
               {transformedBestSellingProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
@@ -140,7 +157,7 @@ const Index = () => {
               <p>Caricamento offerte...</p>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-6">
               {transformedSaleProducts.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
@@ -153,45 +170,73 @@ const Index = () => {
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Cosa Dicono i Nostri Clienti
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
+              Le RECENSIONI dei nostri clienti
             </h2>
           </div>
           
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
             {[
               {
-                name: "Maria Rossi",
+                name: "Davis Dorwart",
+                role: "Serial Entrepreneur",
                 rating: 5,
-                review: "Servizio eccellente! Consegna puntuale e acqua sempre fresca. Consigliatissimo!",
+                review: "Lorem ipsum dolor sit amet, adipiscing elit. Donec malesuada justo vitaeaugue suscipit beautiful vehicula",
+                avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
+              },
+              {
+                name: "Wilson Dias",
+                role: "Backend Developer",
+                rating: 5,
+                review: "Lorem ipsum dolor sit amet, adipiscing elit. Donec malesuada justo vitaeaugue suscipit beautiful vehicula",
+                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
+              },
+              {
+                name: "Maria Rossi",
+                role: "Cliente Soddisfatta",
+                rating: 5,
+                review: "Servizio eccellente! Consegna puntuale e acqua sempre fresca. Consigliatissimo per chi cerca qualità!",
+                avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
               },
               {
                 name: "Giuseppe Bianchi",
+                role: "Imprenditore Locale",
                 rating: 5,
                 review: "Finalmente un servizio di consegna acqua affidabile a Bari. Prezzi competitivi e qualità ottima.",
-              },
-              {
-                name: "Anna Verdi",
-                rating: 4,
-                review: "Molto comodo ordinare online. I fattorini sono sempre gentili e puntuali.",
+                avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&crop=face"
               },
             ].map((review, index) => (
-              <Card key={index} className="p-6">
-                <CardContent className="pt-0">
-                  <div className="flex mb-4">
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className={`w-5 h-5 ${
-                          i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                        }`}
-                      />
-                    ))}
+              <div key={index} className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
+                {/* Rating Stars */}
+                <div className="flex mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-5 h-5 ${
+                        i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+                
+                {/* Review Text */}
+                <p className="text-gray-600 mb-6 leading-relaxed">
+                  {review.review}
+                </p>
+                
+                {/* Reviewer Info */}
+                <div className="flex items-center">
+                  <img 
+                    src={review.avatar} 
+                    alt={review.name}
+                    className="w-12 h-12 rounded-full object-cover mr-4"
+                  />
+                  <div>
+                    <p className="font-semibold text-gray-900">{review.name}</p>
+                    <p className="text-sm text-gray-500">{review.role}</p>
                   </div>
-                  <p className="text-gray-600 mb-4">"{review.review}"</p>
-                  <p className="font-semibold">- {review.name}</p>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
         </div>

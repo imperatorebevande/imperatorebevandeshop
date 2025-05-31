@@ -1,22 +1,26 @@
 
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingCart, Heart } from 'lucide-react';
+import { ShoppingBag, Check } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
-import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { getBorderColor, getBottleQuantity } from '@/lib/utils'; // <-- AGGIUNGI QUESTO IMPORT
 
 interface Product {
   id: number;
   name: string;
   price: number;
-  image: string;
   originalPrice?: number;
-  rating?: number;
-  reviews?: number;
+  image: string;
+  stock_status?: string;
   inStock?: boolean;
-  stock_status?: string; // Added WooCommerce stock status
+  category?: string;
+  description?: string;
+  short_description?: string;
+  bottleQuantity?: number;
 }
 
 interface ProductCardProps {
@@ -24,20 +28,36 @@ interface ProductCardProps {
 }
 
 const ProductCard = ({ product }: ProductCardProps) => {
-  const { dispatch } = useCart();
+  const { state, dispatch } = useCart();
   
-  // Check stock availability from WooCommerce data
-  const isAvailable = product.stock_status === 'instock' || (product.inStock !== false && !product.stock_status);
+  const isAvailable = product.stock_status === 'instock' || product.inStock !== false;
+  
+  // Debug: aggiungi questo log all'inizio del componente
+  console.log('ProductCard rendered for:', product.name, {
+    short_description: product.short_description,
+    bottleQuantity: product.bottleQuantity
+  });
+  
+  // Funzione per estrarre la quantità di bottiglie dalla descrizione del prodotto
+  // Rimuovi le seguenti definizioni di funzione da questo file:
+  // const getBottleQuantity = (description?: string): number | null => { ... };
+  // const getBorderColor = (category?: string) => { ... };
+  
+  // Verifica se il prodotto è nel carrello
+  const cartItem = state.items.find(item => item.id === product.id);
+  const isInCart = !!cartItem;
+  const quantityInCart = cartItem?.quantity || 0;
+  
+  const discountPercentage = product.originalPrice && product.originalPrice > product.price 
+    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+    : 0;
 
-  const handleAddToCart = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
+  const handleAddToCart = () => {
     if (!isAvailable) {
       toast.error('Prodotto non disponibile');
       return;
     }
-    
+
     dispatch({
       type: 'ADD_ITEM',
       payload: {
@@ -45,110 +65,100 @@ const ProductCard = ({ product }: ProductCardProps) => {
         name: product.name,
         price: product.price,
         image: product.image,
+        quantity: 1 as number,
       },
     });
     toast.success(`${product.name} aggiunto al carrello!`);
   };
 
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toast.info('Funzionalità wishlist in arrivo!');
-  };
-
-  const discountPercentage = product.originalPrice && product.originalPrice > product.price
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : null;
-
-  // Gestisci nomi di prodotti molto lunghi
-  const truncatedName = product.name.length > 60 
-    ? product.name.substring(0, 60) + '...' 
-    : product.name;
-
-  // Check if rating should be displayed (must be a number greater than 0)
-  const shouldShowRating = product.rating && typeof product.rating === 'number' && product.rating > 0;
-
   return (
-    <Link to={`/product/${product.id}`}>
-      <Card className={`group overflow-hidden hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 ${!isAvailable ? 'opacity-75 grayscale' : ''}`}>
-        <div className="relative overflow-hidden flex justify-center items-center bg-white p-4">
+    <div 
+      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 group relative overflow-hidden border-2"
+      style={{ borderColor: getBorderColor(product.category) }} // Ora usa la funzione importata
+    >
+      {/* Badge sconto */}
+      {discountPercentage > 0 && (
+        <div className="absolute top-1 left-1 bg-red-500 text-white px-1.5 py-0.5 rounded text-xs font-bold z-10">
+          -{discountPercentage}%
+        </div>
+      )}
+      
+      {/* Badge quantità bottiglie - colorato come il bordo */}
+      {(product.bottleQuantity || getBottleQuantity(product.short_description || product.description)) && (
+        <div 
+          className="absolute top-2 -right-8 text-white px-8 py-1 text-xs font-bold z-10 flex items-center gap-1 transform rotate-45"
+          style={{ backgroundColor: getBorderColor(product.category) }} // Ora usa la funzione importata
+        >
+          x{product.bottleQuantity || getBottleQuantity(product.short_description || product.description)} bott.
+        </div>
+      )}
+      
+      {/* Badge per prodotto nel carrello */}
+      {isInCart && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-green-500 text-white px-1.5 py-0.5 rounded text-xs font-bold z-10 flex items-center gap-1 whitespace-nowrap">
+          <Check className="w-3 h-3" />
+          Nel carrello ({quantityInCart})
+        </div>
+      )}
+
+      <div className="relative h-40 sm:h-48 md:h-56 overflow-hidden bg-gray-50">
+        <Link to={`/product/${product.id}`}>
           <img
             src={product.image}
             alt={product.name}
-            className="w-[150px] h-[150px] object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300 p-2"
             onError={(e) => {
               e.currentTarget.src = '/placeholder.svg';
             }}
           />
-          {!isAvailable && (
-            <Badge className="absolute top-2 left-2 bg-red-500 text-white">
-              Non Disponibile
-            </Badge>
-          )}
-          {isAvailable && discountPercentage && (
-            <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded-md text-sm font-semibold">
-              -{discountPercentage}%
-            </div>
-          )}
+        </Link>
+        
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
           <Button
-            variant="ghost"
-            size="sm"
-            className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-            onClick={handleWishlist}
+            onClick={handleAddToCart}
+            disabled={!isAvailable}
+            className={`opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 text-white px-2 py-1 text-xs ${
+              isInCart 
+                ? 'bg-green-600 hover:bg-green-700' 
+                : 'bg-gray-800 hover:bg-gray-900'
+            }`}
           >
-            <Heart className="w-4 h-4" />
+            {isInCart ? (
+              <>
+                <Check className="w-3 h-3 mr-1" />
+                Aggiungi ancora
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="w-3 h-3 mr-1" />
+                {isAvailable ? 'Aggiungi' : 'Non Disponibile'}
+              </>
+            )}
           </Button>
         </div>
-        
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors min-h-[3.5rem]">
-            {truncatedName}
+      </div>
+
+      <div className="p-2">
+        <Link to={`/product/${product.id}`}>
+          <h3 className="font-bold mb-1 text-xs sm:text-sm line-clamp-2 hover:opacity-80 transition-colors" style={{color: '#1B5AAB'}}>
+            {product.name}
           </h3>
-          
-          {shouldShowRating && (
-            <div className="flex items-center mb-2">
-              <div className="flex text-yellow-400">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className={i < Math.floor(product.rating!) ? '★' : '☆'}>
-                    ★
-                  </span>
-                ))}
-              </div>
-              {product.reviews && product.reviews > 0 && (
-                <span className="text-sm text-gray-500 ml-2">({product.reviews})</span>
-              )}
-            </div>
-          )}
-          
-          <div className="flex items-center justify-between mt-auto">
-            <div className="flex items-center space-x-2">
-              <span className="text-xl font-bold text-blue-600">
-                €{product.price.toFixed(2)}
+        </Link>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            {product.originalPrice && (
+              <span className="text-xs text-gray-500 line-through">
+                €{product.originalPrice.toFixed(2)}
               </span>
-              {product.originalPrice && product.originalPrice > product.price && (
-                <span className="text-sm text-gray-500 line-through">
-                  €{product.originalPrice.toFixed(2)}
-                </span>
-              )}
-            </div>
-            
-            <Button
-              size="sm"
-              className={`transition-all ${
-                isAvailable 
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white' 
-                  : 'bg-gray-400 text-gray-600 cursor-not-allowed'
-              }`}
-              onClick={handleAddToCart}
-              disabled={!isAvailable}
-            >
-              <ShoppingCart className="w-4 h-4 mr-1" />
-              {isAvailable ? 'Aggiungi' : 'Non Disponibile'}
-            </Button>
+            )}
+            <span className="font-bold text-sm" style={{color: '#A40800'}}>
+              €{product.price.toFixed(2)}
+            </span>
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+        </div>
+      </div>
+    </div>
   );
 };
 

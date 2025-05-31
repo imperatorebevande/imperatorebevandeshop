@@ -537,7 +537,7 @@ class WooCommerceService {
     try {
       const response = await this.api.get('/payment_gateways');
       console.log('WooCommerce payment gateways fetched:', response.data.length);
-      return response.data.filter((gateway: any) => gateway.enabled === true);
+      return response.data;
     } catch (error) {
       console.error('Errore nel recupero dei metodi di pagamento:', error);
       throw error;
@@ -556,3 +556,22 @@ export const useWooCommerceConfig = () => {
 
   return { initWooCommerce };
 };
+
+// Interfaccia per le recensioni WooCommerce
+export interface WooCommerceReview {
+  id: number;
+  date_created: string;
+  date_created_gmt: string;
+  product_id: number;
+  status: string;
+  reviewer: string;
+  reviewer_email: string;
+  review: string;
+  rating: number;
+  verified: boolean;
+  reviewer_avatar_urls: {
+    '24': string;
+    '48': string;
+    '96': string;
+  };
+}
