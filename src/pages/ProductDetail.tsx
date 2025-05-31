@@ -7,8 +7,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
 import { useWooCommerceProduct, useWooCommerceProducts } from '@/hooks/useWooCommerce';
-import { ShoppingCart, Heart, Star, ArrowLeft, Truck, Shield, RotateCcw, Loader2 } from 'lucide-react';
+import { ShoppingBag, Heart, Star, ArrowLeft, Truck, Shield, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getBorderColor } from '../lib/utils';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -73,7 +74,10 @@ const ProductDetail = () => {
     rating: wooProduct.average_rating ? parseFloat(wooProduct.average_rating) : 0,
     reviews: wooProduct.rating_count || 0,
     description: wooProduct.short_description || wooProduct.description || 'Nessuna descrizione disponibile',
-    inStock: wooProduct.stock_status === 'instock'
+    inStock: wooProduct.stock_status === 'instock',
+    category: wooProduct.categories && wooProduct.categories.length > 0 
+      ? wooProduct.categories[0].name : undefined,
+    short_description: wooProduct.short_description || wooProduct.description
   };
 
   // Trasforma prodotti correlati
@@ -88,7 +92,11 @@ const ProductDetail = () => {
       ? wooProduct.images[0].src : '/placeholder.svg',
     rating: wooProduct.average_rating ? parseFloat(wooProduct.average_rating) : 0,
     reviews: wooProduct.rating_count || 0,
-    inStock: wooProduct.stock_status === 'instock'
+    inStock: wooProduct.stock_status === 'instock',
+    category: wooProduct.categories && wooProduct.categories.length > 0 
+      ? wooProduct.categories[0].name : undefined,
+    short_description: wooProduct.short_description || wooProduct.description,
+    stock_status: wooProduct.stock_status
   })) || [];
 
   const handleAddToCart = () => {
@@ -132,7 +140,10 @@ const ProductDetail = () => {
         </nav>
 
         {/* Product Card Layout */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden" style={{
+          borderLeft: `4px solid ${getBorderColor(product.category)}`,
+          borderColor: getBorderColor(product.category)
+        }}>
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-6">
               {/* Product Image */}
@@ -252,10 +263,11 @@ const ProductDetail = () => {
                 
                       {/* Add to Cart Button */}
                       <Button 
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-4 rounded-xl text-lg transition-all duration-200 shadow-lg hover:shadow-xl" 
+                        className="gradient-primary flex-1" 
                         onClick={handleAddToCart}
+                        disabled={!product.inStock}
                       >
-                        <ShoppingCart className="w-5 h-5 mr-3" />
+                        <ShoppingBag className="w-5 h-5 mr-3" />
                         Aggiungi al CARRELLO
                       </Button>
                     </>

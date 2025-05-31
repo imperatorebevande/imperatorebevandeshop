@@ -1,7 +1,9 @@
 
-import { ShoppingCart, Search, User, Menu, Home } from 'lucide-react';
+import React from 'react';
+import { ShoppingBag, Search, User, Menu, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -32,145 +34,153 @@ const Header = () => {
 
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-50">
-      <div className="container mx-auto px-2 sm:px-4 py-2 sm:py-4">
-        <div className="flex items-center justify-between">
-          {/* Logo area - migliorato per mobile */}
-          <Link to="/" className="text-lg sm:text-2xl font-bold text-gradient flex-shrink-0">
-            Shop
-          </Link>
+      {/* Desktop Header */}
+      <div className="hidden md:block">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-bold text-sm">IB</span>
+              </div>
+              <span className="font-bold text-xl text-gray-900">Imperatore Bevande</span>
+            </Link>
 
-          {/* Search Bar - Hidden on mobile, migliorato spacing */}
-          <div className="hidden md:flex flex-1 max-w-md mx-4 lg:mx-8">
-            <form onSubmit={handleSearch} className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchInput}
-                placeholder="Cerca prodotti..."
-                className="pl-10 pr-4 py-2 w-full"
-              />
-            </form>
+            {/* Search Bar */}
+            <div className="flex-1 max-w-xl mx-8">
+              <form onSubmit={handleSearch} className="relative">
+                <Input
+                  type="text"
+                  placeholder="Cerca prodotti..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              </form>
+            </div>
+
+            {/* Right Section */}
+            <div className="flex items-center space-x-4">
+              <Link to="/cart" className="relative">
+                <Button variant="ghost" size="sm" className="relative">
+                  <ShoppingBag className="w-4 h-4" />
+                  {itemCount > 0 && (
+                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
+                      {itemCount}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
+              <Button variant="ghost" size="sm">
+                <User className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
+        </div>
+      </div>
 
-          {/* Navigation - Desktop con spacing migliorato */}
-          <nav className="hidden md:flex items-center space-x-2 lg:space-x-6">
-            <Link to="/" className="text-gray-700 hover:text-gray-900 transition-colors">
-              Home
-            </Link>
-            <Link to="/products" className="text-gray-700 hover:text-gray-900 transition-colors">
-              Prodotti
-            </Link>
-            <Link to="/account">
-              <Button variant="ghost" size="sm">
-                <User className="w-4 h-4 mr-2" />
-                Account
-              </Button>
-            </Link>
-            <Link to="/cart" className="relative">
-              <Button variant="ghost" size="sm">
-                <ShoppingCart className="w-4 h-4" />
-                {itemCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {itemCount}
-                  </span>
-                )}
-              </Button>
-            </Link>
-          </nav>
-
-          {/* Mobile Menu Button con padding ridotto */}
+      {/* Mobile Header */}
+      <div className="md:hidden">
+        <div className="flex items-center justify-between p-4">
           <Button
             variant="ghost"
             size="sm"
-            className="md:hidden p-1"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             <Menu className="w-5 h-5" />
           </Button>
+          
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="w-6 h-6 bg-gradient-to-r from-purple-600 to-pink-600 rounded flex items-center justify-center">
+              <span className="text-white font-bold text-xs">IB</span>
+            </div>
+            <span className="font-bold text-lg">Imperatore Bevande</span>
+          </Link>
+
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowMobileSearch(!showMobileSearch)}
+            >
+              <Search className="w-4 h-4" />
+            </Button>
+            <Link to="/cart" className="relative">
+              <Button variant="ghost" size="sm">
+                <ShoppingBag className="w-4 h-4" />
+                {itemCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
+                    {itemCount}
+                  </Badge>
+                )}
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        {/* Mobile Search con margin ridotto */}
+        {/* Mobile Search */}
         {showMobileSearch && (
-          <div className="md:hidden mt-2">
+          <div className="px-4 pb-4">
             <form onSubmit={handleSearch} className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <Input
+                type="text"
+                placeholder="Cerca prodotti..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleSearchInput}
-                placeholder="Cerca prodotti..."
-                className="pl-10 pr-4 py-2 w-full"
+                className="w-full pl-10 pr-4 py-2"
                 autoFocus
               />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             </form>
           </div>
         )}
 
-        {/* Mobile Navigation con padding ottimizzato */}
+        {/* Mobile Menu */}
         {isMenuOpen && (
-          <nav className="md:hidden mt-2 pb-2 border-t pt-2">
-            <div className="flex flex-col space-y-3">
-              <Link to="/" className="text-gray-700 hover:text-gray-900 transition-colors">
+          <div className="border-t bg-white">
+            <nav className="px-4 py-2 space-y-2">
+              <Link to="/" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
+                <Home className="w-4 h-4 mr-2" />
                 Home
               </Link>
-              <Link to="/products" className="text-gray-700 hover:text-gray-900 transition-colors">
+              <Link to="/products" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
+                <Search className="w-4 h-4 mr-2" />
                 Prodotti
               </Link>
-              <Link to="/cart" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors">
-                <ShoppingCart className="w-4 h-4 mr-2" />
+              <Link to="/cart" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
+                <ShoppingBag className="w-4 h-4 mr-2" />
                 Carrello ({itemCount})
               </Link>
-              <Link to="/account" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors">
-                <User className="w-4 h-4 mr-2" />
-                Account
-              </Link>
-            </div>
-          </nav>
+            </nav>
+          </div>
         )}
       </div>
-      
-      {/* Nuova Mobile Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-[0_-2px_10px_rgba(0,0,0,0.1)] z-50 border-t border-gray-200">
-        <div className="flex items-center justify-around">
-          <Link to="/" className="flex flex-col items-center py-2 px-3 text-blue-600">
+
+      {/* Bottom Navigation for Mobile */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50">
+        <div className="flex justify-around">
+          <Link to="/" className="flex flex-col items-center py-2 px-3 text-gray-600">
             <Home className="w-6 h-6" />
             <span className="text-xs mt-1">Home</span>
           </Link>
-          
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="flex flex-col items-center py-2 px-3 text-gray-600"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <Menu className="w-6 h-6" />
-            <span className="text-xs mt-1">Menu</span>
-          </Button>
-          
-          <div className="flex justify-center -mt-5">
-            <Button 
-              className="rounded-full w-14 h-14 bg-blue-600 hover:bg-blue-700 flex items-center justify-center shadow-lg"
-              onClick={() => setShowMobileSearch(!showMobileSearch)}
-            >
-              <Search className="w-6 h-6 text-white" />
-            </Button>
-          </div>
-          
+          <Link to="/products" className="flex flex-col items-center py-2 px-3 text-gray-600">
+            <Search className="w-6 h-6" />
+            <span className="text-xs mt-1">Cerca</span>
+          </Link>
           <Link to="/cart" className="flex flex-col items-center py-2 px-3 text-gray-600 relative">
-            <ShoppingCart className="w-6 h-6" />
-            {itemCount > 0 && (
-              <span className="absolute top-1 right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {itemCount}
-              </span>
-            )}
+            <ShoppingBag className="w-6 h-6" />
             <span className="text-xs mt-1">Carrello</span>
+            {itemCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
+                {itemCount}
+              </Badge>
+            )}
           </Link>
-          
-          <Link to="/account" className="flex flex-col items-center py-2 px-3 text-gray-600">
+          <div className="flex flex-col items-center py-2 px-3 text-gray-600">
             <User className="w-6 h-6" />
-            <span className="text-xs mt-1">Account</span>
-          </Link>
+            <span className="text-xs mt-1">Profilo</span>
+          </div>
         </div>
       </div>
     </header>

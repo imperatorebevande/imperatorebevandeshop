@@ -1,9 +1,10 @@
 
+import React from 'react';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Star, Truck, Shield, Headphones, MapPin, Clock, Droplets } from 'lucide-react';
+import { ArrowRight, Star, Truck, Shield, Headphones, MapPin, Clock, Droplets, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useWooCommerceBestSellingProducts, useWooCommerceSaleProducts } from '@/hooks/useWooCommerce';
 
@@ -43,6 +44,38 @@ const Index = () => {
 
   const transformedBestSellingProducts = bestSellingProducts.map(transformWooCommerceProduct);
   const transformedSaleProducts = saleProducts.map(transformWooCommerceProduct);
+
+  // Categorie principali
+  const categories = [
+    {
+      name: 'Acqua',
+      bgColor: 'bg-gradient-to-br from-blue-100 to-blue-200',
+      textColor: 'text-blue-800',
+      icon: '💧',
+      link: '/products?category=acqua'
+    },
+    {
+      name: 'Birre',
+      bgColor: 'bg-gradient-to-br from-amber-100 to-amber-200',
+      textColor: 'text-amber-800',
+      icon: '🍺',
+      link: '/products?category=birre'
+    },
+    {
+      name: 'Vino',
+      bgColor: 'bg-gradient-to-br from-purple-100 to-purple-200',
+      textColor: 'text-purple-800',
+      icon: '🍷',
+      link: '/products?category=vino'
+    },
+    {
+      name: 'Bevande',
+      bgColor: 'bg-gradient-to-br from-green-100 to-green-200',
+      textColor: 'text-green-800',
+      icon: '🥤',
+      link: '/products?category=bevande'
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -103,6 +136,34 @@ const Index = () => {
                 <p className="text-gray-600">Consegne dal lunedì al sabato negli orari che preferisci</p>
               </CardContent>
             </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Shop By Categories Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+              Categorie prodotti
+            </h2>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {categories.map((category, index) => (
+              <Link key={index} to={category.link} className="group">
+                <Card className={`${category.bgColor} border-0 overflow-hidden hover:shadow-lg transition-all duration-300 group-hover:scale-105 h-32 md:h-36`}>
+                  <CardContent className="p-4 h-full flex flex-col justify-center items-center text-center">
+                    <div className="text-4xl md:text-5xl mb-2">
+                      {category.icon}
+                    </div>
+                    <h3 className={`text-lg md:text-xl font-bold ${category.textColor}`}>
+                      {category.name}
+                    </h3>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
           </div>
         </div>
       </section>

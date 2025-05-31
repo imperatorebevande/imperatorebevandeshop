@@ -11,6 +11,7 @@ import { useWooCommerceProducts, useWooCommerceCategories, useWooCommerceSearch 
 const Products = () => {
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get('search') || '';
+  const categoryFromUrl = searchParams.get('category') || '';
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortBy, setSortBy] = useState('price');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -61,6 +62,14 @@ const Products = () => {
       setSelectedCategory('');
     }
   }, [searchQuery]);
+
+  // Nuovo useEffect per gestire il parametro category dall'URL
+  useEffect(() => {
+    if (categoryFromUrl) {
+      setActiveMainFilter(categoryFromUrl);
+      // Non impostiamo selectedCategory qui perché vogliamo mostrare tutti i prodotti della macro-categoria
+    }
+  }, [categoryFromUrl]);
 
   // Organizza le categorie usando i nomi esatti da WooCommerce
   const organizedCategories = {
