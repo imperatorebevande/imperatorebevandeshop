@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,19 @@ const Products = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Focus automatico sulla barra di ricerca se si arriva dal pulsante Cerca
+  useEffect(() => {
+    if (searchParams.get('search') === 'focus' && searchInputRef.current) {
+      searchInputRef.current.focus();
+      // Rimuovi il parametro search=focus dall'URL
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('search');
+      setSearchParams(newSearchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   
   // Carica la prima pagina di prodotti (100 prodotti)
@@ -303,28 +315,24 @@ const Products = () => {
         <section className="mb-8">
           <div className="max-w-md mx-auto">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <Input
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <input
+                ref={searchInputRef}
                 type="text"
-                placeholder="Cerca prodotti per nome..."
+                placeholder="Cerca prodotti..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10 py-3 text-base border-2 border-gray-200 focus:border-blue-500 rounded-lg"
+                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               {searchQuery && (
                 <button
                   onClick={clearSearch}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
-            {searchQuery && (
-              <p className="text-sm text-gray-500 mt-2 text-center">
-                Risultati per: <span className="font-semibold">"{searchQuery}"</span>
-              </p>
-            )}
           </div>
         </section>
 

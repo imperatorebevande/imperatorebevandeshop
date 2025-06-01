@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ShoppingBag, User, Menu, Home } from 'lucide-react';
+import { ShoppingBag, User, Menu, Home, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
@@ -124,6 +124,11 @@ const Header = () => {
               </div>
             </div>
             <span className="text-xs mt-1">Categorie</span>
+          </Link>
+          {/* Nuovo pulsante Cerca al centro */}
+          <Link to="/products?search=focus" className="flex flex-col items-center py-2 px-3 text-blue-600 bg-blue-50 rounded-lg mx-1">
+            <Search className="w-6 h-6" />
+            <span className="text-xs mt-1 font-medium">Cerca</span>
           </Link>
           <Link to="/cart" className="flex flex-col items-center py-2 px-3 text-gray-600 relative">
             <ShoppingBag className="w-6 h-6" />
