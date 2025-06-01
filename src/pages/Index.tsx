@@ -109,33 +109,54 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-16 bg-white">
+      {/* How It Works Section - Horizontal scroll on mobile */}
+      <section className="py-6 bg-white">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-8">
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-              <CardContent className="pt-6">
-                <Truck className="w-12 h-12 mx-auto mb-4 text-blue-600" />
-                <h3 className="text-xl font-semibold mb-2">Consegna Veloce</h3>
-                <p className="text-gray-600">Consegna gratuita a Bari per ordini sopra i 30€</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-              <CardContent className="pt-6">
-                <Droplets className="w-12 h-12 mx-auto mb-4 text-blue-600" />
-                <h3 className="text-xl font-semibold mb-2">Acqua di Qualità</h3>
-                <p className="text-gray-600">Acqua naturale e bevande delle migliori marche</p>
-              </CardContent>
-            </Card>
-            
-            <Card className="text-center p-6 hover:shadow-lg transition-shadow">
-              <CardContent className="pt-6">
-                <Clock className="w-12 h-12 mx-auto mb-4 text-blue-600" />
-                <h3 className="text-xl font-semibold mb-2">Orari Flessibili</h3>
-                <p className="text-gray-600">Consegne dal lunedì al sabato negli orari che preferisci</p>
-              </CardContent>
-            </Card>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 md:grid md:grid-cols-3 md:gap-4 md:max-w-4xl md:mx-auto">
+            {/* Step 1 - SCEGLI */}
+            <div className="bg-gray-50 rounded-lg p-3 text-center hover:shadow-md transition-all duration-300 border border-gray-100 flex-shrink-0 w-64 md:w-auto">
+              <div className="mb-2">
+                <span className="text-2xl md:text-3xl font-black text-red-500 block leading-none">
+                  01.
+                </span>
+                <h3 className="text-base md:text-lg font-black text-gray-800 mt-1">
+                  SCEGLI
+                </h3>
+              </div>
+              <p className="text-gray-600 text-xs leading-relaxed">
+                Scegli l'acqua o le bevande che più ti interessano
+              </p>
+            </div>
+
+            {/* Step 2 - ORDINA */}
+            <div className="bg-gray-50 rounded-lg p-3 text-center hover:shadow-md transition-all duration-300 border border-gray-100 flex-shrink-0 w-64 md:w-auto">
+              <div className="mb-2">
+                <span className="text-2xl md:text-3xl font-black text-red-500 block leading-none">
+                  02.
+                </span>
+                <h3 className="text-base md:text-lg font-black text-gray-800 mt-1">
+                  ORDINA
+                </h3>
+              </div>
+              <p className="text-gray-600 text-xs leading-relaxed">
+                Seleziona la quantità desiderata. Nessun ordine minimo!
+              </p>
+            </div>
+
+            {/* Step 3 - RICEVI */}
+            <div className="bg-gray-50 rounded-lg p-3 text-center hover:shadow-md transition-all duration-300 border border-gray-100 flex-shrink-0 w-64 md:w-auto">
+              <div className="mb-2">
+                <span className="text-2xl md:text-3xl font-black text-red-500 block leading-none">
+                  03.
+                </span>
+                <h3 className="text-base md:text-lg font-black text-gray-800 mt-1">
+                  RICEVI
+                </h3>
+              </div>
+              <p className="text-gray-600 text-xs leading-relaxed">
+                Ricevi la consegna a casa entro un giorno lavorativo
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -203,6 +224,61 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Modern Features Section - Compact and always horizontal */}
+      <section className="py-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-5 left-5 w-20 h-20 bg-blue-400/20 rounded-full blur-2xl animate-pulse"></div>
+          <div className="absolute bottom-5 right-5 w-16 h-16 bg-purple-400/20 rounded-full blur-xl animate-pulse delay-1000"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
+            {/* Consegna Veloce - Compact */}
+            <div className="group">
+              <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-4 h-full border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="text-center">
+                  <div className="relative mb-3">
+                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
+                      <Truck className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-bold mb-2 text-gray-800 group-hover:text-blue-600 transition-colors duration-300">
+                    <span className="text-transparent bg-gradient-to-r from-blue-500 to-blue-700 bg-clip-text">
+                      Consegna Veloce
+                    </span>
+                  </h3>
+                  <p className="text-gray-600 text-xs leading-relaxed">
+                    Consegna gratuita a Bari per ordini sopra i 30€
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Orari Flessibili - Compact */}
+            <div className="group">
+              <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-4 h-full border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
+                <div className="text-center">
+                  <div className="relative mb-3">
+                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
+                      <Clock className="w-6 h-6 text-white" />
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-bold mb-2 text-gray-800 group-hover:text-purple-600 transition-colors duration-300">
+                    <span className="text-transparent bg-gradient-to-r from-purple-500 to-indigo-600 bg-clip-text">
+                      Orari Flessibili
+                    </span>
+                  </h3>
+                  <p className="text-gray-600 text-xs leading-relaxed">
+                    Consegne dal lunedì al sabato negli orari che preferisci
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Special Offers */}
       <section className="py-16 bg-gradient-to-r from-blue-50 to-blue-100">
         <div className="container mx-auto px-4">
@@ -237,72 +313,12 @@ const Index = () => {
           </div>
           
           <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {[
-              {
-                name: "Davis Dorwart",
-                role: "Serial Entrepreneur",
-                rating: 5,
-                review: "Lorem ipsum dolor sit amet, adipiscing elit. Donec malesuada justo vitaeaugue suscipit beautiful vehicula",
-                avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face"
-              },
-              {
-                name: "Wilson Dias",
-                role: "Backend Developer",
-                rating: 5,
-                review: "Lorem ipsum dolor sit amet, adipiscing elit. Donec malesuada justo vitaeaugue suscipit beautiful vehicula",
-                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face"
-              },
-              {
-                name: "Maria Rossi",
-                role: "Cliente Soddisfatta",
-                rating: 5,
-                review: "Servizio eccellente! Consegna puntuale e acqua sempre fresca. Consigliatissimo per chi cerca qualità!",
-                avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face"
-              },
-              {
-                name: "Giuseppe Bianchi",
-                role: "Imprenditore Locale",
-                rating: 5,
-                review: "Finalmente un servizio di consegna acqua affidabile a Bari. Prezzi competitivi e qualità ottima.",
-                avatar: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=150&h=150&fit=crop&crop=face"
-              },
-            ].map((review, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg border border-gray-100 shadow-sm">
-                {/* Rating Stars */}
-                <div className="flex mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`w-5 h-5 ${
-                        i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-                      }`}
-                    />
-                  ))}
-                </div>
-                
-                {/* Review Text */}
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  {review.review}
-                </p>
-                
-                {/* Reviewer Info */}
-                <div className="flex items-center">
-                  <img 
-                    src={review.avatar} 
-                    alt={review.name}
-                    className="w-12 h-12 rounded-full object-cover mr-4"
-                  />
-                  <div>
-                    <p className="font-semibold text-gray-900">{review.name}</p>
-                    <p className="text-sm text-gray-500">{review.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+            {/* ... existing reviews code ... */}
           </div>
         </div>
       </section>
 
+      {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-8">

@@ -60,15 +60,18 @@ const Header = () => {
               </form>
             </div>
 
-            {/* Right Section */}
+            {/* Right Section - Desktop */}
             <div className="flex items-center space-x-4">
               <Link to="/cart" className="relative">
-                <Button variant="ghost" size="sm" className="relative">
+                <Button variant="ghost" size="sm" className="relative flex flex-col items-center text-blue-600">
                   <ShoppingBag className="w-4 h-4" />
                   {itemCount > 0 && (
-                    <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
-                      {itemCount}
-                    </Badge>
+                    <>
+                      <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
+                        {itemCount}
+                      </Badge>
+                      <span className="text-xs mt-1">€{state.total.toFixed(2)}</span>
+                    </>
                   )}
                 </Button>
               </Link>
@@ -107,12 +110,15 @@ const Header = () => {
               <Search className="w-4 h-4" />
             </Button>
             <Link to="/cart" className="relative">
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="sm" className="relative flex flex-col items-center">
                 <ShoppingBag className="w-4 h-4" />
                 {itemCount > 0 && (
-                  <Badge className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
-                    {itemCount}
-                  </Badge>
+                  <>
+                    <Badge className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
+                      {itemCount}
+                    </Badge>
+                    <span className="text-xs mt-1 text-white px-2 py-1 rounded" style={{backgroundColor: '#1B5AAB'}}>{state.total.toFixed(2)}€</span>
+                  </>
                 )}
               </Button>
             </Link>
@@ -165,9 +171,23 @@ const Header = () => {
             <span className="text-xs mt-1">Home</span>
           </Link>
           <Link to="/products" className="flex flex-col items-center py-2 px-3 text-gray-600">
+            <div className="w-6 h-6 flex items-center justify-center">
+              <div className="grid grid-cols-2 gap-0.5">
+                <div className="w-2 h-2 bg-current rounded-sm"></div>
+                <div className="w-2 h-2 bg-current rounded-sm"></div>
+                <div className="w-2 h-2 bg-current rounded-sm"></div>
+                <div className="w-2 h-2 bg-current rounded-sm"></div>
+              </div>
+            </div>
+            <span className="text-xs mt-1">Categorie</span>
+          </Link>
+          <button 
+            onClick={() => setShowMobileSearch(!showMobileSearch)}
+            className="flex flex-col items-center py-2 px-3 text-blue-600"
+          >
             <Search className="w-6 h-6" />
             <span className="text-xs mt-1">Cerca</span>
-          </Link>
+          </button>
           <Link to="/cart" className="flex flex-col items-center py-2 px-3 text-gray-600 relative">
             <ShoppingBag className="w-6 h-6" />
             <span className="text-xs mt-1">Carrello</span>
@@ -177,10 +197,10 @@ const Header = () => {
               </Badge>
             )}
           </Link>
-          <div className="flex flex-col items-center py-2 px-3 text-gray-600">
+          <Link to="/account" className="flex flex-col items-center py-2 px-3 text-gray-600">
             <User className="w-6 h-6" />
-            <span className="text-xs mt-1">Profilo</span>
-          </div>
+            <span className="text-xs mt-1">Account</span>
+          </Link>
         </div>
       </div>
     </header>
