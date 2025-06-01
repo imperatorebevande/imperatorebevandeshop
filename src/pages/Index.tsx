@@ -107,9 +107,7 @@ const Index = () => {
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Button variant="outline" size="lg" className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-3">
-              Offerte Speciali
-            </Button>
+            {/* Pulsante "Offerte Speciali" rimosso */}
           </div>
         </div>
       </section>
@@ -301,6 +299,8 @@ const Index = () => {
       </section>
 
       {/* Special Offers */}
+      {/* Rimuovi l'intera sezione Special Offers */}
+      {/* 
       <section className="py-16 bg-gradient-to-r from-blue-50 to-blue-100">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -323,21 +323,7 @@ const Index = () => {
           )}
         </div>
       </section>
-
-      {/* Reviews Section */}
-      <section className="py-16 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-              Le RECENSIONI dei nostri clienti
-            </h2>
-          </div>
-          
-          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {/* ... existing reviews code ... */}
-          </div>
-        </div>
-      </section>
+      */}
 
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">

@@ -3,16 +3,55 @@ import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Grid3X3, List, Loader2 } from 'lucide-react';
-import { useWooCommerceProducts } from '@/hooks/useWooCommerce';
+import { Input } from '@/components/ui/input';
+import { Grid3X3, List, Loader2, Search, X } from 'lucide-react';
+import { useWooCommerceProducts, useWooCommerceCategories } from '@/hooks/useWooCommerce';
 import { useSearchParams } from 'react-router-dom';
 
 const Products = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [searchParams, setSearchParams] = useSearchParams();
+  const [allProducts, setAllProducts] = useState<any[]>([]);
   
-  // Leggi la categoria dai parametri URL
+  // Carica la prima pagina di prodotti (100 prodotti)
+  const { data: firstPageProducts = [], error: firstPageError, isLoading: isLoadingFirstPage } = useWooCommerceProducts({
+    per_page: 100,
+    page: 1,
+    status: 'publish'
+  });
+  
+  // Carica la seconda pagina di prodotti (i rimanenti)
+  const { data: secondPageProducts = [], error: secondPageError, isLoading: isLoadingSecondPage } = useWooCommerceProducts({
+    per_page: 100,
+    page: 2,
+    status: 'publish'
+  });
+  
+  // Definisci la variabile error combinando gli errori di entrambe le pagine
+  const error = firstPageError || secondPageError;
+  
+  // Definisci la variabile isLoading combinando i loading states di entrambe le pagine
+  const isLoading = isLoadingFirstPage || isLoadingSecondPage;
+  
+  // Combina i prodotti di entrambe le pagine
+  useEffect(() => {
+    const combinedProducts = [...firstPageProducts, ...secondPageProducts];
+    // Rimuovi eventuali duplicati basandoti sull'ID
+    const uniqueProducts = combinedProducts.filter((product, index, self) =>
+      index === self.findIndex((p) => p.id === product.id)
+    );
+    setAllProducts(uniqueProducts);
+  }, [firstPageProducts, secondPageProducts]);
+  
+  // Carica tutte le categorie
+  const { data: allCategories = [] } = useWooCommerceCategories({
+    per_page: 100,
+    hide_empty: true
+  });
+
+  // Modifica l'effetto per gestire il cambio di categoria
   useEffect(() => {
     const categoryParam = searchParams.get('category');
     if (categoryParam) {
@@ -20,19 +59,7 @@ const Products = () => {
     }
   }, [searchParams]);
   
-  // Carica tutti i prodotti
-  const {
-    data: products = [],
-    isLoading,
-    error
-  } = useWooCommerceProducts({
-    per_page: 50,
-    orderby: 'price',
-    order: 'asc',
-    stock_status: 'instock'
-  });
-
-  // Categorie principali (stessi della pagina index)
+  // Categorie principali (aggiornate con gli slug corretti di WooCommerce)
   const categories = [
     {
       id: 'all',
@@ -49,8 +76,8 @@ const Products = () => {
       icon: '💧'
     },
     {
-      id: 'birra', // Cambiato da 'birre' a 'birra'
-      name: 'Birre',
+      id: 'birra',  // Corretto, era già giusto
+      name: 'Birra',
       bgColor: 'bg-gradient-to-br from-amber-100 to-amber-200',
       textColor: 'text-amber-800',
       icon: '🍺'
@@ -75,30 +102,128 @@ const Products = () => {
   const getProductCategory = (product: any): string => {
     if (!product.categories || product.categories.length === 0) return 'altri';
     
-    const categoryName = product.categories[0].name.toLowerCase();
+    // Usa lo slug della categoria invece del nome
+    const categorySlug = product.categories[0].slug.toLowerCase();
     
-    if (categoryName.includes('acqua')) return 'acqua';
-    if (categoryName.includes('birra')) return 'birra'; // Cambiato da 'birre' a 'birra'
-    if (categoryName.includes('vino')) return 'vino';
-    if (categoryName.includes('bevande') || categoryName.includes('coca') || categoryName.includes('fanta') || categoryName.includes('schweppes')) return 'bevande';
+    if (categorySlug === 'acqua' || categorySlug.includes('acqua-')) return 'acqua';
+    if (categorySlug === 'birra' || categorySlug.includes('birra-')) return 'birra';
+    if (categorySlug === 'vino' || categorySlug.includes('vino-')) return 'vino';
+    if (categorySlug === 'bevande' || categorySlug.includes('bevande-') || 
+        categorySlug === 'cocacola' || categorySlug === 'fanta' || 
+        categorySlug === 'sanbenedetto' || categorySlug === 'sanpellegrino' || 
+        categorySlug === 'schweppes' || categorySlug.includes('altre-bevande')) return 'bevande';
     
     return 'altri';
   };
 
-  // Trasforma e filtra i prodotti
-  const transformedProducts = products
+  // Funzione per raggruppare prodotti per sottocategoria (aggiornata per la ricerca)
+  const groupProductsBySubcategory = (products: any[]) => {
+    // Se c'è una ricerca attiva e nessun filtro categoria, raggruppa sempre per sottocategoria
+    if (searchQuery && selectedCategory === 'all') {
+      const grouped: { [key: string]: any[] } = {};
+      
+      products.forEach(product => {
+        if (product.categories && product.categories.length > 0) {
+          // Trova la categoria principale del prodotto
+          const mainCategory = product.categories.find((cat: any) => cat.parent === 0) || product.categories[0];
+          const categoryName = mainCategory.name;
+          
+          if (!grouped[categoryName]) {
+            grouped[categoryName] = [];
+          }
+          grouped[categoryName].push(product);
+        } else {
+          // Prodotti senza categoria
+          if (!grouped['Altri']) {
+            grouped['Altri'] = [];
+          }
+          grouped['Altri'].push(product);
+        }
+      });
+      
+      return grouped;
+    }
+    
+    // Comportamento originale per altri casi
+    if (selectedCategory === 'all' && !searchQuery) {
+      return { 'Tutti i prodotti': products };
+    }
+
+    const grouped: { [key: string]: any[] } = {};
+    
+    products.forEach(product => {
+      if (product.categories && product.categories.length > 0) {
+        // Trova tutte le categorie del prodotto che appartengono alla categoria selezionata
+        const relevantCategories = product.categories.filter((cat: any) => {
+          const categorySlug = cat.slug.toLowerCase();
+          
+          // Verifica se la categoria corrisponde alla categoria selezionata
+          if (selectedCategory === 'acqua' && (categorySlug === 'acqua' || categorySlug.includes('acqua-'))) return true;
+          if (selectedCategory === 'birra' && (categorySlug === 'birra' || categorySlug.includes('birra-'))) return true;
+          if (selectedCategory === 'vino' && (categorySlug === 'vino' || categorySlug.includes('vino-'))) return true;
+          if (selectedCategory === 'bevande' && (
+            categorySlug === 'bevande' || categorySlug.includes('bevande-') ||
+            categorySlug === 'cocacola' || categorySlug === 'fanta' ||
+            categorySlug === 'sanbenedetto' || categorySlug === 'sanpellegrino' ||
+            categorySlug === 'schweppes' || categorySlug.includes('altre-bevande')
+          )) return true;
+          
+          return false;
+        });
+
+        if (relevantCategories.length > 0) {
+          // Usa la categoria più specifica (quella con parent diverso da 0 se esiste)
+          const subcategory = relevantCategories.find((cat: any) => cat.parent !== 0) || relevantCategories[0];
+          const subcategoryName = subcategory.name;
+          
+          if (!grouped[subcategoryName]) {
+            grouped[subcategoryName] = [];
+          }
+          grouped[subcategoryName].push(product);
+        }
+      }
+    });
+
+    // Se non ci sono sottocategorie, raggruppa tutto sotto la categoria principale
+    if (Object.keys(grouped).length === 0 && products.length > 0) {
+      const categoryName = categories.find(c => c.id === selectedCategory)?.name || 'Prodotti';
+      grouped[categoryName] = products;
+    }
+
+    return grouped;
+  };
+
+  // Trasforma e filtra i prodotti (aggiornato con filtro di ricerca)
+  const transformedProducts = allProducts
     .filter(product => product.stock_status === 'instock')
-    .map(product => ({
-      id: product.id,
-      name: product.name,
-      price: parseFloat(product.price) || 0,
-      image: product.images?.[0]?.src || '/placeholder.svg',
-      description: (product.description || product.short_description || '').replace(/<[^>]*>/g, '').trim(),
-      inStock: product.stock_status === 'instock',
-      category: getProductCategory(product)
-    }))
-    .filter(product => selectedCategory === 'all' || product.category === selectedCategory)
+    .map(product => {
+      const category = getProductCategory(product);
+      return {
+        id: product.id,
+        name: product.name,
+        price: parseFloat(product.price) || 0,
+        image: product.images?.[0]?.src || '/placeholder.svg',
+        description: (product.description || product.short_description || '').replace(/<[^>]*>/g, '').trim(),
+        inStock: product.stock_status === 'instock',
+        category: category,
+        categories: product.categories
+      };
+    })
+    .filter(product => {
+      // Filtro per categoria
+      const categoryMatch = selectedCategory === 'all' || product.category === selectedCategory;
+      
+      // Filtro per ricerca (case-insensitive)
+      const searchMatch = searchQuery === '' || 
+        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.description.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      return categoryMatch && searchMatch;
+    })
     .sort((a, b) => a.price - b.price);
+
+  // Raggruppa i prodotti per sottocategoria
+  const groupedProducts = groupProductsBySubcategory(transformedProducts);
 
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId);
@@ -129,11 +254,17 @@ const Products = () => {
     );
   }
 
+  // Funzione per pulire la ricerca
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="container mx-auto px-4 py-8">
+      {/* Aggiungi pb-20 per evitare la sovrapposizione con la bottom navigation mobile */}
+      <div className="container mx-auto px-4 py-8 pb-20 md:pb-8">
         {/* Filtri per Categoria */}
         <section className="mb-8">
           <div className="text-center mb-6">
@@ -168,14 +299,43 @@ const Products = () => {
           </div>
         </section>
 
+        {/* Barra di Ricerca */}
+        <section className="mb-8">
+          <div className="max-w-md mx-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <Input
+                type="text"
+                placeholder="Cerca prodotti per nome..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10 py-3 text-base border-2 border-gray-200 focus:border-blue-500 rounded-lg"
+              />
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+            {searchQuery && (
+              <p className="text-sm text-gray-500 mt-2 text-center">
+                Risultati per: <span className="font-semibold">"{searchQuery}"</span>
+              </p>
+            )}
+          </div>
+        </section>
+
         {/* Header con controlli vista */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-              {selectedCategory === 'all' ? 'Tutti i Prodotti' : categories.find(c => c.id === selectedCategory)?.name}
+              {searchQuery ? `Risultati ricerca` : (selectedCategory === 'all' ? 'Tutti i Prodotti' : categories.find(c => c.id === selectedCategory)?.name)}
             </h1>
             <p className="text-gray-600 mt-1">
-              {transformedProducts.length} prodotti disponibili
+              {transformedProducts.length} prodotti {searchQuery || selectedCategory !== 'all' ? 'trovati' : 'disponibili'}
             </p>
           </div>
           
@@ -209,30 +369,60 @@ const Products = () => {
           </div>
         )}
 
-        {/* Products grid/list */}
+        {/* Products grouped by subcategory */}
         {!isLoading && transformedProducts.length > 0 && (
-          <div className={`grid gap-6 ${
-            viewMode === 'grid' 
-              ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5' 
-              : 'grid-cols-1'
-          }`}>
-            {transformedProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                viewMode={viewMode}
-              />
+          <div className="space-y-8">
+            {Object.entries(groupedProducts).map(([subcategoryName, subcategoryProducts]) => (
+              <div key={subcategoryName} className="space-y-4">
+                {/* Titolo sottocategoria (solo se non è "Tutti i prodotti" e ci sono più sottocategorie) */}
+                {Object.keys(groupedProducts).length > 1 && subcategoryName !== 'Tutti i prodotti' && (
+                  <div className="border-b border-gray-200 pb-2">
+                    <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+                      <span className="w-1 h-6 bg-blue-600 rounded"></span>
+                      {subcategoryName}
+                      <span className="text-sm font-normal text-gray-500">({subcategoryProducts.length} prodotti)</span>
+                    </h3>
+                  </div>
+                )}
+                
+                {/* Griglia prodotti per sottocategoria */}
+                <div className={`grid gap-6 ${
+                  viewMode === 'grid' 
+                    ? 'grid-cols-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5' 
+                    : 'grid-cols-1'
+                }`}>
+                  {subcategoryProducts.map((product) => (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      viewMode={viewMode}
+                    />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Empty state aggiornato per la ricerca */}
         {!isLoading && transformedProducts.length === 0 && (
           <div className="text-center py-16">
             <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100 max-w-md mx-auto">
-              <div className="text-6xl mb-4">📦</div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-800">Nessun prodotto trovato</h3>
-              <p className="text-gray-600">Non ci sono prodotti disponibili al momento.</p>
+              <div className="text-6xl mb-4">{searchQuery ? '🔍' : '📦'}</div>
+              <h3 className="text-xl font-semibold mb-2 text-gray-800">
+                {searchQuery ? 'Nessun risultato trovato' : 'Nessun prodotto trovato'}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {searchQuery 
+                  ? `Non ci sono prodotti che corrispondono a "${searchQuery}".`
+                  : 'Non ci sono prodotti disponibili al momento.'
+                }
+              </p>
+              {searchQuery && (
+                <Button onClick={clearSearch} variant="outline">
+                  Cancella ricerca
+                </Button>
+              )}
             </div>
           </div>
         )}
