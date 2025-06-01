@@ -117,6 +117,7 @@ const ProductDetail = () => {
       });
       toast.success(`Quantità aggiornata: ${quantity}x ${product.name}`);
     } else {
+      // Nella funzione handleAddToCart, sostituire il blocco ADD_ITEM con:
       for (let i = 0; i < quantity; i++) {
         dispatch({
           type: 'ADD_ITEM',
@@ -124,7 +125,8 @@ const ProductDetail = () => {
             id: product.id,
             name: product.name,
             price: product.price,
-            image: product.image
+            image: product.image,
+            category: product.category // Aggiungi questa riga
           }
         });
       }

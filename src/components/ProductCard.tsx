@@ -60,7 +60,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         name: product.name,
         price: product.price,
         image: product.image,
-        quantity: 1 as number,
+        category: product.category // Aggiungi questa riga
       },
     });
     
@@ -76,7 +76,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
       ),
       style: {
         border: `2px solid ${getBorderColor(product.category)}`,
-        color: getBorderColor(product.category),
       }
     });
   };
@@ -105,7 +104,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       
       {/* Badge per prodotto nel carrello */}
       {isInCart && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-white px-1.5 py-0.5 rounded text-xs font-bold z-10 flex items-center gap-1 whitespace-nowrap" style={{ backgroundColor: '#A40800' }}>
+        <div className="absolute bottom-12 sm:bottom-20 left-1/2 -translate-x-1/2 text-white px-1.5 py-0.5 rounded text-xs font-bold z-10 flex items-center gap-1 whitespace-nowrap" style={{ backgroundColor: '#A40800' }}>
           <Check className="w-3 h-3" />
           Nel carrello ({quantityInCart})
         </div>
@@ -123,7 +122,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           />
         </Link>
         
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex flex-col items-center justify-center gap-2">
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex flex-col items-center justify-center gap-3 sm:gap-2">
           <Button
             onClick={handleAddToCart}
             disabled={!isAvailable}
