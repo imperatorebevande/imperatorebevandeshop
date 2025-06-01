@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Grid3X3, List, Loader2, Search, X } from 'lucide-react';
 import { useWooCommerceProducts, useWooCommerceCategories } from '@/hooks/useWooCommerce';
 import { useSearchParams } from 'react-router-dom';
-import { getBorderColor } from '@/lib/utils'; // <-- AGGIUNGI QUESTO IMPORT
+import { getBorderColor } from '@/lib/utils';
 
 const Products = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -386,8 +386,16 @@ const Products = () => {
                 {/* Titolo sottocategoria (solo se non è "Tutti i prodotti" e ci sono più sottocategorie) */}
                 {Object.keys(groupedProducts).length > 1 && subcategoryName !== 'Tutti i prodotti' && (
                   <div className="border-b border-gray-200 pb-2">
-                    <h3 className="text-xl font-semibold flex items-center gap-2" style={{ color: getBorderColor(selectedCategory) }}>
-                      <span className="w-1 h-6 rounded" style={{ backgroundColor: getBorderColor(selectedCategory) }}></span>
+                    <h3 className="text-xl font-semibold flex items-center gap-2" style={{ 
+                      color: selectedCategory === 'all' 
+                        ? getCategoryColorFromSubcategoryName(subcategoryName) 
+                        : getBorderColor(selectedCategory) 
+                    }}>
+                      <span className="w-1 h-6 rounded" style={{ 
+                        backgroundColor: selectedCategory === 'all' 
+                          ? getCategoryColorFromSubcategoryName(subcategoryName) 
+                          : getBorderColor(selectedCategory) 
+                      }}></span>
                       {subcategoryName}
                       <span className="text-sm font-normal text-gray-500">({subcategoryProducts.length} prodotti)</span>
                     </h3>
@@ -441,3 +449,16 @@ const Products = () => {
 };
 
 export default Products;
+
+
+// Funzione per determinare il colore della categoria basandosi sul nome della sottocategoria
+const getCategoryColorFromSubcategoryName = (subcategoryName: string): string => {
+  const lowerName = subcategoryName.toLowerCase();
+  
+  if (lowerName.includes('acqua')) return '#1B5AAB'; // blu
+  if (lowerName.includes('birra')) return '#CFA100'; // giallo/oro
+  if (lowerName.includes('bevande') || lowerName.includes('coca') || lowerName.includes('fanta') || lowerName.includes('schweppes')) return '#558E28'; // verde
+  if (lowerName.includes('vino')) return '#8500AF'; // viola
+  
+  return '#374151'; // grigio di default
+};

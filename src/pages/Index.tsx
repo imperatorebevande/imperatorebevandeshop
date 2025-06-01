@@ -60,11 +60,11 @@ const Index = () => {
       link: '/products?category=acqua'
     },
     {
-      name: 'Birre',
+      name: 'Birra',
       bgColor: 'bg-gradient-to-br from-amber-100 to-amber-200',
       textColor: 'text-amber-800',
       icon: '🍺',
-      link: '/products?category=birre'
+      link: '/products?category=birra'
     },
     {
       name: 'Vino',

@@ -3,11 +3,11 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ShoppingBag, Check } from 'lucide-react';
+import { ShoppingBag, Check, ShoppingCart } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
-import { getBorderColor, getBottleQuantity } from '@/lib/utils'; // <-- AGGIUNGI QUESTO IMPORT
+import { getBorderColor, getBottleQuantity } from '@/lib/utils';
 
 interface Product {
   id: number;
@@ -38,11 +38,6 @@ const ProductCard = ({ product }: ProductCardProps) => {
     bottleQuantity: product.bottleQuantity
   });
   
-  // Funzione per estrarre la quantità di bottiglie dalla descrizione del prodotto
-  // Rimuovi le seguenti definizioni di funzione da questo file:
-  // const getBottleQuantity = (description?: string): number | null => { ... };
-  // const getBorderColor = (category?: string) => { ... };
-  
   // Verifica se il prodotto è nel carrello
   const cartItem = state.items.find(item => item.id === product.id);
   const isInCart = !!cartItem;
@@ -68,13 +63,28 @@ const ProductCard = ({ product }: ProductCardProps) => {
         quantity: 1 as number,
       },
     });
-    toast.success(`${product.name} aggiunto al carrello!`);
+    
+    // Toast personalizzato con colore della categoria
+    toast.success(`${product.name} aggiunto al carrello!`, {
+      icon: (
+        <div 
+          className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold"
+          style={{ backgroundColor: getBorderColor(product.category) }}
+        >
+          ✓
+        </div>
+      ),
+      style: {
+        border: `2px solid ${getBorderColor(product.category)}`,
+        color: getBorderColor(product.category),
+      }
+    });
   };
 
   return (
     <div 
       className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 group relative overflow-hidden border-2"
-      style={{ borderColor: getBorderColor(product.category) }} // Ora usa la funzione importata
+      style={{ borderColor: getBorderColor(product.category) }}
     >
       {/* Badge sconto */}
       {discountPercentage > 0 && (
@@ -87,7 +97,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       {(product.bottleQuantity || getBottleQuantity(product.short_description || product.description)) && (
         <div 
           className="absolute top-2 -right-8 text-white px-8 py-1 text-xs font-bold z-10 flex items-center gap-1 transform rotate-45"
-          style={{ backgroundColor: getBorderColor(product.category) }} // Ora usa la funzione importata
+          style={{ backgroundColor: getBorderColor(product.category) }}
         >
           x{product.bottleQuantity || getBottleQuantity(product.short_description || product.description)} bott.
         </div>
@@ -95,7 +105,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       
       {/* Badge per prodotto nel carrello */}
       {isInCart && (
-        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 bg-green-500 text-white px-1.5 py-0.5 rounded text-xs font-bold z-10 flex items-center gap-1 whitespace-nowrap">
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-white px-1.5 py-0.5 rounded text-xs font-bold z-10 flex items-center gap-1 whitespace-nowrap" style={{ backgroundColor: '#A40800' }}>
           <Check className="w-3 h-3" />
           Nel carrello ({quantityInCart})
         </div>
@@ -113,7 +123,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           />
         </Link>
         
-        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex flex-col items-center justify-center gap-2">
           <Button
             onClick={handleAddToCart}
             disabled={!isAvailable}
@@ -135,6 +145,21 @@ const ProductCard = ({ product }: ProductCardProps) => {
               </>
             )}
           </Button>
+          
+          {/* Pulsante "Vai al Carrello" - appare solo se il prodotto è nel carrello */}
+          {isInCart && (
+            <Link to="/cart">
+              <Button
+                className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 text-white px-2 py-1 text-xs"
+                style={{ backgroundColor: '#1B5AAB' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#154a9a'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1B5AAB'}
+              >
+                <ShoppingCart className="w-3 h-3 mr-1" />
+                Vai al Carrello
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
 
