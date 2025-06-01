@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Grid3X3, List, Loader2, Search, X } from 'lucide-react';
 import { useWooCommerceProducts, useWooCommerceCategories } from '@/hooks/useWooCommerce';
 import { useSearchParams } from 'react-router-dom';
+import { getBorderColor } from '@/lib/utils'; // <-- AGGIUNGI QUESTO IMPORT
 
 const Products = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -339,7 +340,7 @@ const Products = () => {
         {/* Header con controlli vista */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+            <h1 className="text-2xl md:text-3xl font-bold" style={{ color: selectedCategory !== 'all' ? getBorderColor(selectedCategory) : '#374151' }}>
               {searchQuery ? `Risultati ricerca` : (selectedCategory === 'all' ? 'Tutti i Prodotti' : categories.find(c => c.id === selectedCategory)?.name)}
             </h1>
             <p className="text-gray-600 mt-1">
@@ -385,8 +386,8 @@ const Products = () => {
                 {/* Titolo sottocategoria (solo se non è "Tutti i prodotti" e ci sono più sottocategorie) */}
                 {Object.keys(groupedProducts).length > 1 && subcategoryName !== 'Tutti i prodotti' && (
                   <div className="border-b border-gray-200 pb-2">
-                    <h3 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-                      <span className="w-1 h-6 bg-blue-600 rounded"></span>
+                    <h3 className="text-xl font-semibold flex items-center gap-2" style={{ color: getBorderColor(selectedCategory) }}>
+                      <span className="w-1 h-6 rounded" style={{ backgroundColor: getBorderColor(selectedCategory) }}></span>
                       {subcategoryName}
                       <span className="text-sm font-normal text-gray-500">({subcategoryProducts.length} prodotti)</span>
                     </h3>
