@@ -19,7 +19,7 @@ const Header = () => {
     const checkMenuSpace = () => {
       const screenWidth = window.innerWidth;
       // Se la larghezza è troppo piccola per contenere menu + logo + cart, nascondi il menu
-      if (screenWidth < 1200) {
+      if (screenWidth < 1050) {
         setShowMenuItems(false);
       } else {
         setShowMenuItems(true);
