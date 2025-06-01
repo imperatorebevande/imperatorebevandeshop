@@ -370,12 +370,25 @@ const ProductDetail = () => {
                           Prodotto non inserito nel carrello
                         </div>
                       ) : (
-                        <div className="text-center text-sm text-gray-600 bg-green-50 p-3 rounded-lg border border-green-200">
-                          <ShoppingBag className="w-4 h-4 inline mr-2 text-green-600" />
-                          {cartItem ? 
-                            `Quantità nel carrello: ${cartItem.quantity}` : 
-                            `Quantità da aggiungere: ${quantity}`
-                          }
+                        <div className="flex items-center justify-between text-sm text-gray-600 bg-green-50 p-3 rounded-lg border border-green-200">
+                          <div className="flex items-center">
+                            <ShoppingBag className="w-4 h-4 inline mr-2 text-green-600" />
+                            {cartItem ? 
+                              `Quantità nel carrello: ${cartItem.quantity}` : 
+                              `Quantità da aggiungere: ${quantity}`
+                            }
+                          </div>
+                          {cartItem && (
+                            <Link to="/cart">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="ml-3 text-green-700 border-green-300 hover:bg-green-100"
+                              >
+                                Vai al carrello
+                              </Button>
+                            </Link>
+                          )}
                         </div>
                       )}
                     </>

@@ -9,7 +9,12 @@ import { Link } from 'react-router-dom';
 import { useWooCommerceBestSellingProducts, useWooCommerceSaleProducts } from '@/hooks/useWooCommerce';
 
 const Index = () => {
-  const { data: bestSellingProducts = [], isLoading: bestSellingLoading } = useWooCommerceBestSellingProducts({ per_page: 4 });
+  // Calcola il numero di prodotti per 2 righe basato sulla griglia responsive
+  // Mobile: 2 colonne × 2 righe = 4 prodotti
+  // Medium: 4 colonne × 2 righe = 8 prodotti  
+  // Large/XL: 5 colonne × 2 righe = 10 prodotti
+  // Usiamo 10 come massimo per coprire tutti i casi
+  const { data: bestSellingProducts = [], isLoading: bestSellingLoading } = useWooCommerceBestSellingProducts({ per_page: 10 });
   const { data: saleProducts = [], isLoading: saleLoading } = useWooCommerceSaleProducts({ per_page: 4 });
 
   // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard includendo stock status
@@ -206,11 +211,28 @@ const Index = () => {
               <p>Caricamento prodotti più acquistati...</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-6 mb-8">
-              {transformedBestSellingProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <>
+              {/* Mobile: mostra solo 4 prodotti */}
+              <div className="grid grid-cols-2 gap-6 mb-8 md:hidden">
+                {transformedBestSellingProducts.slice(0, 4).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              
+              {/* Medium: mostra 8 prodotti */}
+              <div className="hidden md:grid md:grid-cols-4 lg:hidden gap-6 mb-8">
+                {transformedBestSellingProducts.slice(0, 8).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+              
+              {/* Large e XL: mostra 10 prodotti */}
+              <div className="hidden lg:grid lg:grid-cols-5 xl:grid-cols-5 gap-6 mb-8">
+                {transformedBestSellingProducts.slice(0, 10).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </>
           )}
           
           <div className="text-center">
@@ -249,8 +271,7 @@ const Index = () => {
                     </span>
                   </h3>
                   <p className="text-gray-600 text-xs leading-relaxed">
-                    Consegna gratuita a Bari per ordini sopra i 30€
-                  </p>
+                    Consegna gratuita su Bari per ordini superiori a 5€                 </p>
                 </div>
               </div>
             </div>

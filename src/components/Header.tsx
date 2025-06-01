@@ -117,7 +117,7 @@ const Header = () => {
                     <Badge className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
                       {itemCount}
                     </Badge>
-                    <span className="text-xs mt-1 text-white px-2 py-1 rounded" style={{backgroundColor: '#1B5AAB'}}>{state.total.toFixed(2)}€</span>
+                    <span className="text-xs mt-1 bg-blue-500 text-white px-2 py-1 rounded">{state.total.toFixed(2)}€</span>
                   </>
                 )}
               </Button>
