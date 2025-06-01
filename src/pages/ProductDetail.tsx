@@ -13,22 +13,37 @@ import { getBorderColor } from '../lib/utils';
 
 const ProductDetail = () => {
   const { id } = useParams();
-  const { dispatch } = useCart();
-  const [quantity, setQuantity] = useState(1);
+  const { state, dispatch } = useCart();
+  
+  // TUTTI gli hooks devono essere chiamati SEMPRE nello stesso ordine
+  const [quantity, setQuantity] = useState(0);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
-  // Recupera il prodotto da WooCommerce
+  // Hooks personalizzati - sempre nello stesso ordine
   const { data: wooProduct, isLoading, error } = useWooCommerceProduct(parseInt(id || '0'));
-
-  // Recupera prodotti correlati della stessa categoria
+  
+  // Questo hook deve essere sempre chiamato, anche se categoryId è undefined
   const categoryId = wooProduct?.categories?.[0]?.id;
   const { data: relatedWooProducts, isLoading: isLoadingRelated } = useWooCommerceProducts({
-    category: categoryId?.toString(),
+    category: categoryId?.toString() || '',
     per_page: 4,
     exclude: [parseInt(id || '0')]
   }, {
     enabled: !!categoryId
   });
 
+  // useEffect per inizializzare la quantità dal carrello
+  React.useEffect(() => {
+    const cartItem = state.items.find(item => item.id === parseInt(id || '0'));
+    if (cartItem) {
+      setQuantity(cartItem.quantity);
+    } else {
+      setQuantity(0); // Mostra 0 se non è nel carrello
+    }
+    setHasInitialized(true);
+  }, [state.items, id]);
+
+  // IMPORTANTE: Tutti i return condizionali devono essere DOPO tutti gli hooks
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -61,6 +76,9 @@ const ProductDetail = () => {
     );
   }
 
+  // Trova il prodotto nel carrello
+  const cartItem = state.items.find(item => item.id === parseInt(id || '0'));
+
   // Trasforma il prodotto WooCommerce nel formato locale
   const product = {
     id: wooProduct.id,
@@ -78,6 +96,52 @@ const ProductDetail = () => {
     category: wooProduct.categories && wooProduct.categories.length > 0 
       ? wooProduct.categories[0].name : undefined,
     short_description: wooProduct.short_description || wooProduct.description
+  };
+
+  // Funzione per gestire l'aggiunta al carrello
+  const handleAddToCart = () => {
+    if (!product.inStock) {
+      toast.error('Prodotto non disponibile');
+      return;
+    }
+    
+    if (quantity === 0) return;
+    
+    if (cartItem) {
+      dispatch({
+        type: 'UPDATE_QUANTITY',
+        payload: {
+          id: product.id,
+          quantity: quantity
+        }
+      });
+      toast.success(`Quantità aggiornata: ${quantity}x ${product.name}`);
+    } else {
+      for (let i = 0; i < quantity; i++) {
+        dispatch({
+          type: 'ADD_ITEM',
+          payload: {
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            image: product.image
+          }
+        });
+      }
+      toast.success(`${quantity}x ${product.name} aggiunto al carrello`);
+    }
+  };
+
+  // Funzione per rimuovere dal carrello
+  const handleRemoveFromCart = () => {
+    if (cartItem) {
+      dispatch({
+        type: 'REMOVE_ITEM',
+        payload: product.id
+      });
+      setQuantity(0);
+      toast.success(`${product.name} rimosso dal carrello`);
+    }
   };
 
   // Trasforma prodotti correlati
@@ -98,26 +162,6 @@ const ProductDetail = () => {
     short_description: wooProduct.short_description || wooProduct.description,
     stock_status: wooProduct.stock_status
   })) || [];
-
-  const handleAddToCart = () => {
-    if (!product.inStock) {
-      toast.error('Prodotto non disponibile');
-      return;
-    }
-
-    for (let i = 0; i < quantity; i++) {
-      dispatch({
-        type: 'ADD_ITEM',
-        payload: {
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.image
-        }
-      });
-    }
-    toast.success(`${quantity}x ${product.name} aggiunto al carrello!`);
-  };
 
   const discountPercentage = product.originalPrice 
     ? Math.round((product.originalPrice - product.price) / product.originalPrice * 100) 
@@ -232,7 +276,7 @@ const ProductDetail = () => {
                   />
                 </div>
 
-               {/* Quantity and Add to Cart */}
+               {/* Quantity Selector */}
                 <div className="flex flex-col space-y-4">
                   {product.inStock ? (
                     <>
@@ -242,7 +286,32 @@ const ProductDetail = () => {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            onClick={() => setQuantity(Math.max(1, quantity - 1))} 
+                            onClick={() => {
+                              const newQuantity = Math.max(0, quantity - 1);
+                              setQuantity(newQuantity);
+                              
+                              // Se il prodotto è nel carrello, aggiorna la quantità
+                              if (cartItem) {
+                                if (newQuantity === 0) {
+                                  // Se la quantità diventa 0, rimuovi dal carrello
+                                  dispatch({
+                                    type: 'REMOVE_ITEM',
+                                    payload: product.id
+                                  });
+                                  toast.success(`${product.name} rimosso dal carrello`);
+                                } else {
+                                  // Altrimenti aggiorna la quantità
+                                  dispatch({
+                                    type: 'UPDATE_QUANTITY',
+                                    payload: {
+                                      id: product.id,
+                                      quantity: newQuantity
+                                    }
+                                  });
+                                  toast.success(`Quantità aggiornata: ${newQuantity}x ${product.name}`);
+                                }
+                              }
+                            }}
                             className="w-12 h-12 rounded-full bg-white shadow-sm hover:bg-gray-50 text-teal-600 font-bold text-lg"
                           >
                             −
@@ -253,23 +322,62 @@ const ProductDetail = () => {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            onClick={() => setQuantity(quantity + 1)} 
+                            onClick={() => {
+                              const newQuantity = quantity + 1;
+                              setQuantity(newQuantity);
+                              
+                              if (!product.inStock) {
+                                toast.error('Prodotto non disponibile');
+                                return;
+                              }
+                              
+                              // Se passiamo da 0 a 1, aggiungi al carrello
+                              if (quantity === 0 && newQuantity === 1) {
+                                dispatch({
+                                  type: 'ADD_ITEM',
+                                  payload: {
+                                    id: product.id,
+                                    name: product.name,
+                                    price: product.price,
+                                    image: product.image
+                                  }
+                                });
+                                toast.success(`${product.name} aggiunto al carrello`);
+                              } 
+                              // Se il prodotto è già nel carrello, aggiorna la quantità
+                              else if (cartItem && newQuantity > 1) {
+                                dispatch({
+                                  type: 'UPDATE_QUANTITY',
+                                  payload: {
+                                    id: product.id,
+                                    quantity: newQuantity
+                                  }
+                                });
+                                toast.success(`Quantità aggiornata: ${newQuantity}x ${product.name}`);
+                              }
+                            }}
                             className="w-12 h-12 rounded-full bg-white shadow-sm hover:bg-gray-50 text-teal-600 font-bold text-lg"
                           >
                             +
                           </Button>
                         </div>
                       </div>
-                
-                      {/* Add to Cart Button */}
-                      <Button 
-                        className="gradient-primary flex-1" 
-                        onClick={handleAddToCart}
-                        disabled={!product.inStock}
-                      >
-                        <ShoppingBag className="w-5 h-5 mr-3" />
-                        Aggiungi al CARRELLO
-                      </Button>
+                      
+                      {/* Messaggio informativo dinamico */}
+                      {quantity === 0 ? (
+                        <div className="text-center text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">
+                          <ShoppingBag className="w-4 h-4 inline mr-2 text-red-600" />
+                          Prodotto non inserito nel carrello
+                        </div>
+                      ) : (
+                        <div className="text-center text-sm text-gray-600 bg-green-50 p-3 rounded-lg border border-green-200">
+                          <ShoppingBag className="w-4 h-4 inline mr-2 text-green-600" />
+                          {cartItem ? 
+                            `Quantità nel carrello: ${cartItem.quantity}` : 
+                            `Quantità da aggiungere: ${quantity}`
+                          }
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="text-gray-500 text-sm font-medium bg-gray-100 px-4 py-2 rounded-md w-full text-center">
