@@ -218,7 +218,7 @@ const Cart = () => {
 
           {/* Order Summary */}
           <div>
-            <Card className="lg:sticky lg:top-8">
+            <Card className="lg:sticky lg:top-32">
               <CardHeader>
                 <CardTitle className="text-lg sm:text-xl">Riepilogo Ordine</CardTitle>
               </CardHeader>
