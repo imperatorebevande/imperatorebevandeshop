@@ -455,8 +455,11 @@ const Checkout = () => {
                     <div className="flex items-center space-x-3">
                       <div className="text-xl">{getPaymentMethodIcon(gateway.id)}</div>
                       <div className="flex-1">
-                        <h3 className="font-medium text-sm">{gateway.title}</h3>
-                        <p className="text-gray-600 text-xs">{getMainDescription(gateway)}</p>
+                        {/* Rimuovi questa riga che mostra il titolo duplicato */}
+                        {/* <h3 className="font-medium text-sm">{gateway.title}</h3> */}
+                        
+                        {/* Mantieni solo la descrizione personalizzata */}
+                        <h3 className="font-medium text-sm">{getMainDescription(gateway)}</h3>
                         
                         {/* Dettagli espandibili */}
                         {expandedPaymentDetails === gateway.id && (
@@ -623,7 +626,7 @@ export default Checkout;
       case 'stripe':
         return 'Pagamento sicuro con carta di credito online.';
       case 'paypal':
-        return 'Paga facilmente con il tuo account PayPal.';
+        return 'Paga con PayPal.';
       case 'satispay':
         return 'Pagamento veloce con Satispay.';
       case 'bacs':
@@ -638,6 +641,8 @@ export default Checkout;
     switch (gateway.id) {
       case 'cod':
         return 'I nostri collaboratori durante la consegna del vostro ordine, saranno muniti di contanti o con POS per agevolarvi nel pagamento.';
+      case 'paypal':
+        return 'Paga facilmente e in sicurezza con il tuo account PayPal.';
       default:
         return gateway.description;
     }
