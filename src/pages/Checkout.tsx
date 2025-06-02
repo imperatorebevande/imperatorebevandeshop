@@ -529,7 +529,7 @@ const Checkout = () => {
         </div>
 
         {/* Step Content */}
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto pb-24">
           <Card className="shadow-lg">
             <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
               <CardTitle className="flex items-center text-xl">
@@ -542,63 +542,47 @@ const Checkout = () => {
             </CardContent>
           </Card>
 
-          {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8">
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              disabled={currentStep === 0}
-              className="px-8 py-3 text-base"
-            >
-              Indietro
-            </Button>
-            
-            {currentStep < steps.length - 1 ? (
+          {/* Navigation Buttons - fissi sopra la nav bar mobile */}
+          <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+            <div className="max-w-4xl mx-auto flex justify-between">
               <Button
-                onClick={nextStep}
-                disabled={!validateStep(currentStep)}
-                className="px-8 py-3 text-base gradient-primary"
+                variant="outline"
+                onClick={currentStep === 0 ? () => navigate('/cart') : prevStep}
+                className="px-8 py-3 text-base"
               >
-                {currentStep === 0 ? 'CONTINUA PER LA SPEDIZIONE' : 'Continua'}
+                Indietro
               </Button>
-            ) : (
-              <Button
-                onClick={handleSubmit}
-                disabled={isProcessing || !validateStep(currentStep)}
-                className="px-8 py-3 text-base gradient-primary"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Elaborazione...
-                  </>
-                ) : (
-                  `Completa Ordine - ${calculateTotal().toFixed(2)}€`
-                )}
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Security badges */}
-        <div className="max-w-4xl mx-auto mt-8">
-          <div className="flex flex-col items-center space-y-2 text-center text-gray-600">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center">
-                <ShieldCheck className="w-5 h-5 mr-2 text-green-600" />
-                <span>Pagamento sicuro e protetto</span>
-              </div>
-              <div className="flex items-center">
-                <Package className="w-5 h-5 mr-2 text-blue-600" />
-                <span>Garanzia soddisfatti o rimborsati</span>
-              </div>
-              <div className="flex items-center">
-                <Truck className="w-5 h-5 mr-2 text-orange-600" />
-                <span>Spedizione sempre gratuita</span>
-              </div>
+              
+              {currentStep < steps.length - 1 ? (
+                <Button
+                  onClick={nextStep}
+                  disabled={!validateStep(currentStep)}
+                  className="px-8 py-3 text-base gradient-primary"
+                >
+                  {currentStep === 0 ? 'CONTINUA PER LA SPEDIZIONE' : 'Continua'}
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={isProcessing || !validateStep(currentStep)}
+                  className="px-8 py-3 text-base gradient-primary"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Elaborazione...
+                    </>
+                  ) : (
+                    `Completa Ordine - ${calculateTotal().toFixed(2)}€`
+                  )}
+                </Button>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Rimuovi completamente questa sezione dei Security badges */}
+        {/* Security badges - ELIMINATA */}
       </div>
     </div>
   );
