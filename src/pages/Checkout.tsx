@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext'; // Aggiungi questo import
 import { useWooCommerceCustomer, useWooCommercePaymentGateways } from '@/hooks/useWooCommerce';
 import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2, ShoppingBag, MapPin, Package, Receipt, CreditCard as PaymentIcon } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,6 +16,7 @@ const Checkout = () => {
   const { state, dispatch } = useCart();
   const navigate = useNavigate();
   const createOrder = useCreateWooCommerceOrder();
+  const { state: authState } = useAuth(); // Aggiungi questo
   
   // Step management - ora solo 3 step
   const [currentStep, setCurrentStep] = useState(0);
@@ -53,7 +55,8 @@ const Checkout = () => {
 
   // Precompila i dati dal profilo utente quando vengono caricati
   useEffect(() => {
-    if (customer) {
+    if (authState.isAuthenticated && customer) {
+      // Se l'utente è loggato, precompila con i suoi dati
       setFormData({
         firstName: customer.first_name || '',
         lastName: customer.last_name || '',
@@ -65,8 +68,21 @@ const Checkout = () => {
         province: customer.shipping.state || customer.billing.state || '',
         orderNotes: '',
       });
+    } else if (!authState.isAuthenticated) {
+      // Se l'utente non è loggato, lascia i campi vuoti
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        postalCode: '',
+        province: '',
+        orderNotes: '',
+      });
     }
-  }, [customer]);
+  }, [authState.isAuthenticated, customer]);
 
   // Imposta il primo metodo di pagamento disponibile come default
   useEffect(() => {
@@ -134,7 +150,7 @@ const Checkout = () => {
       const orderData = {
         payment_method: paymentMethod,
         payment_method_title: selectedPaymentGateway?.title || paymentMethod,
-        customer_id: customerId,
+        customer_id: customerId || 0, // Usa 0 se non c'è un utente loggato
         billing: {
           first_name: formData.firstName,
           last_name: formData.lastName,

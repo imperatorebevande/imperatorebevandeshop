@@ -1,5 +1,6 @@
 
-import { useQuery, UseQueryOptions } from '@tanstack/react-query';
+import { useQuery, UseQueryOptions, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { 
   wooCommerceService, 
   WooCommerceProduct, 
@@ -128,17 +129,12 @@ export const useWooCommerceCustomers = (
 };
 
 // Hook per ottenere un singolo cliente
-export const useWooCommerceCustomer = (
-  id: number,
-  options?: Partial<UseQueryOptions<WooCommerceCustomer, Error>>
-) => {
+export const useWooCommerceCustomer = (customerId: number | null, options?: { enabled?: boolean }) => {
   return useQuery({
-    queryKey: ['woocommerce-customer', id],
-    queryFn: () => wooCommerceService.getCustomer(id),
-    enabled: !!id,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    ...options,
+    queryKey: ['woocommerce-customer', customerId],
+    queryFn: () => customerId ? wooCommerceService.getCustomer(customerId) : null,
+    enabled: options?.enabled !== false && !!customerId,
+    staleTime: 5 * 60 * 1000, // 5 minuti
   });
 };
 
@@ -154,6 +150,20 @@ export const useWooCommerceCustomerByEmail = (
     staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
     ...options,
+  });
+};
+
+// Hook per cercare cliente per username
+export const useWooCommerceCustomerByUsername = (
+  username: string,
+  options?: Partial<UseQueryOptions<WooCommerceCustomer[], Error>>
+) => {
+  return useQuery({
+    queryKey: ['woocommerce-customer-username', username],
+    queryFn: () => wooCommerceService.getCustomerByUsername(username),
+    enabled: !!username,
+    staleTime: 5 * 60 * 1000,
+    ...options
   });
 };
 
@@ -226,5 +236,33 @@ export const useWooCommercePaymentGateways = (
     staleTime: 30 * 60 * 1000, // 30 minuti - i metodi di pagamento cambiano raramente
     gcTime: 60 * 60 * 1000, // 1 ora
     ...options,
+  });
+};
+
+// NUOVO HOOK PER AGGIORNARE I DATI DEL CLIENTE
+export const useUpdateWooCommerceCustomer = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ id, customerData }: { id: number, customerData: Partial<WooCommerceCustomer> }) => {
+      console.log('Inviando richiesta di aggiornamento:', { id, customerData });
+      return await wooCommerceService.updateCustomer(id, customerData);
+    },
+    onSuccess: (data, variables) => {
+      console.log('Aggiornamento completato con successo:', data);
+      // Invalida la cache per aggiornare i dati
+      queryClient.invalidateQueries({ queryKey: ['woocommerce-customer', data.id] });
+      
+      // Messaggio specifico in base al tipo di aggiornamento
+      if (variables.customerData.shipping || variables.customerData.billing) {
+        toast.success('Indirizzo aggiornato con successo!');
+      } else {
+        toast.success('Profilo aggiornato con successo!');
+      }
+    },
+    onError: (error) => {
+      console.error('Errore dettagliato nell\'aggiornamento del cliente:', error);
+      toast.error('Errore nell\'aggiornamento dei dati cliente');
+    }
   });
 };

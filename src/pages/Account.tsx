@@ -1,32 +1,45 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, MapPin, Package, Heart, Settings, LogOut, Loader2 } from 'lucide-react';
 import { useWooCommerceCustomer, useWooCommerceCustomerOrders } from '@/hooks/useWooCommerce';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import EditProfile from '@/components/EditProfile';
+import EditAddress from '@/components/EditAddress';
+import Login from '@/components/Login';
+import { useAuth } from '@/context/AuthContext';
 
 const Account = () => {
-  // Per ora usiamo l'ID cliente 1 - in un'app reale questo verrebbe dall'autenticazione
-  const customerId = 1;
+  const { state: authState, logout } = useAuth();
+  
+  // TUTTI GLI HOOK DEVONO ESSERE QUI ALL'INIZIO
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+  const [isEditAddressOpen, setIsEditAddressOpen] = useState(false);
+  
+  // Usa l'ID dell'utente autenticato
+  const customerId = authState.user?.id || 1;
   
   const { 
     data: customer, 
     isLoading: customerLoading, 
     error: customerError 
-  } = useWooCommerceCustomer(customerId);
+  } = useWooCommerceCustomer(customerId, {
+    enabled: authState.isAuthenticated
+  });
   
   const { 
     data: orders = [], 
     isLoading: ordersLoading, 
     error: ordersError 
-  } = useWooCommerceCustomerOrders(customerId, { per_page: 5 });
+  } = useWooCommerceCustomerOrders(customerId, { per_page: 5 }, {
+    enabled: authState.isAuthenticated
+  });
 
-  if (customerError || ordersError) {
-    toast.error('Errore nel caricamento dei dati del cliente');
-  }
-
+  // FUNZIONI HELPER
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('it-IT');
   };
@@ -35,12 +48,48 @@ const Account = () => {
     return `€${parseFloat(price).toFixed(2)}`;
   };
 
+  const handleLogout = () => {
+    logout();
+    toast.success('Logout effettuato con successo!');
+  };
+
+  // RETURN CONDIZIONALE DOPO TUTTI GLI HOOK
+  if (!authState.isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-md mx-auto">
+            <Login />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (customerError || ordersError) {
+    toast.error('Errore nel caricamento dei dati del cliente');
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold">Il Mio Account</h1>
+            <Button 
+              onClick={handleLogout}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Logout
+            </Button>
+          </div>
+
+          {/* Resto del componente rimane uguale */}
           <h1 className="text-3xl font-bold mb-8">Il Mio Account</h1>
           
           <div className="grid md:grid-cols-3 gap-6">
@@ -94,7 +143,11 @@ const Account = () => {
                       </label>
                       <p className="text-gray-900">{formatDate(customer.date_created)}</p>
                     </div>
-                    <Button variant="outline" className="mt-4">
+                    <Button 
+                      variant="outline" 
+                      className="mt-4"
+                      onClick={() => setIsEditProfileOpen(true)}
+                    >
                       Modifica Profilo
                     </Button>
                   </div>
@@ -174,7 +227,12 @@ const Account = () => {
                   <p className="text-gray-600">
                     {customer.shipping.country || customer.billing.country}
                   </p>
-                  <Button variant="outline" size="sm" className="mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3"
+                    onClick={() => setIsEditAddressOpen(true)}
+                  >
                     Modifica Indirizzo
                   </Button>
                 </div>
@@ -182,7 +240,12 @@ const Account = () => {
                 <div className="text-center py-8 text-gray-500">
                   <MapPin className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                   <p>Nessun indirizzo configurato</p>
-                  <Button variant="outline" size="sm" className="mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="mt-3"
+                    onClick={() => setIsEditAddressOpen(true)}
+                  >
                     Aggiungi Indirizzo
                   </Button>
                 </div>
@@ -254,6 +317,42 @@ const Account = () => {
           </Card>
         </div>
       </div>
+
+      {/* Dialog per modifica profilo */}
+      <Dialog open={isEditProfileOpen} onOpenChange={setIsEditProfileOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Modifica Profilo</DialogTitle>
+          </DialogHeader>
+          {customer && (
+            <EditProfile 
+              customer={customer} 
+              onClose={() => {
+                console.log('Chiusura dialogo profilo');
+                setIsEditProfileOpen(false);
+              }} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog per modifica indirizzo */}
+      <Dialog open={isEditAddressOpen} onOpenChange={setIsEditAddressOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Modifica Indirizzo</DialogTitle>
+          </DialogHeader>
+          {customer && (
+            <EditAddress 
+              customer={customer} 
+              onClose={() => {
+                console.log('Chiusura dialogo indirizzo');
+                setIsEditAddressOpen(false);
+              }} 
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

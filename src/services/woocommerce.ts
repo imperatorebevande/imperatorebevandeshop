@@ -415,6 +415,31 @@ class WooCommerceService {
     }
   }
 
+  // Aggiungere questa funzione dopo getCustomerByEmail
+  async getCustomerByUsername(username: string): Promise<WooCommerceCustomer[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.get('/customers', { 
+        params: { search: username } 
+      });
+      console.log('WooCommerce customer search by username:', response.data.length);
+      
+      // Filtriamo comunque per avere una corrispondenza esatta con lo username
+      const filteredCustomers = response.data.filter(
+        (customer: WooCommerceCustomer) => customer.username.toLowerCase() === username.toLowerCase()
+      );
+      
+      console.log('Filtered customers by exact username match:', filteredCustomers.length);
+      return filteredCustomers;
+    } catch (error) {
+      console.error('Errore nella ricerca cliente per username:', error);
+      throw error;
+    }
+  }
+
   // Ottenere tutti gli ordini
   async getOrders(params: any = {}): Promise<WooCommerceOrder[]> {
     if (!this.isConfigured) {
@@ -524,6 +549,22 @@ class WooCommerceService {
       return response.data;
     } catch (error) {
       console.error('Errore nell\'aggiornamento dello stock:', error);
+      throw error;
+    }
+  }
+
+  // NUOVO METODO PER AGGIORNARE I DATI DEL CLIENTE
+  async updateCustomer(id: number, customerData: Partial<WooCommerceCustomer>): Promise<WooCommerceCustomer> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.put(`/customers/${id}`, customerData);
+      console.log('WooCommerce customer updated:', response.data.email);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento del cliente:', error);
       throw error;
     }
   }

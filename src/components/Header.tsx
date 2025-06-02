@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
 import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 const Header = () => {
   const { state } = useCart();
+  const { state: authState } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showMenuItems, setShowMenuItems] = useState(true);
   
@@ -136,9 +138,15 @@ const Header = () => {
                   )}
                 </Button>
               </Link>
-              <Button variant="ghost" size="sm">
-                <User className="w-4 h-4" />
-              </Button>
+              {/* Sostituisci il Button con un Link all'account */}
+              <Link to="/account">
+                <Button variant="ghost" size="sm" className={authState.isAuthenticated ? "text-green-600" : "text-gray-600"}>
+                  <User className="w-4 h-4" />
+                  {authState.isAuthenticated && (
+                    <span className="ml-1 text-xs">{authState.user?.first_name}</span>
+                  )}
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
