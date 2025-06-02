@@ -9,7 +9,7 @@ import { useCart } from '@/context/CartContext';
 import { useWooCommerceProduct, useWooCommerceProducts } from '@/hooks/useWooCommerce';
 import { ShoppingBag, Heart, Star, ArrowLeft, Truck, Shield, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getBorderColor } from '../lib/utils';
+import { getBorderColor } from "../lib/utils";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -117,19 +117,29 @@ const ProductDetail = () => {
       });
       toast.success(`Quantità aggiornata: ${quantity}x ${product.name}`);
     } else {
-      // Nella funzione handleAddToCart, sostituire il blocco ADD_ITEM con:
-      for (let i = 0; i < quantity; i++) {
+      // Sostituisci il ciclo for con una singola azione ADD_ITEM
+      dispatch({
+        type: 'ADD_ITEM',
+        payload: {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: product.image,
+          category: product.category
+        }
+      });
+      
+      // Se la quantità è maggiore di 1, aggiorna immediatamente la quantità
+      if (quantity > 1) {
         dispatch({
-          type: 'ADD_ITEM',
+          type: 'UPDATE_QUANTITY',
           payload: {
             id: product.id,
-            name: product.name,
-            price: product.price,
-            image: product.image,
-            category: product.category // Aggiungi questa riga
+            quantity: quantity
           }
         });
       }
+      
       toast.success(`${quantity}x ${product.name} aggiunto al carrello`);
     }
   };
@@ -142,7 +152,21 @@ const ProductDetail = () => {
         payload: product.id
       });
       setQuantity(0);
-      toast.success(`${product.name} rimosso dal carrello`);
+      toast.success(`${product.name} rimosso dal carrello`, {
+        icon: (
+          <div 
+            className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold"
+            style={{ backgroundColor: '#A11E26' }}
+          >
+            ✓
+          </div>
+        ),
+        style: {
+          border: `2px solid #A11E26`,
+          backgroundColor: '#A11E26',
+          color: 'white'
+        }
+      });
     }
   };
 
@@ -300,7 +324,21 @@ const ProductDetail = () => {
                                     type: 'REMOVE_ITEM',
                                     payload: product.id
                                   });
-                                  toast.success(`${product.name} rimosso dal carrello`);
+                                  toast.success(`${product.name} rimosso dal carrello`, {
+                                    icon: (
+                                      <div 
+                                        className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                        style={{ backgroundColor: '#A11E26' }}
+                                      >
+                                        ✓
+                                      </div>
+                                    ),
+                                    style: {
+                                      border: `2px solid #A11E26`,
+                                      backgroundColor: '#A11E26',
+                                      color: 'white'
+                                    }
+                                  });
                                 } else {
                                   // Altrimenti aggiorna la quantità
                                   dispatch({
@@ -310,7 +348,19 @@ const ProductDetail = () => {
                                       quantity: newQuantity
                                     }
                                   });
-                                  toast.success(`Quantità aggiornata: ${newQuantity}x ${product.name}`);
+                                  toast.success(`Quantità aggiornata: ${newQuantity}x ${product.name}`, {
+                                    icon: (
+                                      <div 
+                                        className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                        style={{ backgroundColor: getBorderColor(product.category) }}
+                                      >
+                                        ✓
+                                      </div>
+                                    ),
+                                    style: {
+                                      border: `2px solid ${getBorderColor(product.category)}`,
+                                    }
+                                  });
                                 }
                               }
                             }}
@@ -341,10 +391,23 @@ const ProductDetail = () => {
                                     id: product.id,
                                     name: product.name,
                                     price: product.price,
-                                    image: product.image
+                                    image: product.image,
+                                    category: product.category // Aggiungi la categoria qui
                                   }
                                 });
-                                toast.success(`${product.name} aggiunto al carrello`);
+                                toast.success(`${product.name} aggiunto al carrello`, {
+                                  icon: (
+                                    <div 
+                                      className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                      style={{ backgroundColor: getBorderColor(product.category) }}
+                                    >
+                                      ✓
+                                    </div>
+                                  ),
+                                  style: {
+                                    border: `2px solid ${getBorderColor(product.category)}`,
+                                  }
+                                });
                               } 
                               // Se il prodotto è già nel carrello, aggiorna la quantità
                               else if (cartItem && newQuantity > 1) {
@@ -355,7 +418,19 @@ const ProductDetail = () => {
                                     quantity: newQuantity
                                   }
                                 });
-                                toast.success(`Quantità aggiornata: ${newQuantity}x ${product.name}`);
+                                toast.success(`Quantità aggiornata: ${newQuantity}x ${product.name}`, {
+                                  icon: (
+                                    <div 
+                                      className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                                      style={{ backgroundColor: getBorderColor(product.category) }}
+                                    >
+                                      ✓
+                                    </div>
+                                  ),
+                                  style: {
+                                    border: `2px solid ${getBorderColor(product.category)}`,
+                                  }
+                                });
                               }
                             }}
                             className="w-12 h-12 rounded-full bg-white shadow-sm hover:bg-gray-50 text-teal-600 font-bold text-lg"

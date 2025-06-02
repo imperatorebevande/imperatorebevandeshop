@@ -49,6 +49,7 @@ const Checkout = () => {
 
   const [paymentMethod, setPaymentMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [expandedPaymentDetails, setExpandedPaymentDetails] = useState<string | null>(null);
 
   // Precompila i dati dal profilo utente quando vengono caricati
   useEffect(() => {
@@ -113,18 +114,26 @@ const Checkout = () => {
     }
   };
 
+  // Aggiungi questa funzione dopo validateStep
+  const validateAllSteps = () => {
+    // Verifica tutti gli step
+    return steps.every((_, index) => validateStep(index));
+  };
+
   const handleSubmit = async () => {
-    if (!validateStep(2)) {
-      toast.error('Seleziona un metodo di pagamento');
+    if (!validateAllSteps()) {
+      toast.error('Completa tutti i campi obbligatori prima di procedere.');
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      const selectedPaymentGateway = paymentGateways?.find(gateway => gateway.id === paymentMethod);
+      const selectedPaymentGateway = filteredPaymentGateways.find(g => g.id === paymentMethod);
       
       const orderData = {
+        payment_method: paymentMethod,
+        payment_method_title: selectedPaymentGateway?.title || paymentMethod,
         customer_id: customerId,
         billing: {
           first_name: formData.firstName,
@@ -135,7 +144,7 @@ const Checkout = () => {
           postcode: formData.postalCode,
           country: 'IT',
           email: formData.email,
-          phone: formData.phone,
+          phone: formData.phone
         },
         shipping: {
           first_name: formData.firstName,
@@ -144,23 +153,22 @@ const Checkout = () => {
           city: formData.city,
           state: formData.province,
           postcode: formData.postalCode,
-          country: 'IT',
+          country: 'IT'
         },
         line_items: state.items.map(item => ({
           product_id: item.id,
           quantity: item.quantity,
         })),
-        payment_method: paymentMethod,
-        payment_method_title: selectedPaymentGateway?.title || paymentMethod,
         customer_note: formData.orderNotes,
       };
 
-      const result = await createOrder.mutateAsync(orderData);
+      // Modifica qui: chiama direttamente createOrder invece di createOrder.mutateAsync
+      const result = await createOrder(orderData);
       
       if (result) {
         toast.success('Ordine creato con successo!');
         dispatch({ type: 'CLEAR_CART' });
-        navigate('/order-confirmation', { 
+        navigate('/order-success', { 
           state: { 
             orderId: result.id,
             orderNumber: result.number 
@@ -202,14 +210,12 @@ const Checkout = () => {
         <Header />
         <div className="container mx-auto px-4 py-16">
           <div className="text-center">
-            <div className="text-6xl mb-6">🛒</div>
-            // Modifica il titolo del carrello vuoto
-            <h1 className="text-2xl font-bold mb-4">Il carrello è vuoto</h1>
-
-            <p className="text-gray-600 mb-8">
+            <div className="text-4xl mb-4">🛒</div>
+            <h1 className="text-xl font-bold text-[#1B5AAB] mb-3">Il carrello è vuoto</h1>
+            <p className="text-sm text-gray-600 mb-6">
               Aggiungi alcuni prodotti al carrello prima di procedere al checkout.
             </p>
-            <Button onClick={() => navigate('/products')} className="gradient-primary">
+            <Button onClick={() => navigate('/products')} className="gradient-primary text-sm px-6 py-2">
               Vai ai Prodotti
             </Button>
           </div>
@@ -222,14 +228,14 @@ const Checkout = () => {
     switch (currentStep) {
       case 0: // INDIRIZZO (include dati personali + spedizione)
         return (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Dati Personali */}
             <div>
-              <h3 className="text-lg font-semibold mb-4 text-gray-800">Dati Personali</h3>
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <h3 className="text-base font-bold text-[#1B5AAB] mb-3">Dati Personali</h3>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="firstName" className="text-base font-medium">Nome</Label>
+                    <Label htmlFor="firstName" className="text-sm font-medium">Nome</Label>
                     <Input
                       id="firstName"
                       name="firstName"
@@ -237,13 +243,13 @@ const Checkout = () => {
                       onChange={handleInputChange}
                       required
                       disabled={customerLoading}
-                      className="mt-2 h-12 text-base"
+                      className="mt-1 h-10 text-sm"
                       placeholder="Inserisci il tuo nome"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="lastName" className="text-base font-medium">Cognome</Label>
+                    <Label htmlFor="lastName" className="text-sm font-medium">Cognome</Label>
                     <Input
                       id="lastName"
                       name="lastName"
@@ -251,14 +257,14 @@ const Checkout = () => {
                       onChange={handleInputChange}
                       required
                       disabled={customerLoading}
-                      className="mt-2 h-12 text-base"
+                      className="mt-1 h-10 text-sm"
                       placeholder="Inserisci il tuo cognome"
                     />
                   </div>
                 </div>
                 
                 <div>
-                  <Label htmlFor="phone" className="text-base font-medium">Numero telefonico</Label>
+                  <Label htmlFor="phone" className="text-sm font-medium">Numero telefonico</Label>
                   <Input
                     id="phone"
                     name="phone"
@@ -267,13 +273,13 @@ const Checkout = () => {
                     onChange={handleInputChange}
                     required
                     disabled={customerLoading}
-                    className="mt-2 h-12 text-base"
+                    className="mt-1 h-10 text-sm"
                     placeholder="Inserisci il tuo numero di telefono"
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="email" className="text-base font-medium">Email</Label>
+                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
                   <Input
                     id="email"
                     name="email"
@@ -282,7 +288,7 @@ const Checkout = () => {
                     onChange={handleInputChange}
                     required
                     disabled={customerLoading}
-                    className="mt-2 h-12 text-base"
+                    className="mt-1 h-10 text-sm"
                     placeholder="Inserisci la tua email"
                   />
                 </div>
@@ -290,15 +296,15 @@ const Checkout = () => {
             </div>
 
             {/* Separatore */}
-            <div className="border-t border-gray-200 pt-8">
-              <div className="flex items-center mb-4">
-                <Truck className="w-5 h-5 mr-2 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-800">Indirizzo di Spedizione</h3>
+            <div className="border-t border-gray-200 pt-6">
+              <div className="flex items-center mb-3">
+                <Truck className="w-4 h-4 mr-2 text-blue-600" />
+                <h3 className="text-base font-bold text-[#1B5AAB]">Indirizzo di Spedizione</h3>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4">
                 <div>
-                  <Label htmlFor="city" className="text-base font-medium">Città</Label>
+                  <Label htmlFor="city" className="text-sm font-medium">Città</Label>
                   <Input
                     id="city"
                     name="city"
@@ -306,13 +312,13 @@ const Checkout = () => {
                     onChange={handleInputChange}
                     required
                     disabled={customerLoading}
-                    className="mt-2 h-12 text-base"
+                    className="mt-1 h-10 text-sm"
                     placeholder="Inserisci la tua città"
                   />
                 </div>
                 
                 <div>
-                  <Label htmlFor="address" className="text-base font-medium">Via</Label>
+                  <Label htmlFor="address" className="text-sm font-medium">Via</Label>
                   <Input
                     id="address"
                     name="address"
@@ -320,14 +326,14 @@ const Checkout = () => {
                     onChange={handleInputChange}
                     required
                     disabled={customerLoading}
-                    className="mt-2 h-12 text-base"
+                    className="mt-1 h-10 text-sm"
                     placeholder="Inserisci il tuo indirizzo"
                   />
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="postalCode" className="text-base font-medium">Codice Postale</Label>
+                    <Label htmlFor="postalCode" className="text-sm font-medium">Codice Postale</Label>
                     <Input
                       id="postalCode"
                       name="postalCode"
@@ -335,13 +341,13 @@ const Checkout = () => {
                       onChange={handleInputChange}
                       required
                       disabled={customerLoading}
-                      className="mt-2 h-12 text-base"
+                      className="mt-1 h-10 text-sm"
                       placeholder="Inserisci il codice postale"
                     />
                   </div>
                   
                   <div>
-                    <Label htmlFor="province" className="text-base font-medium">Provincia</Label>
+                    <Label htmlFor="province" className="text-sm font-medium">Provincia</Label>
                     <Input
                       id="province"
                       name="province"
@@ -349,7 +355,7 @@ const Checkout = () => {
                       onChange={handleInputChange}
                       required
                       disabled={customerLoading}
-                      className="mt-2 h-12 text-base"
+                      className="mt-1 h-10 text-sm"
                       placeholder="Inserisci la provincia"
                     />
                   </div>
@@ -358,13 +364,13 @@ const Checkout = () => {
             </div>
 
             {/* Pulsante per selezionare indirizzo */}
-            <div className="bg-gray-50 p-4 rounded-lg">
+            <div className="bg-gray-50 p-3 rounded-lg">
               <Button 
                 variant="outline" 
-                className="w-full h-12 text-base border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50"
+                className="w-full h-10 text-sm border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50"
                 disabled
               >
-                <MapPin className="w-5 h-5 mr-2" />
+                <MapPin className="w-4 h-4 mr-2" />
                 SELEZIONARE L'INDIRIZZO
               </Button>
             </div>
@@ -373,53 +379,53 @@ const Checkout = () => {
 
       case 1: // RIEPILOGO
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Prodotti */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {state.items.map((item) => (
-                <div key={item.id} className="flex items-center space-x-4 py-4 border-b border-gray-100">
+                <div key={item.id} className="flex items-center space-x-3 py-3 border-b border-gray-100">
                   <img
                     src={item.image}
                     alt={item.name}
-                    className="w-16 h-16 object-cover rounded-lg"
+                    className="w-12 h-12 object-cover rounded-lg"
                   />
                   <div className="flex-1">
-                    <h3 className="font-medium text-lg">{item.name}</h3>
-                    <p className="text-gray-600">Quantità: {item.quantity}</p>
+                    <h3 className="font-medium text-sm">{item.name}</h3>
+                    <p className="text-gray-600 text-xs">Quantità: {item.quantity}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-lg">€{(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="font-bold text-sm">€{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Totali */}
-            <div className="space-y-3 pt-4 border-t border-gray-200">
-              <div className="flex justify-between text-lg">
+            <div className="space-y-2 pt-3 border-t border-gray-200">
+              <div className="flex justify-between text-sm">
                 <span>Subtotale:</span>
                 <span className="font-medium">€{calculateTotal().toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-lg">
+              <div className="flex justify-between text-sm">
                 <span>Spedizione:</span>
                 <span className="font-medium text-green-600">Gratuita</span>
               </div>
-              <div className="flex justify-between text-xl font-bold pt-3 border-t border-gray-200">
+              <div className="flex justify-between text-base font-bold pt-2 border-t border-gray-200">
                 <span>Totale:</span>
                 <span>€{calculateTotal().toFixed(2)}</span>
               </div>
             </div>
 
             {/* Note ordine */}
-            <div className="pt-4">
-              <Label htmlFor="orderNotes" className="text-base font-medium">Note sull'Ordine (opzionale)</Label>
+            <div className="pt-3">
+              <Label htmlFor="orderNotes" className="text-sm font-medium text-[#CFA100]">Note sull'Ordine (opzionale)</Label>
               <textarea
                 id="orderNotes"
                 name="orderNotes"
                 value={formData.orderNotes}
                 onChange={handleInputChange}
-                rows={4}
-                className="mt-2 w-full p-3 border border-gray-300 rounded-lg text-base resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
+                className="mt-1 w-full p-2 border-2 border-[#CFA100] rounded-lg text-sm resize-none focus:ring-2 focus:ring-[#CFA100] focus:border-[#CFA100]"
                 placeholder="Aggiungi note speciali per il tuo ordine..."
               />
             </div>
@@ -428,31 +434,54 @@ const Checkout = () => {
 
       case 2: // PAGAMENTO
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {paymentGatewaysLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="w-8 h-8 animate-spin" />
-                <span className="ml-2">Caricamento metodi di pagamento...</span>
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-6 h-6 animate-spin" />
+                <span className="ml-2 text-sm">Caricamento metodi di pagamento...</span>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {filteredPaymentGateways.map((gateway) => (
                   <div
                     key={gateway.id}
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
+                    className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
                       paymentMethod === gateway.id
                         ? 'border-blue-500 bg-blue-50 shadow-md'
                         : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                     }`}
                     onClick={() => setPaymentMethod(gateway.id)}
                   >
-                    <div className="flex items-center space-x-4">
-                      <div className="text-2xl">{getPaymentMethodIcon(gateway.id)}</div>
+                    <div className="flex items-center space-x-3">
+                      <div className="text-xl">{getPaymentMethodIcon(gateway.id)}</div>
                       <div className="flex-1">
-                        <h3 className="font-medium text-lg">{gateway.title}</h3>
-                        <p className="text-gray-600 text-sm">{gateway.description}</p>
+                        <h3 className="font-medium text-sm">{gateway.title}</h3>
+                        <p className="text-gray-600 text-xs">{getMainDescription(gateway)}</p>
+                        
+                        {/* Dettagli espandibili */}
+                        {expandedPaymentDetails === gateway.id && (
+                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-700">
+                            {getFullDescription(gateway)}
+                          </div>
+                        )}
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 ${
+                      
+                      {/* Icona info per espandere i dettagli */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedPaymentDetails(
+                            expandedPaymentDetails === gateway.id ? null : gateway.id
+                          );
+                        }}
+                        className="text-blue-500 hover:text-blue-700 p-1"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      
+                      <div className={`w-4 h-4 rounded-full border-2 ${
                         paymentMethod === gateway.id
                           ? 'border-blue-500 bg-blue-500'
                           : 'border-gray-300'
@@ -478,98 +507,94 @@ const Checkout = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="container mx-auto px-4 py-8 pb-24 md:pb-8">
-        <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/cart')}
-            className="mb-4 text-lg p-4 h-auto"
-          >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            Torna al Carrello
-          </Button>
-          
-          <h1 className="text-4xl font-bold mb-4 text-gradient">
-            Procedi all'acquisto
-          </h1>
-        </div>
+      <div className="container mx-auto px-4 py-2 pb-24 md:pb-8">
+        {/* Spazio responsive per compensare la barra fissa */}
+        <div className="pt-2 md:pt-4"></div>
+        
+        {/* Titolo rimosso completamente */}
 
-        {/* Tab Navigation */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="flex border-b border-gray-200">
-            {steps.map((step, index) => {
-              const Icon = step.icon;
-              const isActive = currentStep === index;
-              const isCompleted = currentStep > index;
-              const isAccessible = index <= currentStep || validateStep(index - 1);
-              
-              return (
-                <button
-                  key={step.id}
-                  onClick={() => isAccessible && setCurrentStep(index)}
-                  disabled={!isAccessible}
-                  className={`flex-1 py-4 px-2 text-center border-b-2 font-medium text-sm transition-colors ${
-                    isActive
-                      ? 'border-blue-500 text-blue-600'
-                      : isCompleted
-                      ? 'border-green-500 text-green-600'
-                      : isAccessible
-                      ? 'border-transparent text-gray-500 hover:text-gray-700'
-                      : 'border-transparent text-gray-300 cursor-not-allowed'
-                  }`}
-                >
-                  <div className="flex flex-col items-center space-y-1">
-                    <Icon className="w-5 h-5" />
-                    <span>{step.name}</span>
-                  </div>
-                </button>
-              );
-            })}
+        {/* Tab Navigation - Modificata per essere responsive */}
+        <div className="fixed top-[72px] md:top-[110px] left-0 right-0 bg-white shadow-md z-40">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex border-b border-gray-200">
+              {steps.map((step, index) => {
+                const Icon = step.icon;
+                const isActive = currentStep === index;
+                const isCompleted = currentStep > index;
+                const isAccessible = index <= currentStep || validateStep(index - 1);
+                
+                return (
+                  <button
+                    key={step.id}
+                    onClick={() => isAccessible && setCurrentStep(index)}
+                    disabled={!isAccessible}
+                    className={`flex-1 py-2 px-1 text-center border-b-2 font-medium text-xs transition-colors ${
+                      isActive
+                        ? 'border-[#1B5AAB] text-[#1B5AAB]'
+                        : isCompleted
+                        ? 'border-green-500 text-green-600'
+                        : isAccessible
+                        ? 'border-transparent text-gray-500 hover:text-gray-700'
+                        : 'border-transparent text-gray-300 cursor-not-allowed'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center space-y-1">
+                      <Icon className="w-4 h-4" />
+                      <span className="text-xs">{step.name}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
+        {/* Spazio responsive per compensare la barra fissa */}
+        <div className="pt-12 md:pt-16"></div>
+
         {/* Step Content */}
-        <div className="max-w-4xl mx-auto pb-24">
+        <div className="max-w-4xl mx-auto pb-16">
           <Card className="shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
-              <CardTitle className="flex items-center text-xl">
-                {React.createElement(steps[currentStep].icon, { className: "w-6 h-6 mr-3" })}
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-3">
+              <CardTitle className="flex items-center text-base font-bold text-[#1B5AAB]">
+                {React.createElement(steps[currentStep].icon, { className: "w-5 h-5 mr-2" })}
                 {steps[currentStep].name}
               </CardTitle>
             </CardHeader>
-            <CardContent className="p-6">
+            <CardContent className="p-3">
               {renderStepContent()}
             </CardContent>
           </Card>
 
           {/* Navigation Buttons - fissi sopra la nav bar mobile */}
-          <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+          <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-50">
             <div className="max-w-4xl mx-auto flex justify-between">
               <Button
                 variant="outline"
-                onClick={currentStep === 0 ? () => navigate('/cart') : prevStep}
-                className="px-8 py-3 text-base"
+                onClick={() => currentStep === 0 ? navigate('/cart') : prevStep()}
+                className="px-6 py-2 text-sm"
               >
-                Indietro
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                {currentStep === 0 ? 'Torna al Carrello' : 'Indietro'}
               </Button>
               
               {currentStep < steps.length - 1 ? (
                 <Button
                   onClick={nextStep}
                   disabled={!validateStep(currentStep)}
-                  className="px-8 py-3 text-base gradient-primary"
+                  className="px-6 py-2 text-sm gradient-primary"
                 >
-                  {currentStep === 0 ? 'CONTINUA PER LA SPEDIZIONE' : 'Continua'}
+                  {currentStep === 0 ? 'Continua' : 'Continua'}
                 </Button>
               ) : (
                 <Button
                   onClick={handleSubmit}
                   disabled={isProcessing || !validateStep(currentStep)}
-                  className="px-8 py-3 text-base gradient-primary"
+                  className="px-6 py-2 text-sm gradient-primary"
                 >
                   {isProcessing ? (
                     <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                       Elaborazione...
                     </>
                   ) : (
@@ -589,3 +614,31 @@ const Checkout = () => {
 };
 
 export default Checkout;
+
+  // Funzione per ottenere la descrizione principale (breve)
+  const getMainDescription = (gateway: any) => {
+    switch (gateway.id) {
+      case 'cod':
+        return 'Pagamento in CONTANTI o con CARTA DI CREDITO al momento della consegna.';
+      case 'stripe':
+        return 'Pagamento sicuro con carta di credito online.';
+      case 'paypal':
+        return 'Paga facilmente con il tuo account PayPal.';
+      case 'satispay':
+        return 'Pagamento veloce con Satispay.';
+      case 'bacs':
+        return 'Bonifico bancario.';
+      default:
+        return gateway.title;
+    }
+  };
+
+  // Funzione per ottenere i dettagli completi
+  const getFullDescription = (gateway: any) => {
+    switch (gateway.id) {
+      case 'cod':
+        return 'I nostri collaboratori durante la consegna del vostro ordine, saranno muniti di contanti o con POS per agevolarvi nel pagamento.';
+      default:
+        return gateway.description;
+    }
+  };

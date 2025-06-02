@@ -23,7 +23,21 @@ const Cart = () => {
 
   const removeItem = (id: number) => {
     dispatch({ type: 'REMOVE_ITEM', payload: id });
-    toast.info('Prodotto rimosso dal carrello');
+    toast.success('Prodotto rimosso dal carrello', {
+      icon: (
+        <div 
+          className="w-4 h-4 rounded-full flex items-center justify-center text-white text-xs font-bold"
+          style={{ backgroundColor: '#A11E26' }}
+        >
+          ✓
+        </div>
+      ),
+      style: {
+        border: `2px solid #A11E26`,
+        backgroundColor: '#A11E26',
+        color: 'white'
+      }
+    });
   };
 
   const clearCart = () => {

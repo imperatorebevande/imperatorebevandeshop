@@ -28,7 +28,11 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       if (existingItem) {
         const updatedItems = state.items.map(item =>
           item.id === action.payload.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { 
+                ...item, 
+                quantity: item.quantity + 1,
+                category: action.payload.category || item.category // Preserva la categoria
+              }
             : item
         );
         return {
