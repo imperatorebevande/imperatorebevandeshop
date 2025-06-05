@@ -100,17 +100,19 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
             </div>
           </div>
 
+          {/* Rimosso il blocco delle credenziali di test:
           <div className="bg-blue-50 p-3 rounded-md text-sm text-blue-800">
             <p><strong>Credenziali di test:</strong></p>
             <p>Email: admin@test.com</p>
             <p>Username: admin</p>
             <p>Password: password</p>
           </div>
+          */}
 
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={authState.isLoading} // Corretto: cambiato da 'state.isLoading' a 'authState.isLoading'
+            disabled={authState.isLoading} 
           >
             {authState.isLoading ? ( // Corretto: cambiato da 'state.isLoading' a 'authState.isLoading'
               <>

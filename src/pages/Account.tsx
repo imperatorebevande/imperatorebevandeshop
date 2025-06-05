@@ -2,15 +2,23 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { User, MapPin, Package, Heart, Settings, LogOut, Loader2 } from 'lucide-react';
 import { useWooCommerceCustomer, useWooCommerceCustomerOrders, useWooCommerceCustomerByEmail } from '@/hooks/useWooCommerce';
-import { toast } from 'sonner';
+import { toast } from 'sonner'; // This is the one we keep
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import EditProfile from '@/components/EditProfile';
 import EditAddress from '@/components/EditAddress';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
+import { woocommerceService } from '../services/woocommerceService';
+import { Order } from '../services/woocommerce';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+// import { toast } from 'sonner'; // Rimuovi questa importazione duplicata
+import Login from './Login'; // Modificato da LoginPage a Login
 
 const Account: React.FC = () => {
   const { authState, logout } = useAuth();
@@ -93,17 +101,7 @@ const Account: React.FC = () => {
 
   // Se non siamo autenticati, mostra subito la pagina di login
   if (!authState.isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Accesso Richiesto</h2>
-          <p className="text-gray-600 mb-6">Devi effettuare l'accesso per visualizzare il tuo account.</p>
-          <Link to="/login" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-            Accedi
-          </Link>
-        </div>
-      </div>
-    );
+    return <Login />; // Modificato da LoginPage a Login
   }
 
   // Stati di loading
