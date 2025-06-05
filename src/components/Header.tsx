@@ -1,12 +1,12 @@
 
-import React from 'react';
-import { ShoppingBag, User, Menu, Home, Search } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react'; // Aggiunto useRef
+import { Link, useNavigate } from 'react-router-dom'; // Aggiunto useNavigate
+import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
+import { ShoppingBag, User, Menu, X, Search as SearchIcon, Home } from 'lucide-react'; // Aggiunto X
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { useCart } from '@/context/CartContext';
-import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
 
 const Header = () => {
   const { state } = useCart();
@@ -14,6 +14,9 @@ const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showMenuItems, setShowMenuItems] = useState(true);
   const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
+  const [searchQuery, setSearchQuery] = useState(''); // Stato per la query di ricerca
+  const navigate = useNavigate(); // Hook per la navigazione
+  const searchInputRef = useRef<HTMLInputElement>(null); // Ref per l'input di ricerca
 
   // Funzione per controllare se c'è abbastanza spazio per il menu
   useEffect(() => {
@@ -33,10 +36,27 @@ const Header = () => {
     return () => window.removeEventListener('resize', checkMenuSpace);
   }, []);
 
+  // Funzione per gestire l'invio della ricerca
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      // Non pulire la barra di ricerca dopo l'invio
+      // setSearchQuery(''); // Commentato per mantenere il valore nella barra di ricerca
+    }
+  };
+
+  // Funzione per pulire la ricerca
+  const clearSearch = () => {
+    setSearchQuery('');
+  };
+
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-50">
       {/* Desktop Header */}
       <div className="hidden md:block">
+        {/* Rimuovere la barra di ricerca da qui */}
+        
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-center h-28 relative">
             {/* Left Section - Menu Items a sinistra del logo */}
@@ -141,11 +161,42 @@ const Header = () => {
               <Link to="/account">
                 <Button variant="ghost" size="sm" className={authState.isAuthenticated ? "text-green-600" : "text-gray-600"}>
                   <User className="w-4 h-4" />
-                  {authState.isAuthenticated && (
+                  {/* Rimuovi la visualizzazione del nome utente */}
+                  {/* authState.isAuthenticated && (
                     <span className="ml-1 text-xs">{authState.user?.first_name}</span>
-                  )}
+                  ) */}
                 </Button>
               </Link>
+            </div>
+          </div>
+        </div>
+        
+        {/* Search Bar Section - Aggiunta per desktop */}
+        <div className="bg-[#1B5AAB] py-2">
+          <div className="container mx-auto px-4">
+            <div className="max-w-md mx-auto relative">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input 
+                type="search" 
+                placeholder="Cerca prodotti..." 
+                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                ref={searchInputRef}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearchSubmit(e);
+                  }
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -193,7 +244,7 @@ const Header = () => {
                 Chi siamo
               </Link>
               <Link to="/contact" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <Search className="w-4 h-4 mr-2" />
+                <SearchIcon className="w-4 h-4 mr-2" />
                 Contatti
               </Link>
               <Link to="/faq" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
@@ -213,33 +264,74 @@ const Header = () => {
 
       {/* Mobile Header */}
       <div className="md:hidden">
-        <div className="flex items-center justify-between p-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
-          
-          <Link to="/" className="flex items-center">
-            <h1 className="text-lg font-bold" style={{color: '#1B5AAB'}}>IMPERATORE BEVANDE</h1>
-          </Link>
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between h-16">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </Button>
 
-          <div className="flex items-center space-x-2">
-            <Link to="/cart" className="relative">
-              <Button variant="ghost" size="sm" className="relative flex flex-col items-center">
-                <ShoppingBag className="w-4 h-4" />
-                {itemCount > 0 && (
-                  <>
-                    <Badge className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
-                      {itemCount}
-                    </Badge>
-                    <span className="text-xs mt-1 bg-blue-500 text-white px-2 py-1 rounded">{state.total.toFixed(2)}€</span>
-                  </>
-                )}
-              </Button>
+            <Link to="/" className="flex-grow text-center">
+              <img 
+                src="http://www.imperatorebevande.it/wp-content/uploads/2022/08/logo-imperatore.png" 
+                alt="Imperatore Bevande" 
+                className="w-auto inline-block"
+                style={{height: '60px'}}
+              />
             </Link>
+
+            <div className="flex items-center space-x-2">
+              <Link to="/cart" className="relative">
+                <Button variant="ghost" size="sm" className="relative flex flex-col items-center text-blue-600">
+                  <ShoppingBag className="w-4 h-4" />
+                  {itemCount > 0 && (
+                    <>
+                      <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
+                        {itemCount}
+                      </Badge>
+                      {/* <span className="text-xs mt-1">€{state.total.toFixed(2)}</span> */}
+                    </>
+                  )}
+                </Button>
+              </Link>
+              <Link to="/account">
+                <Button variant="ghost" size="sm" className={authState.isAuthenticated ? "text-green-600" : "text-gray-600"}>
+                  <User className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Bar Section - Ripristinata per mobile */}
+        <div className="bg-[#1B5AAB] py-2">
+          <div className="container mx-auto px-4">
+            <div className="max-w-md mx-auto relative">
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input 
+                type="search" 
+                placeholder="Cerca prodotti..." 
+                className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSearchSubmit(e);
+                  }
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -286,7 +378,7 @@ const Header = () => {
                 Chi siamo
               </Link>
               <Link to="/contact" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <Search className="w-4 h-4 mr-2" />
+                <SearchIcon className="w-4 h-4 mr-2" />
                 Contatti
               </Link>
               <Link to="/faq" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
@@ -323,7 +415,7 @@ const Header = () => {
             <span className="text-xs mt-1">Categorie</span>
           </Link>
           <Link to="/products?search=focus" className="flex flex-col items-center py-2 px-3 text-blue-600 bg-blue-50 rounded-lg mx-1">
-            <Search className="w-6 h-6" />
+            <SearchIcon className="w-6 h-6" />
             <span className="text-xs mt-1 font-medium">Cerca</span>
           </Link>
           <Link to="/cart" className="flex flex-col items-center py-2 px-3 text-gray-600 relative">

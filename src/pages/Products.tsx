@@ -25,6 +25,12 @@ const Products = () => {
       newSearchParams.delete('search');
       setSearchParams(newSearchParams, { replace: true });
     }
+    
+    // Inizializza il searchQuery in base al parametro search dall'URL
+    const searchParam = searchParams.get('search');
+    if (searchParam && searchParam !== 'focus') {
+      setSearchQuery(searchParam);
+    }
   }, [searchParams, setSearchParams]);
   const [allProducts, setAllProducts] = useState<any[]>([]);
   

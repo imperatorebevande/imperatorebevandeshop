@@ -232,7 +232,17 @@ return (
     <Header />
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">Il Mio Account</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-[#1B5AAB]">Il Mio Account</h1>
+          <Button 
+            onClick={handleLogout}
+            style={{ backgroundColor: '#A40800' }} // Applica il colore direttamente
+            className="text-white flex items-center gap-2 px-4 py-2 rounded-md hover:opacity-90"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </Button>
+        </div>
         
         {/* Navigation Tabs */}
         <div className="flex flex-wrap gap-2 mb-8 border-b">
@@ -249,7 +259,7 @@ return (
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors ${
                   activeTab === tab.id
-                    ? 'bg-blue-600 text-white border-b-2 border-blue-600'
+                    ? 'bg-[#1B5AAB] text-white border-b-2 border-[#1B5AAB]' // Colore modificato per il tab attivo
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
@@ -267,7 +277,7 @@ return (
             {activeTab === 'profile' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-[#1B5AAB]">
                     <User className="w-5 h-5" />
                     Informazioni Profilo
                   </CardTitle>
@@ -307,7 +317,7 @@ return (
             {activeTab === 'orders' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-[#1B5AAB]">
                     <Package className="w-5 h-5" />
                     I Miei Ordini
                   </CardTitle>
@@ -358,7 +368,7 @@ return (
             {activeTab === 'address' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-[#1B5AAB]">
                     <MapPin className="w-5 h-5" />
                     Indirizzo di Spedizione
                   </CardTitle>
@@ -390,21 +400,14 @@ return (
             {activeTab === 'settings' && (
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 text-[#1B5AAB]">
                     <Settings className="w-5 h-5" />
                     Impostazioni Account
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <Button 
-                      onClick={handleLogout}
-                      variant="destructive"
-                      className="flex items-center gap-2"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </Button>
+                    {/* Il pulsante Logout è stato spostato in alto */}
                   </div>
                 </CardContent>
               </Card>
@@ -415,7 +418,7 @@ return (
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Riepilogo Account</CardTitle>
+                <CardTitle className="text-[#1B5AAB]">Riepilogo Account</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -429,7 +432,7 @@ return (
             {orders && orders.length > 0 && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Ultimo Ordine</CardTitle>
+                  <CardTitle className="text-[#1B5AAB]">Ultimo Ordine</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
