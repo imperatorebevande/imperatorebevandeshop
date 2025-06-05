@@ -72,12 +72,28 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Carica utente dal localStorage al mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
+    const savedUserString = localStorage.getItem('user');
+    if (savedUserString) {
       try {
-        const user = JSON.parse(savedUser);
-        dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+        const savedUserData = JSON.parse(savedUserString);
+        // Transform to ensure the User interface is matched, prioritizing 'id' then 'customer_id'
+        const userForState: User = {
+          id: savedUserData.id || savedUserData.customer_id || 0, // Ensure 'id' is populated
+          email: savedUserData.email || '',
+          first_name: savedUserData.first_name || '',
+          last_name: savedUserData.last_name || '',
+          username: savedUserData.username || '',
+        };
+
+        // Only dispatch if a valid user ID was found/transformed
+        if (userForState.id > 0) {
+          dispatch({ type: 'LOGIN_SUCCESS', payload: userForState });
+        } else {
+          // Optional: handle case where user in localStorage has no valid ID
+          localStorage.removeItem('user');
+        }
       } catch (error) {
+        console.error('Error parsing user from localStorage or invalid user structure:', error);
         localStorage.removeItem('user');
       }
     }
@@ -101,7 +117,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (loginResponse.user_id) {
             const customers = await wooCommerceService.getCustomerByWordPressUserId(loginResponse.user_id);
             if (customers && customers.length > 0) {
-              userId = customers[0].id;
+              userId = customers[0].id; // This should be the WooCommerce customer ID
               console.log('ID cliente WooCommerce trovato tramite ID WordPress:', userId);
             }
           } else {
@@ -116,7 +132,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
             
             if (customers && customers.length > 0) {
-              userId = customers[0].id;
+              userId = customers[0].id; // This should be the WooCommerce customer ID
               console.log('ID cliente WooCommerce trovato:', userId);
             }
           }
@@ -124,15 +140,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           console.error('Errore nel recupero ID cliente WooCommerce:', error);
         }
         
-        const userData = {
-          customer_id: userId,  // Cambiato da 'id' a 'customer_id'
+        // Ensure userData conforms to the User interface with an 'id' property
+        const userData: User = {
+          id: userId, // Use 'id' here
           email: loginResponse.user_email || usernameOrEmail,
           username: loginResponse.user_nicename || usernameOrEmail,
           first_name: loginResponse.user_display_name?.split(' ')[0] || '',
           last_name: loginResponse.user_display_name?.split(' ').slice(1).join(' ') || ''
         };
         
-        console.log('UserData creato con ID cliente:', userData);
+        console.log('UserData creato con ID:', userData); // Log updated to reflect 'id'
         localStorage.setItem('user', JSON.stringify(userData));
         dispatch({ type: 'LOGIN_SUCCESS', payload: userData });
         console.log('Login completato con successo');
