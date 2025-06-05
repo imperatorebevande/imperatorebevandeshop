@@ -248,13 +248,27 @@ class WooCommerceService {
       timeout: 10000,
     });
     this.isConfigured = true;
-
+  
     // Interceptor per gestire errori
     this.api.interceptors.response.use(
       (response) => response,
       (error) => {
         console.error('WooCommerce API Error:', error.response?.data || error.message);
         throw error;
+      }
+    );
+    
+    // Interceptor per aggiungere il token JWT alle richieste
+    this.api.interceptors.request.use(
+      (config) => {
+        const token = localStorage.getItem('jwtToken');
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+      },
+      (error) => {
+        return Promise.reject(error);
       }
     );
   }
@@ -397,16 +411,47 @@ class WooCommerceService {
     }
   }
 
-  // Cercare cliente per email
-  async getCustomerByEmail(email: string): Promise<WooCommerceCustomer[]> {
+  // Metodo combinato per cercare il cliente
+  async findCustomer(emailOrUsername: string): Promise<WooCommerceCustomer[]> {
     if (!this.isConfigured) {
       throw new Error('WooCommerce non è configurato');
     }
 
     try {
+      // Prima prova con email
+      const emailResults = await this.getCustomerByEmail(emailOrUsername);
+      if (emailResults.length > 0) {
+        return emailResults;
+      }
+
+      // Se non trova nulla, prova con username
+      const usernameResults = await this.getCustomerByUsername(emailOrUsername);
+      return usernameResults;
+
+    } catch (error) {
+      console.error('Errore nella ricerca cliente:', error);
+      throw error;
+    }
+  }
+
+  // Cercare cliente per email
+  async getCustomerByEmail(email: string): Promise<WooCommerceCustomer[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+  
+    try {
       const response = await this.api.get('/customers', { 
-        params: { search: email } 
+        params: { 
+          email: email,
+          role: 'all',       // Include tutti i ruoli
+          per_page: 100,     // Aumenta il numero di risultati
+          orderby: 'id',     // Ordina per ID
+          order: 'desc'      // Ordine decrescente
+        } 
       });
+      
+      console.log('WooCommerce customer search response:', response.data);
       console.log('WooCommerce customer search by email:', response.data.length);
       return response.data;
     } catch (error) {
@@ -422,18 +467,65 @@ class WooCommerceService {
     }
 
     try {
-      const response = await this.api.get('/customers', { 
-        params: { search: username } 
+      // Prima prova con il parametro search
+      const searchResponse = await this.api.get('/customers', {
+        params: {
+          search: username,
+          per_page: 100
+        }
       });
-      console.log('WooCommerce customer search by username:', response.data.length);
       
-      // Filtriamo comunque per avere una corrispondenza esatta con lo username
-      const filteredCustomers = response.data.filter(
-        (customer: WooCommerceCustomer) => customer.username.toLowerCase() === username.toLowerCase()
+      console.log('WooCommerce customer search by username:', searchResponse.data.length);
+      
+      // Filtriamo per username esatto
+      const exactMatches = searchResponse.data.filter(
+        (customer: WooCommerceCustomer) => 
+          customer.username.toLowerCase() === username.toLowerCase()
       );
       
-      console.log('Filtered customers by exact username match:', filteredCustomers.length);
-      return filteredCustomers;
+      console.log('Filtered customers by exact username match:', exactMatches.length);
+      
+      if (exactMatches.length > 0) {
+        return exactMatches;
+      }
+      
+      // Se non troviamo risultati con search, proviamo la ricerca paginata
+      let page = 1;
+      const per_page = 100;
+      let foundCustomers: WooCommerceCustomer[] = [];
+      let hasMorePages = true;
+      
+      while (hasMorePages && foundCustomers.length === 0 && page <= 10) {
+        console.log(`Cercando nella pagina ${page}...`);
+        
+        const response = await this.api.get('/customers', {
+          params: {
+            page,
+            per_page
+          }
+        });
+        
+        console.log(`Pagina ${page}: ${response.data.length} clienti`);
+        
+        if (response.data.length === 0) {
+          hasMorePages = false;
+        } else {
+          foundCustomers = response.data.filter(
+            (customer: WooCommerceCustomer) => 
+              customer.username.toLowerCase() === username.toLowerCase()
+          );
+          
+          if (foundCustomers.length > 0) {
+            console.log(`Cliente trovato nella pagina ${page}:`, foundCustomers[0].username);
+            break;
+          }
+          
+          page++;
+        }
+      }
+      
+      console.log('Risultato finale ricerca per username:', foundCustomers.length);
+      return foundCustomers;
     } catch (error) {
       console.error('Errore nella ricerca cliente per username:', error);
       throw error;
@@ -584,35 +676,69 @@ class WooCommerceService {
       throw error;
     }
   }
-}
 
-// Istanza singleton del servizio
+  // NUOVO METODO PER IL LOGIN JWT
+  async loginWithJwt(username: string, password: string): Promise<any> {
+    try {
+      const response = await axios.post('https://imperatorebevande.it/wp-json/jwt-auth/v1/token', {
+        username,
+        password,
+      });
+      // Salva il token JWT (es. in localStorage)
+      localStorage.setItem('jwtToken', response.data.token);
+      // Configura Axios per includere il token JWT nelle richieste successive
+      // Questo ora è gestito dall'interceptor nel costruttore
+      return response.data;
+    } catch (error) {
+      console.error('Errore durante il login JWT:', error);
+      throw error;
+    }
+  }
+
+  // Aggiungi questo nuovo metodo all'INTERNO della classe
+  async getCustomerByWordPressUserId(wpUserId: number): Promise<WooCommerceCustomer[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.get('/customers', { 
+        params: { role: 'all', wp_user_id: wpUserId } 
+      });
+      console.log('WooCommerce customer search by WordPress ID:', response.data.length);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nella ricerca cliente per WordPress ID:', error);
+      throw error;
+    }
+  }
+
+  async getCustomerIdAfterAuth(authData: { user_email: string; user_nicename: string }): Promise<number> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      // Prima prova a cercare per email
+      const customersByEmail = await this.getCustomerByEmail(authData.user_email);
+      if (customersByEmail.length > 0) {
+        return customersByEmail[0].id;
+      }
+
+      // Se non trova per email, prova con lo username
+      const customersByUsername = await this.getCustomerByUsername(authData.user_nicename);
+      if (customersByUsername.length > 0) {
+        return customersByUsername[0].id;
+      }
+
+      // Se non trova nulla, ritorna 0 o lancia un'eccezione
+      console.warn('Cliente non trovato dopo autenticazione JWT');
+      return 0;
+    } catch (error) {
+      console.error('Errore nel recupero ID cliente dopo auth:', error);
+      throw error;
+    }
+  }
+} // Chiusura della classe WooCommerceService
+
 export const wooCommerceService = new WooCommerceService();
-
-// Hook per la configurazione (manteniamo per compatibilità)
-export const useWooCommerceConfig = () => {
-  const initWooCommerce = (config: any) => {
-    console.log('WooCommerce già configurato automaticamente');
-  };
-
-  return { initWooCommerce };
-};
-
-// Interfaccia per le recensioni WooCommerce
-export interface WooCommerceReview {
-  id: number;
-  date_created: string;
-  date_created_gmt: string;
-  product_id: number;
-  status: string;
-  reviewer: string;
-  reviewer_email: string;
-  review: string;
-  rating: number;
-  verified: boolean;
-  reviewer_avatar_urls: {
-    '24': string;
-    '48': string;
-    '96': string;
-  };
-}

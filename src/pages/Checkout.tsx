@@ -16,7 +16,7 @@ const Checkout = () => {
   const { state, dispatch } = useCart();
   const navigate = useNavigate();
   const createOrder = useCreateWooCommerceOrder();
-  const { state: authState } = useAuth(); // Aggiungi questo
+  const { authState } = useAuth(); // Corretto: rimuovi "state:" 
   
   // Step management - ora solo 3 step
   const [currentStep, setCurrentStep] = useState(0);
@@ -632,8 +632,6 @@ const Checkout = () => {
   );
 };
 
-export default Checkout;
-
   // Funzione per ottenere la descrizione principale (breve)
   const getMainDescription = (gateway: any) => {
     switch (gateway.id) {
@@ -663,3 +661,5 @@ export default Checkout;
         return gateway.description;
     }
   };
+
+export default Checkout;

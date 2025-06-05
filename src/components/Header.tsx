@@ -10,10 +10,9 @@ import { useAuth } from '@/context/AuthContext';
 
 const Header = () => {
   const { state } = useCart();
-  const { state: authState } = useAuth();
+  const { authState } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showMenuItems, setShowMenuItems] = useState(true);
-  
   const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
 
   // Funzione per controllare se c'è abbastanza spazio per il menu

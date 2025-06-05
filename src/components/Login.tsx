@@ -6,13 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface LoginProps {
   onClose?: () => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onClose }) => {
-  const { login, state } = useAuth();
+  const { login, authState } = useAuth();
+  const navigate = useNavigate(); // Aggiungi questo
   const [formData, setFormData] = useState({
     emailOrUsername: '',
     password: ''
@@ -30,11 +32,14 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
     try {
       await login(formData.emailOrUsername, formData.password);
       toast.success('Login effettuato con successo!');
-      if (onClose) {
-        setTimeout(() => {
+      
+      // Navigazione esplicita alla pagina account
+      setTimeout(() => {
+        navigate('/account');
+        if (onClose) {
           onClose();
-        }, 1000);
-      }
+        }
+      }, 1000);
     } catch (error) {
       toast.error('Credenziali non valide');
     }
@@ -105,9 +110,9 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={state.isLoading}
+            disabled={authState.isLoading} // Corretto: cambiato da 'state.isLoading' a 'authState.isLoading'
           >
-            {state.isLoading ? (
+            {authState.isLoading ? ( // Corretto: cambiato da 'state.isLoading' a 'authState.isLoading'
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Accesso in corso...
