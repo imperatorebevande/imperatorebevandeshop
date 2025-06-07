@@ -4,17 +4,89 @@ import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Grid3X3, List, Loader2, Search, X } from 'lucide-react';
-import { useWooCommerceProducts, useWooCommerceCategories } from '@/hooks/useWooCommerce';
+import { Grid3X3, List, Loader2, Search, X, RotateCcw } from 'lucide-react'; // ✅ Aggiunta RotateCcw
+import { useWooCommerceProducts, useWooCommerceCategories, useWooCommerceCustomerOrders } from '@/hooks/useWooCommerce'; // ✅ Aggiunta useWooCommerceCustomerOrders
 import { useSearchParams } from 'react-router-dom';
 import { getBorderColor } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext'; // ✅ Aggiunta
+import { useCart } from '@/context/CartContext'; // ✅ Aggiunta
+import { toast } from 'sonner'; // ✅ Aggiunta
+import { wooCommerceService } from '@/services/woocommerce'; // ✅ Aggiunta
 
 const Products = () => {
+  const { authState } = useAuth(); // ✅ Aggiunta
+  const { dispatch } = useCart(); // ✅ Aggiunta
+  
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');  
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  
+  // ✅ Aggiunta hook per ottenere l'ultimo ordine del cliente
+  const customerId = authState?.isAuthenticated && authState?.user?.id ? authState.user.id : null;
+  const { data: customerOrders = [], isLoading: ordersLoading } = useWooCommerceCustomerOrders(
+    customerId,
+    { per_page: 1, orderby: 'date', order: 'desc' },
+    { enabled: !!customerId }
+  );
+  
+  const lastOrder = customerOrders[0];
+  
+  // ✅ Aggiunta funzione per riordinare l'ultimo acquisto
+  const addLastOrderToCart = async () => {
+    if (!lastOrder || !lastOrder.line_items) {
+      toast.error('Nessun ordine precedente trovato');
+      return;
+    }
+    
+    let addedItems = 0;
+    
+    try {
+      const productPromises = lastOrder.line_items.map(async (item: any) => {
+        try {
+          const product = await wooCommerceService.getProduct(item.product_id);
+          
+          const cartItem = {
+            id: item.product_id,
+            name: item.name,
+            price: parseFloat(item.price),
+            image: product.images && product.images.length > 0 
+              ? product.images[0].src 
+              : '/placeholder.svg',
+            category: 'altri'
+          };
+          
+          return { cartItem, quantity: item.quantity };
+        } catch (error) {
+          console.error(`Errore nel recupero del prodotto ${item.product_id}:`, error);
+          const cartItem = {
+            id: item.product_id,
+            name: item.name,
+            price: parseFloat(item.price),
+            image: '/placeholder.svg',
+            category: 'altri'
+          };
+          
+          return { cartItem, quantity: item.quantity };
+        }
+      });
+      
+      const products = await Promise.all(productPromises);
+      
+      products.forEach(({ cartItem, quantity }) => {
+        for (let i = 0; i < quantity; i++) {
+          dispatch({ type: 'ADD_ITEM', payload: cartItem });
+        }
+        addedItems += quantity;
+      });
+      
+      toast.success(`${addedItems} prodotti dall'ultimo ordine aggiunti al carrello!`);
+    } catch (error) {
+      console.error('Errore nel recupero dei prodotti:', error);
+      toast.error('Errore nel recupero delle informazioni dei prodotti');
+    }
+  };
   
   // Focus automatico sulla barra di ricerca se si arriva dal pulsante Cerca
   useEffect(() => {
@@ -282,8 +354,42 @@ const Products = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Aggiungi pb-20 per evitare la sovrapposizione con la bottom navigation mobile */}
-      <div className="container mx-auto px-4 py-8 pb-20 md:pb-8">
+      {/* Pulsante Riordina Ultimo Acquisto - Fisso sotto l'header */}
+      {authState?.isAuthenticated && lastOrder && (
+        <div className="sticky top-0 z-40 bg-white shadow-md border-b">
+          <div className="container mx-auto px-4 py-3">
+            <div className="w-full max-w-4xl mx-auto">
+              <Button
+                onClick={addLastOrderToCart}
+                className="w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 hover:from-emerald-600 hover:via-green-600 hover:to-teal-600 text-white py-3 px-6 rounded-xl font-bold text-base shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] border-0 relative overflow-hidden group"
+              >
+                {/* Effetto shimmer */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-out" />
+                
+                {/* Contenuto del pulsante */}
+                <div className="relative flex items-center justify-center gap-3">
+                  <RotateCcw className="w-5 h-5" />
+                  <div className="flex flex-col items-center sm:flex-row sm:gap-2">
+                    <span className="font-bold">Riordina Ultimo Acquisto</span>
+                    <span className="text-sm font-normal opacity-90 hidden sm:inline">
+                      • {new Date(lastOrder.date_created).toLocaleDateString('it-IT')}
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Indicatore mobile per la data */}
+                <div className="absolute bottom-1 right-3 text-xs opacity-75 sm:hidden">
+                  {new Date(lastOrder.date_created).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })}
+                </div>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Contenuto principale con padding-top per compensare il pulsante fisso */}
+      <div className={`container mx-auto px-4 py-8 pb-20 md:pb-8 ${authState?.isAuthenticated && lastOrder ? 'pt-4' : ''}`}>
+        
         {/* Filtri per Categoria */}
         <section className="mb-8">
           <div className="text-center mb-6">

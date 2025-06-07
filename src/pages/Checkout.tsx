@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext'; // Aggiungi questo import
-import { useWooCommerceCustomer, useWooCommercePaymentGateways } from '@/hooks/useWooCommerce';
+import { useWooCommerceCustomer, useWooCommercePaymentGateways, useUpdateWooCommerceCustomer } from '@/hooks/useWooCommerce';
 import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2, ShoppingBag, MapPin, Package, Receipt, CreditCard as PaymentIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreateWooCommerceOrder } from '@/hooks/useWooCommerce';
@@ -16,6 +16,7 @@ const Checkout = () => {
   const { state, dispatch } = useCart();
   const navigate = useNavigate(); 
   const createOrder = useCreateWooCommerceOrder();
+  const updateCustomer = useUpdateWooCommerceCustomer(); // Aggiungi questa riga
   const { authState } = useAuth(); // authState is defined here
   
   console.log('Checkout component authState:', authState); // Add this debug log
@@ -269,11 +270,14 @@ const Checkout = () => {
                   <div key={item.id} className="flex justify-between items-center">
                     <div className="flex items-center">
                       <div className="w-12 h-12 bg-gray-100 rounded-md mr-3 flex-shrink-0">
-                        {item.images && item.images[0] && (
+                        {item.image && (
                           <img 
-                            src={item.images[0].src} 
+                            src={item.image} 
                             alt={item.name} 
                             className="w-full h-full object-cover rounded-md"
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder.svg';
+                            }}
                           />
                         )}
                       </div>
@@ -407,8 +411,45 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
+      // Se l'utente è loggato, aggiorna i suoi dati prima di creare l'ordine
+      if (customerId && authState.isAuthenticated) {
+        const customerUpdateData = {
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          billing: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            address_1: formData.address,
+            city: formData.city,
+            state: formData.province,
+            postcode: formData.postalCode,
+            country: 'IT',
+            email: formData.email,
+            phone: formData.phone
+          },
+          shipping: {
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            address_1: formData.address,
+            city: formData.city,
+            state: formData.province,
+            postcode: formData.postalCode,
+            country: 'IT'
+          }
+        };
+
+        console.log('Aggiornamento dati cliente:', customerUpdateData);
+        
+        // Aggiorna i dati del cliente in WooCommerce
+        await updateCustomer.mutateAsync({
+          id: customerId,
+          customerData: customerUpdateData
+        });
+      }
+
       const orderData = {
-        customer_id: customerId, // Questo passerà l'ID dell'utente loggato
+        customer_id: customerId,
         payment_method: paymentMethod,
         payment_method_title: filteredPaymentGateways.find(g => g.id === paymentMethod)?.title || paymentMethod,
         set_paid: false,
@@ -439,12 +480,10 @@ const Checkout = () => {
         customer_note: formData.orderNotes
       };
 
-      console.log('Creating order with customer_id:', customerId); // Debug log
+      console.log('Creating order with customer_id:', customerId);
       
-      // CORREZIONE: usa createOrder direttamente, non .mutateAsync
       await createOrder(orderData);
       
-      // Svuota il carrello
       dispatch({ type: 'CLEAR_CART' });
       
       toast.success('Ordine creato con successo!');

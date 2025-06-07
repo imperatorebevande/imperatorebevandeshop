@@ -4,19 +4,93 @@ import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Star, Truck, Shield, Headphones, MapPin, Clock, Droplets, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, Star, Truck, Shield, Headphones, MapPin, Clock, Droplets, ChevronLeft, ChevronRight, ShoppingCart, RotateCcw } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useWooCommerceBestSellingProducts, useWooCommerceSaleProducts } from '@/hooks/useWooCommerce';
+import { useWooCommerceBestSellingProducts, useWooCommerceSaleProducts, useWooCommerceCustomerOrders } from '@/hooks/useWooCommerce';
+import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
+import { toast } from 'sonner';
+import { wooCommerceService } from '@/services/woocommerce'; // ✅ Aggiunta importazione
 
 const Index = () => {
-  // Calcola il numero di prodotti per 2 righe basato sulla griglia responsive
-  // Mobile: 2 colonne × 2 righe = 4 prodotti
-  // Medium: 4 colonne × 2 righe = 8 prodotti  
-  // Large/XL: 5 colonne × 2 righe = 10 prodotti
-  // Usiamo 10 come massimo per coprire tutti i casi
+  const { authState } = useAuth();
+  const { dispatch } = useCart();
+  
+  // Hook esistenti
   const { data: bestSellingProducts = [], isLoading: bestSellingLoading } = useWooCommerceBestSellingProducts({ per_page: 10 });
   const { data: saleProducts = [], isLoading: saleLoading } = useWooCommerceSaleProducts({ per_page: 4 });
-
+  
+  // Nuovo hook per ottenere l'ultimo ordine del cliente
+  const customerId = authState?.isAuthenticated && authState?.user?.id ? authState.user.id : null;
+  const { data: customerOrders = [], isLoading: ordersLoading } = useWooCommerceCustomerOrders(
+    customerId,
+    { per_page: 1, orderby: 'date', order: 'desc' },
+    { enabled: !!customerId }
+  );
+  
+  const lastOrder = customerOrders[0];
+  
+  // Funzione per aggiungere l'ultimo ordine al carrello
+  const addLastOrderToCart = async () => { // ✅ Resa asincrona
+    if (!lastOrder || !lastOrder.line_items) {
+      toast.error('Nessun ordine precedente trovato');
+      return;
+    }
+    
+    let addedItems = 0;
+    
+    // ✅ Usa Promise.all per recuperare tutti i prodotti in parallelo
+    try {
+      const productPromises = lastOrder.line_items.map(async (item: any) => {
+        try {
+          // Recupera il prodotto dall'API per ottenere l'immagine reale
+          const product = await wooCommerceService.getProduct(item.product_id);
+          
+          // Trasforma l'item dell'ordine nel formato del carrello
+          const cartItem = {
+            id: item.product_id,
+            name: item.name,
+            price: parseFloat(item.price),
+            image: product.images && product.images.length > 0 
+              ? product.images[0].src 
+              : '/placeholder.svg', // ✅ Usa l'immagine reale o fallback
+            category: 'altri'
+          };
+          
+          return { cartItem, quantity: item.quantity };
+        } catch (error) {
+          console.error(`Errore nel recupero del prodotto ${item.product_id}:`, error);
+          // ✅ Fallback in caso di errore
+          const cartItem = {
+            id: item.product_id,
+            name: item.name,
+            price: parseFloat(item.price),
+            image: '/placeholder.svg',
+            category: 'altri'
+          };
+          
+          return { cartItem, quantity: item.quantity };
+        }
+      });
+      
+      // ✅ Attendi che tutti i prodotti siano recuperati
+      const products = await Promise.all(productPromises);
+      
+      // ✅ Aggiungi tutti i prodotti al carrello
+      products.forEach(({ cartItem, quantity }) => {
+        for (let i = 0; i < quantity; i++) {
+          dispatch({ type: 'ADD_ITEM', payload: cartItem });
+        }
+        addedItems += quantity;
+      });
+      
+      toast.success(`${addedItems} prodotti dall'ultimo ordine aggiunti al carrello!`);
+    } catch (error) {
+      console.error('Errore nel recupero dei prodotti:', error);
+      toast.error('Errore nel recupero delle informazioni dei prodotti');
+    }
+  };
+  
   // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard includendo stock status
   const transformWooCommerceProduct = (product: any) => {
     const getMainCategory = (product: any): string => {
@@ -107,8 +181,27 @@ const Index = () => {
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            {/* Pulsante "Offerte Speciali" rimosso */}
-          </div>
+            
+            {/* Nuovo pulsante per l'ultimo ordine - solo se l'utente è loggato */}
+            {authState?.isAuthenticated && lastOrder && (
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-blue-600 font-semibold px-8 py-3"
+                onClick={addLastOrderToCart}
+                disabled={ordersLoading}
+              >
+                {ordersLoading ? (
+                  'Caricamento...'
+                ) : (
+                  <>
+                    <RotateCcw className="mr-2 w-5 h-5" />
+                    Riordina Ultimo Acquisto
+                  </>
+                )}
+              </Button>
+            )}          </div>
+            
         </div>
       </section>
 
