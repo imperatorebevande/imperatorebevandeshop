@@ -14,9 +14,11 @@ import { useCreateWooCommerceOrder } from '@/hooks/useWooCommerce';
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
-  const navigate = useNavigate();
+  const navigate = useNavigate(); 
   const createOrder = useCreateWooCommerceOrder();
-  const { authState } = useAuth(); // Corretto: rimuovi "state:" 
+  const { authState } = useAuth(); // authState is defined here
+  
+  console.log('Checkout component authState:', authState); // Add this debug log
   
   // Step management - ora solo 3 step
   const [currentStep, setCurrentStep] = useState(0);
@@ -26,8 +28,10 @@ const Checkout = () => {
     { id: 2, name: 'PAGAMENTO', icon: PaymentIcon }
   ];
   
-  // Per ora usiamo l'ID cliente 1 - in un'app reale questo verrebbe dall'autenticazione
-  const customerId = 1;
+  // Rimuovere questa riga
+  const [showLoginBox] = useState(true); // Sempre visibile per ora
+  
+  const customerId = authState?.isAuthenticated && authState?.user?.id ? authState.user.id : null;
   const { data: customer, isLoading: customerLoading } = useWooCommerceCustomer(customerId);
   const { data: paymentGateways, isLoading: paymentGatewaysLoading } = useWooCommercePaymentGateways();
   
@@ -136,21 +140,278 @@ const Checkout = () => {
     return steps.every((_, index) => validateStep(index));
   };
 
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 0: // INDIRIZZO
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName">Nome *</Label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">Cognome *</Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Telefono *</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="address">Indirizzo *</Label>
+              <Input
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="city">Città *</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="postalCode">CAP *</Label>
+                <Input
+                  id="postalCode"
+                  name="postalCode"
+                  value={formData.postalCode}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="province">Provincia *</Label>
+                <Input
+                  id="province"
+                  name="province"
+                  value={formData.province}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="orderNotes">Note per l'ordine (opzionale)</Label>
+              <Input
+                id="orderNotes"
+                name="orderNotes"
+                value={formData.orderNotes}
+                onChange={handleInputChange}
+              />
+            </div>
+          </div>
+        );
+        
+      case 1: // RIEPILOGO
+        return (
+          <div className="space-y-4">
+            <div className="border rounded-md p-4">
+              <h3 className="font-medium mb-2">Dati di spedizione</h3>
+              <p className="text-sm">
+                {formData.firstName} {formData.lastName}<br />
+                {formData.address}<br />
+                {formData.postalCode}, {formData.city} ({formData.province})<br />
+                Email: {formData.email}<br />
+                Tel: {formData.phone}
+              </p>
+            </div>
+            
+            <div className="border rounded-md p-4">
+              <h3 className="font-medium mb-2">Prodotti nel carrello</h3>
+              <div className="space-y-2">
+                {state.items.map((item) => (
+                  <div key={item.id} className="flex justify-between items-center">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 bg-gray-100 rounded-md mr-3 flex-shrink-0">
+                        {item.images && item.images[0] && (
+                          <img 
+                            src={item.images[0].src} 
+                            alt={item.name} 
+                            className="w-full h-full object-cover rounded-md"
+                          />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-sm text-gray-500">Quantità: {item.quantity}</p>
+                      </div>
+                    </div>
+                    <p className="font-medium">
+                      {(item.price * item.quantity).toFixed(2)}€
+                    </p>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-4 pt-4 border-t">
+                <div className="flex justify-between">
+                  <p>Subtotale</p>
+                  <p className="font-medium">{calculateSubtotal().toFixed(2)}€</p>
+                </div>
+                <div className="flex justify-between mt-1">
+                  <p>Spedizione</p>
+                  <p className="font-medium">{calculateShipping().toFixed(2)}€</p>
+                </div>
+                <div className="flex justify-between mt-2 text-lg font-bold">
+                  <p>Totale</p>
+                  <p>{calculateTotal().toFixed(2)}€</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+        
+      case 2: // PAGAMENTO
+        return (
+          <div className="space-y-4">
+            {paymentGatewaysLoading ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="w-6 h-6 animate-spin" />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {filteredPaymentGateways.map((gateway) => (
+                  <div 
+                    key={gateway.id}
+                    className={`border rounded-md p-3 cursor-pointer transition-colors ${paymentMethod === gateway.id ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'}`}
+                    onClick={() => setPaymentMethod(gateway.id)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0">
+                          {gateway.id === 'cod' && <CreditCard className="w-5 h-5" />}
+                          {gateway.id === 'stripe' && <CreditCard className="w-5 h-5" />}
+                          {gateway.id === 'paypal' && <CreditCard className="w-5 h-5" />}
+                          {gateway.id === 'satispay' && <CreditCard className="w-5 h-5" />}
+                          {gateway.id === 'bacs' && <CreditCard className="w-5 h-5" />}
+                        </div>
+                        <div>
+                          <p className="font-medium">{gateway.title}</p>
+                          <p className="text-sm text-gray-500">{getMainDescription(gateway)}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <button 
+                          type="button"
+                          className="text-blue-500 hover:text-blue-700"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedPaymentDetails(expandedPaymentDetails === gateway.id ? null : gateway.id);
+                          }}
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                        
+                        <div className={`w-4 h-4 rounded-full border-2 ${paymentMethod === gateway.id ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
+                          {paymentMethod === gateway.id && (
+                            <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {expandedPaymentDetails === gateway.id && (
+                      <div className="mt-2 pt-2 border-t text-sm text-gray-600">
+                        {getFullDescription(gateway)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+  
+  // Aggiungi queste funzioni per calcolare i totali
+  const calculateSubtotal = () => {
+    return state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+  
+  const calculateShipping = () => {
+    // Logica per il calcolo delle spese di spedizione
+    // Per esempio, spedizione gratuita sopra i 50€, altrimenti 5€
+    const subtotal = calculateSubtotal();
+    return subtotal >= 50 ? 0 : 5;
+  };
+  
+  const calculateTotal = () => {
+    return calculateSubtotal() + calculateShipping();
+  };
+
+  // Aggiungi questa funzione handleSubmit
   const handleSubmit = async () => {
     if (!validateAllSteps()) {
-      toast.error('Completa tutti i campi obbligatori prima di procedere.');
+      toast.error('Completa tutti i campi obbligatori');
+      return;
+    }
+
+    if (state.items.length === 0) {
+      toast.error('Il carrello è vuoto');
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      const selectedPaymentGateway = filteredPaymentGateways.find(g => g.id === paymentMethod);
-      
       const orderData = {
+        customer_id: customerId, // Questo passerà l'ID dell'utente loggato
         payment_method: paymentMethod,
-        payment_method_title: selectedPaymentGateway?.title || paymentMethod,
-        customer_id: customerId || 0, // Usa 0 se non c'è un utente loggato
+        payment_method_title: filteredPaymentGateways.find(g => g.id === paymentMethod)?.title || paymentMethod,
+        set_paid: false,
         billing: {
           first_name: formData.firstName,
           last_name: formData.lastName,
@@ -173,352 +434,27 @@ const Checkout = () => {
         },
         line_items: state.items.map(item => ({
           product_id: item.id,
-          quantity: item.quantity,
+          quantity: item.quantity
         })),
-        customer_note: formData.orderNotes,
+        customer_note: formData.orderNotes
       };
 
-      // Modifica qui: chiama direttamente createOrder invece di createOrder.mutateAsync
-      const result = await createOrder(orderData);
+      console.log('Creating order with customer_id:', customerId); // Debug log
       
-      if (result) {
-        toast.success('Ordine creato con successo!');
-        dispatch({ type: 'CLEAR_CART' });
-        navigate('/order-success', { 
-          state: { 
-            orderId: result.id,
-            orderNumber: result.number 
-          } 
-        });
-      }
+      // CORREZIONE: usa createOrder direttamente, non .mutateAsync
+      await createOrder(orderData);
+      
+      // Svuota il carrello
+      dispatch({ type: 'CLEAR_CART' });
+      
+      toast.success('Ordine creato con successo!');
+      navigate('/account?tab=orders');
+      
     } catch (error) {
-      console.error('Errore durante la creazione dell\'ordine:', error);
-      toast.error('Errore durante la creazione dell\'ordine. Riprova.');
+      console.error('Errore nella creazione dell\'ordine:', error);
+      toast.error('Errore nella creazione dell\'ordine. Riprova.');
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const calculateTotal = () => {
-    return state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
-
-  const getPaymentMethodIcon = (methodId: string) => {
-    switch (methodId) {
-      case 'stripe':
-        return '💳';
-      case 'paypal':
-        return '🅿️';
-      case 'cod':
-        return '💵';
-      case 'satispay':
-        return '📱';
-      case 'bacs':
-        return '🏦';
-      default:
-        return '💳';
-    }
-  };
-
-  if (state.items.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Header />
-        <div className="container mx-auto px-4 py-16">
-          <div className="text-center">
-            <div className="text-4xl mb-4">🛒</div>
-            <h1 className="text-xl font-bold text-[#1B5AAB] mb-3">Il carrello è vuoto</h1>
-            <p className="text-sm text-gray-600 mb-6">
-              Aggiungi alcuni prodotti al carrello prima di procedere al checkout.
-            </p>
-            <Button onClick={() => navigate('/products')} className="gradient-primary text-sm px-6 py-2">
-              Vai ai Prodotti
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 0: // INDIRIZZO (include dati personali + spedizione)
-        return (
-          <div className="space-y-6">
-            {/* Dati Personali */}
-            <div>
-              <h3 className="text-base font-bold text-[#1B5AAB] mb-3">Dati Personali</h3>
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName" className="text-sm font-medium">Nome</Label>
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      value={formData.firstName}
-                      onChange={handleInputChange}
-                      required
-                      disabled={customerLoading}
-                      className="mt-1 h-10 text-sm"
-                      placeholder="Inserisci il tuo nome"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="lastName" className="text-sm font-medium">Cognome</Label>
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      value={formData.lastName}
-                      onChange={handleInputChange}
-                      required
-                      disabled={customerLoading}
-                      className="mt-1 h-10 text-sm"
-                      placeholder="Inserisci il tuo cognome"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="phone" className="text-sm font-medium">Numero telefonico</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    required
-                    disabled={customerLoading}
-                    className="mt-1 h-10 text-sm"
-                    placeholder="Inserisci il tuo numero di telefono"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="email" className="text-sm font-medium">Email</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    disabled={customerLoading}
-                    className="mt-1 h-10 text-sm"
-                    placeholder="Inserisci la tua email"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Separatore */}
-            <div className="border-t border-gray-200 pt-6">
-              <div className="flex items-center mb-3">
-                <Truck className="w-4 h-4 mr-2 text-blue-600" />
-                <h3 className="text-base font-bold text-[#1B5AAB]">Indirizzo di Spedizione</h3>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="city" className="text-sm font-medium">Città</Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    required
-                    disabled={customerLoading}
-                    className="mt-1 h-10 text-sm"
-                    placeholder="Inserisci la tua città"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="address" className="text-sm font-medium">Via</Label>
-                  <Input
-                    id="address"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleInputChange}
-                    required
-                    disabled={customerLoading}
-                    className="mt-1 h-10 text-sm"
-                    placeholder="Inserisci il tuo indirizzo"
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="postalCode" className="text-sm font-medium">Codice Postale</Label>
-                    <Input
-                      id="postalCode"
-                      name="postalCode"
-                      value={formData.postalCode}
-                      onChange={handleInputChange}
-                      required
-                      disabled={customerLoading}
-                      className="mt-1 h-10 text-sm"
-                      placeholder="Inserisci il codice postale"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="province" className="text-sm font-medium">Provincia</Label>
-                    <Input
-                      id="province"
-                      name="province"
-                      value={formData.province}
-                      onChange={handleInputChange}
-                      required
-                      disabled={customerLoading}
-                      className="mt-1 h-10 text-sm"
-                      placeholder="Inserisci la provincia"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Pulsante per selezionare indirizzo */}
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <Button 
-                variant="outline" 
-                className="w-full h-10 text-sm border-2 border-dashed border-gray-300 hover:border-blue-500 hover:bg-blue-50"
-                disabled
-              >
-                <MapPin className="w-4 h-4 mr-2" />
-                SELEZIONARE L'INDIRIZZO
-              </Button>
-            </div>
-          </div>
-        );
-
-      case 1: // RIEPILOGO
-        return (
-          <div className="space-y-4">
-            {/* Prodotti */}
-            <div className="space-y-3">
-              {state.items.map((item) => (
-                <div key={item.id} className="flex items-center space-x-3 py-3 border-b border-gray-100">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-12 h-12 object-cover rounded-lg"
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-medium text-sm">{item.name}</h3>
-                    <p className="text-gray-600 text-xs">Quantità: {item.quantity}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-sm">€{(item.price * item.quantity).toFixed(2)}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Totali */}
-            <div className="space-y-2 pt-3 border-t border-gray-200">
-              <div className="flex justify-between text-sm">
-                <span>Subtotale:</span>
-                <span className="font-medium">€{calculateTotal().toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Spedizione:</span>
-                <span className="font-medium text-green-600">Gratuita</span>
-              </div>
-              <div className="flex justify-between text-base font-bold pt-2 border-t border-gray-200">
-                <span>Totale:</span>
-                <span>€{calculateTotal().toFixed(2)}</span>
-              </div>
-            </div>
-
-            {/* Note ordine */}
-            <div className="pt-3">
-              <Label htmlFor="orderNotes" className="text-sm font-medium text-[#CFA100]">Note sull'Ordine (opzionale)</Label>
-              <textarea
-                id="orderNotes"
-                name="orderNotes"
-                value={formData.orderNotes}
-                onChange={handleInputChange}
-                rows={3}
-                className="mt-1 w-full p-2 border-2 border-[#CFA100] rounded-lg text-sm resize-none focus:ring-2 focus:ring-[#CFA100] focus:border-[#CFA100]"
-                placeholder="Aggiungi note speciali per il tuo ordine..."
-              />
-            </div>
-          </div>
-        );
-
-      case 2: // PAGAMENTO
-        return (
-          <div className="space-y-4">
-            {paymentGatewaysLoading ? (
-              <div className="flex items-center justify-center py-6">
-                <Loader2 className="w-6 h-6 animate-spin" />
-                <span className="ml-2 text-sm">Caricamento metodi di pagamento...</span>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredPaymentGateways.map((gateway) => (
-                  <div
-                    key={gateway.id}
-                    className={`p-3 border-2 rounded-lg cursor-pointer transition-all duration-200 ${
-                      paymentMethod === gateway.id
-                        ? 'border-blue-500 bg-blue-50 shadow-md'
-                        : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
-                    }`}
-                    onClick={() => setPaymentMethod(gateway.id)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className="text-xl">{getPaymentMethodIcon(gateway.id)}</div>
-                      <div className="flex-1">
-                        {/* Rimuovi questa riga che mostra il titolo duplicato */}
-                        {/* <h3 className="font-medium text-sm">{gateway.title}</h3> */}
-                        
-                        {/* Mantieni solo la descrizione personalizzata */}
-                        <h3 className="font-medium text-sm">{getMainDescription(gateway)}</h3>
-                        
-                        {/* Dettagli espandibili */}
-                        {expandedPaymentDetails === gateway.id && (
-                          <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-700">
-                            {getFullDescription(gateway)}
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Icona info per espandere i dettagli */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setExpandedPaymentDetails(
-                            expandedPaymentDetails === gateway.id ? null : gateway.id
-                          );
-                        }}
-                        className="text-blue-500 hover:text-blue-700 p-1"
-                      >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                        </svg>
-                      </button>
-                      
-                      <div className={`w-4 h-4 rounded-full border-2 ${
-                        paymentMethod === gateway.id
-                          ? 'border-blue-500 bg-blue-500'
-                          : 'border-gray-300'
-                      }`}>
-                        {paymentMethod === gateway.id && (
-                          <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-
-      default:
-        return null;
     }
   };
 
@@ -526,108 +462,107 @@ const Checkout = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="container mx-auto px-4 py-2 pb-24 md:pb-8">
-        {/* Spazio responsive per compensare la barra fissa */}
-        <div className="pt-2 md:pt-4"></div>
-        
-        {/* Titolo rimosso completamente */}
+      {/* Spazio responsive per compensare la barra fissa */}
+      <div className="pt-12 md:pt-16"></div>
 
-        {/* Tab Navigation - Modificata per essere responsive */}
-        <div className="fixed top-[72px] md:top-[110px] left-0 right-0 bg-white shadow-md z-40">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex border-b border-gray-200">
-              {steps.map((step, index) => {
-                const Icon = step.icon;
-                const isActive = currentStep === index;
-                const isCompleted = currentStep > index;
-                const isAccessible = index <= currentStep || validateStep(index - 1);
-                
-                return (
-                  <button
-                    key={step.id}
-                    onClick={() => isAccessible && setCurrentStep(index)}
-                    disabled={!isAccessible}
-                    className={`flex-1 py-2 px-1 text-center border-b-2 font-medium text-xs transition-colors ${
-                      isActive
-                        ? 'border-[#1B5AAB] text-[#1B5AAB]'
-                        : isCompleted
-                        ? 'border-green-500 text-green-600'
-                        : isAccessible
-                        ? 'border-transparent text-gray-500 hover:text-gray-700'
-                        : 'border-transparent text-gray-300 cursor-not-allowed'
-                    }`}
-                  >
-                    <div className="flex flex-col items-center space-y-1">
-                      <Icon className="w-4 h-4" />
-                      <span className="text-xs">{step.name}</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+      {/* Titolo rimosso completamente */}
 
-        {/* Spazio responsive per compensare la barra fissa */}
-        <div className="pt-12 md:pt-16"></div>
-
-        {/* Step Content */}
-        <div className="max-w-4xl mx-auto pb-16">
-          <Card className="shadow-lg">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-3">
-              <CardTitle className="flex items-center text-base font-bold text-[#1B5AAB]">
-                {React.createElement(steps[currentStep].icon, { className: "w-5 h-5 mr-2" })}
-                {steps[currentStep].name}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3">
-              {renderStepContent()}
-            </CardContent>
-          </Card>
-
-          {/* Navigation Buttons - fissi sopra la nav bar mobile */}
-          <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-50">
-            <div className="max-w-4xl mx-auto flex justify-between">
-              <Button
-                variant="outline"
-                onClick={() => currentStep === 0 ? navigate('/cart') : prevStep()}
-                className="px-6 py-2 text-sm"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" />
-                {currentStep === 0 ? 'Torna al Carrello' : 'Indietro'}
-              </Button>
+      {/* Tab Navigation - Modificata per essere responsive */}
+      <div className="fixed top-[72px] md:top-[110px] left-0 right-0 bg-white shadow-md z-40">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex border-b border-gray-200">
+            {steps.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = currentStep === index;
+              const isCompleted = currentStep > index;
+              const isAccessible = index <= currentStep || validateStep(index - 1);
               
-              {currentStep < steps.length - 1 ? (
-                <Button
-                  onClick={nextStep}
-                  disabled={!validateStep(currentStep)}
-                  className="px-6 py-2 text-sm gradient-primary"
+              return (
+                <button
+                  key={step.id}
+                  onClick={() => isAccessible && setCurrentStep(index)}
+                  disabled={!isAccessible}
+                  className={`flex-1 py-2 px-1 text-center border-b-2 font-medium text-xs transition-colors ${
+                    isActive
+                      ? 'border-[#1B5AAB] text-[#1B5AAB]'
+                      : isCompleted
+                      ? 'border-green-500 text-green-600'
+                      : isAccessible
+                      ? 'border-transparent text-gray-500 hover:text-gray-700'
+                      : 'border-transparent text-gray-300 cursor-not-allowed'
+                  }`}
                 >
-                  {currentStep === 0 ? 'Continua' : 'Continua'}
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleSubmit}
-                  disabled={isProcessing || !validateStep(currentStep)}
-                  className="px-6 py-2 text-sm gradient-primary"
-                >
-                  {isProcessing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                      Elaborazione...
-                    </>
-                  ) : (
-                    `Completa Ordine - ${calculateTotal().toFixed(2)}€`
-                  )}
-                </Button>
-              )}
-            </div>
+                  <div className="flex flex-col items-center space-y-1">
+                    <Icon className="w-4 h-4" />
+                    <span className="text-xs">{step.name}</span>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
-
-        {/* Rimuovi completamente questa sezione dei Security badges */}
-        {/* Security badges - ELIMINATA */}
       </div>
+
+      {/* Spazio responsive per compensare la barra fissa */}
+      <div className="pt-12 md:pt-16"></div>
+
+
+      {/* Step Content */}
+      <div className="max-w-4xl mx-auto pb-16">
+        <Card className="shadow-lg">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-3">
+            <CardTitle className="flex items-center text-base font-bold text-[#1B5AAB]">
+              {React.createElement(steps[currentStep].icon, { className: "w-5 h-5 mr-2" })}
+              {steps[currentStep].name}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3">
+            {renderStepContent()}
+          </CardContent>
+        </Card>
+
+        {/* Navigation Buttons - fissi sopra la nav bar mobile */}
+        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-50">
+          <div className="max-w-4xl mx-auto flex justify-between">
+            <Button
+              variant="outline"
+              onClick={() => currentStep === 0 ? navigate('/cart') : prevStep()}
+              className="px-6 py-2 text-sm"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              {currentStep === 0 ? 'Torna al Carrello' : 'Indietro'}
+            </Button>
+            
+            {currentStep < steps.length - 1 ? (
+              <Button
+                onClick={nextStep}
+                disabled={!validateStep(currentStep)}
+                className="px-6 py-2 text-sm gradient-primary"
+              >
+                {currentStep === 0 ? 'Continua' : 'Continua'}
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={isProcessing || !validateStep(currentStep)}
+                className="px-6 py-2 text-sm gradient-primary"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                    Elaborazione...
+                  </>
+                ) : (
+                  `Completa Ordine - ${calculateTotal().toFixed(2)}€`
+                )}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Rimuovi completamente questa sezione dei Security badges */}
+      {/* Security badges - ELIMINATA */}
     </div>
   );
 };
@@ -650,7 +585,7 @@ const Checkout = () => {
     }
   };
 
-  // Funzione per ottenere i dettagli completi
+  // Funzione per ottenere i detta
   const getFullDescription = (gateway: any) => {
     switch (gateway.id) {
       case 'cod':
@@ -662,4 +597,10 @@ const Checkout = () => {
     }
   };
 
+  // Rimuovi queste righe orfane:
+  // 
+  // return null;
+  // };
+
+// At the end of the file, DELETE this entire function
 export default Checkout;

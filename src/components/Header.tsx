@@ -275,12 +275,15 @@ const Header = () => {
             </Button>
 
             <Link to="/" className="flex-grow text-center">
-              <img 
+              {/* Rimuovo l'immagine del logo */}
+              {/* <img 
                 src="http://www.imperatorebevande.it/wp-content/uploads/2022/08/logo-imperatore.png" 
                 alt="Imperatore Bevande" 
                 className="w-auto inline-block"
                 style={{height: '60px'}}
-              />
+              /> */}
+              {/* Aggiungo la scritta IMPERATORE BEVANDE con il colore specifico #1B5AAB */}
+              <h1 className="text-xl font-bold" style={{color: '#1B5AAB'}}>IMPERATORE BEVANDE</h1>
             </Link>
 
             <div className="flex items-center space-x-2">
