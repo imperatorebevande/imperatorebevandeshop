@@ -24,9 +24,9 @@ const Checkout = () => {
   // Step management - ora solo 3 step
   const [currentStep, setCurrentStep] = useState(0);
   const steps = [
-    { id: 0, name: 'INDIRIZZO', icon: MapPin },
-    { id: 1, name: 'RIEPILOGO', icon: ShoppingBag },
-    { id: 2, name: 'PAGAMENTO', icon: PaymentIcon }
+    { id: 0, name: 'INDIRIZZO di CONSEGNA', icon: MapPin },
+    { id: 1, name: 'RIEPILOGO ORDINE', icon: ShoppingBag },
+    { id: 2, name: 'TIPO di PAGAMENTO', icon: PaymentIcon }
   ];
   
   // Rimuovere questa riga
@@ -95,6 +95,13 @@ const Checkout = () => {
       setPaymentMethod(filteredPaymentGateways[0].id);
     }
   }, [filteredPaymentGateways, paymentMethod]);
+
+  // Salta automaticamente al riepilogo se l'indirizzo è già completo
+  useEffect(() => {
+    if (currentStep === 0 && validateStep(0)) {
+      setCurrentStep(1);
+    }
+  }, [formData, currentStep]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -237,6 +244,8 @@ const Checkout = () => {
               </div>
             </div>
             
+            {/* Rimuovere questa sezione delle note */}
+            {/* 
             <div>
               <Label htmlFor="orderNotes">Note per l'ordine (opzionale)</Label>
               <Input
@@ -246,6 +255,7 @@ const Checkout = () => {
                 onChange={handleInputChange}
               />
             </div>
+            */}
           </div>
         );
         
@@ -253,7 +263,7 @@ const Checkout = () => {
         return (
           <div className="space-y-4">
             <div className="border rounded-md p-4">
-              <h3 className="font-medium mb-2">Dati di spedizione</h3>
+              <h3 className="font-bold mb-2" style={{color: '#1B5AAB'}}>Dati di spedizione</h3>
               <p className="text-sm">
                 {formData.firstName} {formData.lastName}<br />
                 {formData.address}<br />
@@ -264,7 +274,7 @@ const Checkout = () => {
             </div>
             
             <div className="border rounded-md p-4">
-              <h3 className="font-medium mb-2">Prodotti nel carrello</h3>
+              <h3 className="font-bold mb-2" style={{color: '#1B5AAB'}}>Prodotti nel carrello</h3>
               <div className="space-y-2">
                 {state.items.map((item) => (
                   <div key={item.id} className="flex justify-between items-center">
@@ -282,7 +292,7 @@ const Checkout = () => {
                         )}
                       </div>
                       <div>
-                        <p className="font-medium">{item.name}</p>
+                        <p className="font-bold" style={{color: '#1B5AAB'}}>{item.name}</p>
                         <p className="text-sm text-gray-500">Quantità: {item.quantity}</p>
                       </div>
                     </div>
@@ -293,6 +303,22 @@ const Checkout = () => {
                 ))}
               </div>
               
+              {/* Nuova sezione per le note dell'ordine */}
+              <div className="mt-4 pt-4 border-t">
+                <div>
+                  <Label htmlFor="orderNotes" style={{color: '#CFA200'}} className="font-medium">Note per l'ordine (opzionale)</Label>
+                  <Input
+                    id="orderNotes"
+                    name="orderNotes"
+                    value={formData.orderNotes}
+                    onChange={handleInputChange}
+                    className="mt-2"
+                    style={{borderColor: '#CFA200'}}
+                    placeholder="Inserisci eventuali note per il tuo ordine..."
+                  />
+                </div>
+              </div>
+              
               <div className="mt-4 pt-4 border-t">
                 <div className="flex justify-between">
                   <p>Subtotale</p>
@@ -300,7 +326,9 @@ const Checkout = () => {
                 </div>
                 <div className="flex justify-between mt-1">
                   <p>Spedizione</p>
-                  <p className="font-medium">{calculateShipping().toFixed(2)}€</p>
+                  <p className="text-green-600 font-semibold">
+                    {calculateShipping() === 0 ? 'GRATUITA' : `${calculateShipping().toFixed(2)}€`}
+                  </p>
                 </div>
                 <div className="flex justify-between mt-2 text-lg font-bold">
                   <p>Totale</p>
@@ -386,10 +414,8 @@ const Checkout = () => {
   };
   
   const calculateShipping = () => {
-    // Logica per il calcolo delle spese di spedizione
-    // Per esempio, spedizione gratuita sopra i 50€, altrimenti 5€
-    const subtotal = calculateSubtotal();
-    return subtotal >= 50 ? 0 : 5;
+    // Spedizione sempre gratuita
+    return 0;
   };
   
   const calculateTotal = () => {
@@ -547,7 +573,7 @@ const Checkout = () => {
 
 
       {/* Step Content */}
-      <div className="max-w-4xl mx-auto pb-16">
+      <div className="max-w-4xl mx-auto pb-32 md:pb-16">
         <Card className="shadow-lg">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-3">
             <CardTitle className="flex items-center text-base font-bold text-[#1B5AAB]">
