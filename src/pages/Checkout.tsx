@@ -149,98 +149,178 @@ const Checkout = () => {
   const renderStepContent = () => {
     switch (currentStep) {
       case 0: // INDIRIZZO
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="firstName">Nome *</Label>
-                <Input
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="lastName">Cognome *</Label>
-                <Input
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="relative">
+          <Label htmlFor="firstName">Nome *</Label>
+          <div className="relative">
+            <Input
+              id="firstName"
+              name="firstName"
+              value={formData.firstName}
+              onChange={handleInputChange}
+              required
+              className={`pr-10 ${formData.firstName ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {formData.firstName ? (
+                <span className="text-[#40691E] text-lg font-bold">✓</span>
+              ) : (
+                <span className="text-[#A40800] text-lg font-bold">✗</span>
+              )}
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="email">Email *</Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="phone">Telefono *</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+          </div>
+        </div>
+        <div className="relative">
+          <Label htmlFor="lastName">Cognome *</Label>
+          <div className="relative">
+            <Input
+              id="lastName"
+              name="lastName"
+              value={formData.lastName}
+              onChange={handleInputChange}
+              required
+              className={`pr-10 ${formData.lastName ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {formData.lastName ? (
+                <span className="text-[#40691E] text-lg font-bold">✓</span>
+              ) : (
+                <span className="text-[#A40800] text-lg font-bold">✗</span>
+              )}
             </div>
-            
-            <div>
-              <Label htmlFor="address">Indirizzo *</Label>
-              <Input
-                id="address"
-                name="address"
-                value={formData.address}
-                onChange={handleInputChange}
-                required
-              />
+          </div>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="relative">
+          <Label htmlFor="email">Email *</Label>
+          <div className="relative">
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              required
+              className={`pr-10 ${formData.email ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {formData.email ? (
+                <span className="text-[#40691E] text-lg font-bold">✓</span>
+              ) : (
+                <span className="text-[#A40800] text-lg font-bold">✗</span>
+              )}
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="city">Città *</Label>
-                <Input
-                  id="city"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="postalCode">CAP *</Label>
-                <Input
-                  id="postalCode"
-                  name="postalCode"
-                  value={formData.postalCode}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="province">Provincia *</Label>
-                <Input
-                  id="province"
-                  name="province"
-                  value={formData.province}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+          </div>
+        </div>
+        <div className="relative">
+          <Label htmlFor="phone">Telefono *</Label>
+          <div className="relative">
+            <Input
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              required
+              className={`pr-10 ${formData.phone ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {formData.phone ? (
+                <span className="text-[#40691E] text-lg font-bold">✓</span>
+              ) : (
+                <span className="text-[#A40800] text-lg font-bold">✗</span>
+              )}
             </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="relative">
+        <Label htmlFor="address">Indirizzo *</Label>
+        <div className="relative">
+          <Input
+            id="address"
+            name="address"
+            value={formData.address}
+            onChange={handleInputChange}
+            required
+            className={`pr-10 ${formData.address ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
+          />
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            {formData.address ? (
+              <span className="text-[#40691E] text-lg font-bold">✓</span>
+            ) : (
+              <span className="text-[#A40800] text-lg font-bold">✗</span>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="relative">
+          <Label htmlFor="city">Città *</Label>
+          <div className="relative">
+            <Input
+              id="city"
+              name="city"
+              value={formData.city}
+              onChange={handleInputChange}
+              required
+              className={`pr-10 ${formData.city ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {formData.city ? (
+                <span className="text-[#40691E] text-lg font-bold">✓</span>
+              ) : (
+                <span className="text-[#A40800] text-lg font-bold">✗</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="relative">
+          <Label htmlFor="postalCode">CAP *</Label>
+          <div className="relative">
+            <Input
+              id="postalCode"
+              name="postalCode"
+              value={formData.postalCode}
+              onChange={handleInputChange}
+              required
+              className={`pr-10 ${formData.postalCode ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {formData.postalCode ? (
+                <span className="text-[#40691E] text-lg font-bold">✓</span>
+              ) : (
+                <span className="text-[#A40800] text-lg font-bold">✗</span>
+              )}
+            </div>
+          </div>
+        </div>
+        <div className="relative">
+          <Label htmlFor="province">Provincia *</Label>
+          <div className="relative">
+            <Input
+              id="province"
+              name="province"
+              value={formData.province}
+              onChange={handleInputChange}
+              required
+              className={`pr-10 ${formData.province ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
+            />
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              {formData.province ? (
+                <span className="text-[#40691E] text-lg font-bold">✓</span>
+              ) : (
+                <span className="text-[#A40800] text-lg font-bold">✗</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
             
             {/* Rimuovere questa sezione delle note */}
             {/* 
@@ -600,12 +680,19 @@ const Checkout = () => {
               const Icon = step.icon;
               const isActive = currentStep === index;
               const isCompleted = currentStep > index;
-              const isAccessible = index <= currentStep || validateStep(index - 1);
-              
+              const isAccessible = index <= currentStep || validateStep(index - 1) || index === 0;
+
               return (
                 <button
                   key={step.id}
-                  onClick={() => isAccessible && setCurrentStep(index)}
+                  onClick={() => {
+                    if (isAccessible) {
+                      if (index === 0) {
+                        setAllowAutoSkip(false); // Disabilita il salto automatico
+                      }
+                      setCurrentStep(index);
+                    }
+                  }}
                   disabled={!isAccessible}
                   className={`flex-1 py-3 md:py-2 px-1 text-center border-b-2 font-medium text-xs transition-colors ${
                     isActive
