@@ -13,7 +13,8 @@ import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import OrderSuccess from "./pages/OrderSuccess";
 import Account from "./pages/Account";
-import Login from "./pages/Login"; // Aggiungi questo import
+import Login from "./pages/Login";
+import FAQ from "./pages/FAQ";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,7 +35,8 @@ const App = () => (
               <Route path="/checkout" element={<Checkout />} />
               <Route path="/order-success" element={<OrderSuccess />} />
               <Route path="/account" element={<Account />} />
-              <Route path="/login" element={<Login />} /> {/* Aggiungi questa route */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/faq" element={<FAQ />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

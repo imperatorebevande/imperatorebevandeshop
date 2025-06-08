@@ -161,7 +161,7 @@ const Index = () => {
       <Header />
       
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-8 sm:py-12 lg:py-20">
+      <section className="bg-[#1B5AAB] text-white py-8 sm:py-12 lg:py-20">
         <div className="container mx-auto px-4 text-center">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6">
             Imperatore
@@ -172,11 +172,11 @@ const Index = () => {
           </p>
           <div className="flex items-center justify-center gap-2 mb-6 sm:mb-8 text-sm sm:text-base lg:text-lg">
             <MapPin className="w-4 h-4 sm:w-6 sm:h-6 text-blue-200" />
-            <span className="px-2">Servizio di consegna a domicilio su Bari</span>
+            <span className="px-2">Servizio di consegna a domicilio su Bari e dintorni</span>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
             <Link to="/products">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-8 py-3">
+              <Button size="lg" className="bg-white text-[#1B5AAB] hover:bg-gray-100 font-semibold px-8 py-3">
                 Scopri i Prodotti
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
@@ -187,7 +187,7 @@ const Index = () => {
               <Button 
                 size="lg" 
                 variant="outline"
-                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-blue-600 font-semibold px-8 py-3"
+                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#1B5AAB] font-semibold px-8 py-3"
                 onClick={addLastOrderToCart}
                 disabled={ordersLoading}
               >
