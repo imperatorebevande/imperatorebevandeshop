@@ -23,6 +23,7 @@ const Checkout = () => {
   
   // Step management - ora solo 3 step
   const [currentStep, setCurrentStep] = useState(0);
+  const [allowAutoSkip, setAllowAutoSkip] = useState(true); // Nuova variabile per controllare il salto automatico
   const steps = [
     { id: 0, name: 'INDIRIZZO di CONSEGNA', icon: MapPin },
     { id: 1, name: 'RIEPILOGO ORDINE', icon: ShoppingBag },
@@ -98,10 +99,10 @@ const Checkout = () => {
 
   // Salta automaticamente al riepilogo se l'indirizzo è già completo
   useEffect(() => {
-    if (currentStep === 0 && validateStep(0)) {
+    if (currentStep === 0 && validateStep(0) && allowAutoSkip) {
       setCurrentStep(1);
     }
-  }, [formData, currentStep]);
+  }, [formData, currentStep, allowAutoSkip]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -127,12 +128,9 @@ const Checkout = () => {
   };
 
   const nextStep = () => {
-    if (validateStep(currentStep)) {
-      if (currentStep < steps.length - 1) {
-        setCurrentStep(currentStep + 1);
-      }
-    } else {
-      toast.error('Completa tutti i campi obbligatori');
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+      setAllowAutoSkip(true); // Riabilita il salto automatico
     }
   };
 
@@ -263,7 +261,20 @@ const Checkout = () => {
         return (
           <div className="space-y-4">
             <div className="border rounded-md p-4">
-              <h3 className="font-bold mb-2" style={{color: '#1B5AAB'}}>Dati di spedizione</h3>
+              <div className="flex justify-between items-center mb-2">
+                <h3 className="font-bold" style={{color: '#1B5AAB'}}>Dati di spedizione</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setAllowAutoSkip(false); // Disabilita il salto automatico
+                    setCurrentStep(0);
+                  }}
+                  className="text-xs px-2 py-1"
+                >
+                  Modifica
+                </Button>
+              </div>
               <p className="text-sm">
                 {formData.firstName} {formData.lastName}<br />
                 {formData.address}<br />
@@ -348,56 +359,105 @@ const Checkout = () => {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredPaymentGateways.map((gateway) => (
-                  <div 
-                    key={gateway.id}
-                    className={`border rounded-md p-3 cursor-pointer transition-colors ${paymentMethod === gateway.id ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'}`}
-                    onClick={() => setPaymentMethod(gateway.id)}
-                  >
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex-shrink-0">
-                          {gateway.id === 'cod' && <CreditCard className="w-5 h-5" />}
-                          {gateway.id === 'stripe' && <CreditCard className="w-5 h-5" />}
-                          {gateway.id === 'paypal' && <CreditCard className="w-5 h-5" />}
-                          {gateway.id === 'satispay' && <CreditCard className="w-5 h-5" />}
-                          {gateway.id === 'bacs' && <CreditCard className="w-5 h-5" />}
+                {filteredPaymentGateways.map((gateway) => {
+                  // Definisci i colori per ogni metodo di pagamento - sempre visibili
+                  const getPaymentColors = (gatewayId: string, isSelected: boolean) => {
+                    switch (gatewayId) {
+                      case 'cod': // Pagamento in CONTANTI o con CARTA DI CREDITO
+                        return isSelected 
+                          ? 'border-[#40691E] bg-[#40691E]/20' 
+                          : 'border-[#40691E] bg-[#40691E]/10 hover:bg-[#40691E]/15';
+                      case 'stripe': // Paga ADESSO con Carta di Credito
+                      case 'paypal': // Paga ADESSO con PayPal
+                      case 'satispay': // Satispay
+                        return isSelected 
+                          ? 'border-[#1B5AAB] bg-[#1B5AAB]/20' 
+                          : 'border-[#1B5AAB] bg-[#1B5AAB]/10 hover:bg-[#1B5AAB]/15';
+                      case 'bacs': // Bonifico Bancario
+                        return isSelected 
+                          ? 'border-[#CFA200] bg-[#CFA200]/20' 
+                          : 'border-[#CFA200] bg-[#CFA200]/10 hover:bg-[#CFA200]/15';
+                      default:
+                        return isSelected 
+                          ? 'border-blue-500 bg-blue-50' 
+                          : 'border-gray-200 hover:bg-gray-50';
+                    }
+                  };
+
+                  const getRadioColors = (gatewayId: string, isSelected: boolean) => {
+                    switch (gatewayId) {
+                      case 'cod':
+                        return isSelected 
+                          ? 'border-[#40691E] bg-[#40691E]' 
+                          : 'border-[#40691E]';
+                      case 'stripe':
+                      case 'paypal':
+                      case 'satispay':
+                        return isSelected 
+                          ? 'border-[#1B5AAB] bg-[#1B5AAB]' 
+                          : 'border-[#1B5AAB]';
+                      case 'bacs':
+                        return isSelected 
+                          ? 'border-[#CFA200] bg-[#CFA200]' 
+                          : 'border-[#CFA200]';
+                      default:
+                        return isSelected 
+                          ? 'border-blue-500 bg-blue-500' 
+                          : 'border-gray-300';
+                    }
+                  };
+
+                  return (
+                    <div 
+                      key={gateway.id}
+                      className={`border-2 rounded-md p-3 cursor-pointer transition-colors ${getPaymentColors(gateway.id, paymentMethod === gateway.id)}`}
+                      onClick={() => setPaymentMethod(gateway.id)}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex-shrink-0">
+                            {gateway.id === 'cod' && <CreditCard className="w-5 h-5" />}
+                            {gateway.id === 'stripe' && <CreditCard className="w-5 h-5" />}
+                            {gateway.id === 'paypal' && <CreditCard className="w-5 h-5" />}
+                            {gateway.id === 'satispay' && <CreditCard className="w-5 h-5" />}
+                            {gateway.id === 'bacs' && <CreditCard className="w-5 h-5" />}
+                          </div>
+                          <div>
+                            <p className="font-medium">{gateway.title}</p>
+                            <p className="text-sm text-gray-500">{getMainDescription(gateway)}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium">{gateway.title}</p>
-                          <p className="text-sm text-gray-500">{getMainDescription(gateway)}</p>
+                        
+                        <div className="flex items-center space-x-2">
+                          <button 
+                            type="button"
+                            className="text-blue-500 hover:text-blue-700"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedPaymentDetails(expandedPaymentDetails === gateway.id ? null : gateway.id);
+                            }}
+                          >
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                            </svg>
+                          </button>
+                          
+                          <div className={`w-4 h-4 rounded-full border-2 ${getRadioColors(gateway.id, paymentMethod === gateway.id)}`}>
+                            {paymentMethod === gateway.id && (
+                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
-                        <button 
-                          type="button"
-                          className="text-blue-500 hover:text-blue-700"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setExpandedPaymentDetails(expandedPaymentDetails === gateway.id ? null : gateway.id);
-                          }}
-                        >
-                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                          </svg>
-                        </button>
-                        
-                        <div className={`w-4 h-4 rounded-full border-2 ${paymentMethod === gateway.id ? 'border-blue-500 bg-blue-500' : 'border-gray-300'}`}>
-                          {paymentMethod === gateway.id && (
-                            <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                          )}
+                      {expandedPaymentDetails === gateway.id && (
+                        <div className="mt-2 pt-2 border-t text-sm text-gray-600">
+                          {getFullDescription(gateway)}
                         </div>
-                      </div>
+                      )}
                     </div>
-                    
-                    {expandedPaymentDetails === gateway.id && (
-                      <div className="mt-2 pt-2 border-t text-sm text-gray-600">
-                        {getFullDescription(gateway)}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -528,12 +588,12 @@ const Checkout = () => {
       <Header />
       
       {/* Spazio responsive per compensare la barra fissa */}
-      <div className="pt-12 md:pt-16"></div>
+      <div className="pt-10 md:pt-16"></div>
 
       {/* Titolo rimosso completamente */}
 
-      {/* Tab Navigation - Modificata per essere responsive */}
-      <div className="fixed top-[72px] md:top-[110px] left-0 right-0 bg-white shadow-md z-40">
+      {/* Tab Navigation - Posizionata sotto la barra di ricerca */}
+      <div className="fixed top-[120px] md:top-[165px] left-0 right-0 bg-white shadow-md z-40">
         <div className="max-w-4xl mx-auto">
           <div className="flex border-b border-gray-200">
             {steps.map((step, index) => {
@@ -547,7 +607,7 @@ const Checkout = () => {
                   key={step.id}
                   onClick={() => isAccessible && setCurrentStep(index)}
                   disabled={!isAccessible}
-                  className={`flex-1 py-2 px-1 text-center border-b-2 font-medium text-xs transition-colors ${
+                  className={`flex-1 py-3 md:py-2 px-1 text-center border-b-2 font-medium text-xs transition-colors ${
                     isActive
                       ? 'border-[#1B5AAB] text-[#1B5AAB]'
                       : isCompleted
@@ -558,8 +618,8 @@ const Checkout = () => {
                   }`}
                 >
                   <div className="flex flex-col items-center space-y-1">
-                    <Icon className="w-4 h-4" />
-                    <span className="text-xs">{step.name}</span>
+                    <Icon className="w-5 h-5 md:w-4 md:h-4" />
+                    <span className="text-xs hidden md:block">{step.name}</span>
                   </div>
                 </button>
               );
@@ -569,7 +629,7 @@ const Checkout = () => {
       </div>
 
       {/* Spazio responsive per compensare la barra fissa */}
-      <div className="pt-12 md:pt-16"></div>
+      <div className="pt-4 md:pt-1"></div>
 
 
       {/* Step Content */}
@@ -591,11 +651,20 @@ const Checkout = () => {
           <div className="max-w-4xl mx-auto flex justify-between">
             <Button
               variant="outline"
-              onClick={() => currentStep === 0 ? navigate('/cart') : prevStep()}
+              onClick={() => {
+                if (currentStep === 0) {
+                  navigate('/cart');
+                } else if (currentStep === 1 && authState.isAuthenticated) {
+                  // Se è loggato e nel riepilogo, torna al carrello
+                  navigate('/cart');
+                } else {
+                  prevStep();
+                }
+              }}
               className="px-6 py-2 text-sm"
             >
               <ArrowLeft className="w-4 h-4 mr-1" />
-              {currentStep === 0 ? 'Torna al Carrello' : 'Indietro'}
+              {(currentStep === 0 || (currentStep === 1 && authState.isAuthenticated)) ? 'Torna al Carrello' : 'Indietro'}
             </Button>
             
             {currentStep < steps.length - 1 ? (
