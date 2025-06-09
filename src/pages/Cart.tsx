@@ -72,7 +72,7 @@ const Cart = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      <div className="container mx-auto px-4 py-6 sm:py-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8 pb-32 sm:pb-8">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-4" style={{color: '#1B5AAB'}}>
             Il Tuo Carrello
@@ -84,7 +84,7 @@ const Cart = () => {
 
         <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Cart Items */}
-          <div className="lg:col-span-2 space-y-4">
+          <div className="lg:col-span-2 space-y-4 mb-6 lg:mb-0">
             {state.items.map((item) => (
               <Card 
                 key={item.id}
@@ -231,12 +231,12 @@ const Cart = () => {
           </div>
 
           {/* Order Summary */}
-          <div>
+          <div className="lg:order-last mb-8 lg:mb-0">
             <Card className="lg:sticky lg:top-32">
               <CardHeader>
                 <CardTitle className="text-lg sm:text-xl">Riepilogo Ordine</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 pb-6">
                 <div className="flex justify-between text-sm sm:text-base">
                   <span>Subtotale:</span>
                   <span style={{color: '#A40800'}}>€{state.total.toFixed(2)}</span>

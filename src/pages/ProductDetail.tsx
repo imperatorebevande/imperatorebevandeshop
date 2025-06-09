@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
 import { useWooCommerceProduct, useWooCommerceProducts } from '@/hooks/useWooCommerce';
-import { ShoppingBag, Heart, Star, ArrowLeft, Truck, Shield, RotateCcw, Loader2 } from 'lucide-react';
+import { ShoppingBag, Heart, Star, ArrowLeft, Truck, Shield, RotateCcw, Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { getBorderColor } from "../lib/utils";
 
@@ -18,6 +18,7 @@ const ProductDetail = () => {
   // TUTTI gli hooks devono essere chiamati SEMPRE nello stesso ordine
   const [quantity, setQuantity] = useState(0);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [expandedCard, setExpandedCard] = useState<string | null>(null);
 
   // Hooks personalizzati - sempre nello stesso ordine
   const { data: wooProduct, isLoading, error } = useWooCommerceProduct(parseInt(id || '0'));
@@ -482,29 +483,88 @@ const ProductDetail = () => {
 
         {/* Shipping Info */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-          <Card className="p-4">
-            <CardContent className="p-0 text-center">
-              <Truck className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-              <div className="text-sm font-medium">Consegna Gratuita</div>
-              <div className="text-xs text-gray-500">Su tutti gli ordini</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="p-4">
-            <CardContent className="p-0 text-center">
-              <RotateCcw className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-              <div className="text-sm font-medium">Reso Facile</div>
-              <div className="text-xs text-gray-500">Entro 30 giorni</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="p-4">
-            <CardContent className="p-0 text-center">
-              <Shield className="w-8 h-8 mx-auto mb-2 text-purple-600" />
-              <div className="text-sm font-medium">Consegna Rapida</div>
-              <div className="text-xs text-gray-500">Entro 24h a Bari</div>
-            </CardContent>
-          </Card>
+          {[
+            {
+              id: 'certified',
+              icon: <Shield className="w-6 h-6 text-green-600" />,
+              title: 'Prodotto CERTIFICATO e GARANTITO',
+              borderColor: 'border-green-600',
+              titleColor: 'text-green-600',
+              ringColor: 'ring-green-500',
+              content: (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-600">La conservazione di questo prodotto avviene in un luogo asciutto e lontano dai raggi solari, che ne potrebbero alterare il contenuto. La certificazione è concessa dall'azienda Meloam S.p.a leader nel settore SICUREZZA SUL LAVORO che garantisce la tutela dei consumatori.</p>
+                  <p className="text-xs text-orange-500 font-medium">☀️ Paura della plastica esposta al sole ☀️?? 😱😱</p>
+                  <p className="text-xs text-green-600 font-medium">😊 Niente paura 😊 stai tranquillo</p>
+                </div>
+              )
+            },
+            {
+              id: 'delivery',
+              icon: <Truck className="w-6 h-6 text-blue-600" />,
+              title: 'Consegna direttamente al piano',
+              borderColor: 'border-blue-600',
+              titleColor: 'text-blue-600',
+              ringColor: 'ring-blue-500',
+              content: (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-600">Questo prodotto verrà consegnato direttamente fin dietro la porta di casa vostra o dove vi risulterà più comodo. Ovviamente non ci saranno costi aggiuntivi. È tutto incluso nel prezzo che vedete esposto.</p>
+                  <p className="text-xs text-red-500 font-bold">⚡ NESSUNO SFORZO DA PARTE VOSTRA 😊</p>
+                  <p className="text-xs text-gray-500 text-[10px]">N.B. Gli appartamenti non muniti di ascensore potranno essere serviti ma la consegna potrà avvenire massimo al primo piano</p>
+                </div>
+              )
+            },
+            {
+              id: 'timing',
+              icon: <RotateCcw className="w-6 h-6 text-red-600" />,
+              title: 'Tempi di consegna immediati',
+              borderColor: 'border-red-600',
+              titleColor: 'text-red-600',
+              ringColor: 'ring-red-500',
+              content: (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-600">Questo prodotto è presente nei nostri magazzini e sarà consegnato a distanza di un solo giorno lavorativo.</p>
+                  <p className="text-xs text-red-500 font-bold">⏰ TEMPI DI ATTESA NULLI</p>
+                  <p className="text-xs text-orange-500 font-medium">📅 Ordina OGGI, consegnamo DOMANI 😊</p>
+                </div>
+              )
+            }
+          ].map((item) => {
+            const isOpen = expandedCard === item.id;
+            return (
+              <Card 
+                key={item.id} 
+                className={`transition-all duration-300 cursor-pointer hover:shadow-lg border-2 ${
+                  item.borderColor
+                } ${
+                  isOpen ? `ring-2 ${item.ringColor} shadow-lg` : 'hover:shadow-md'
+                }`}
+                onClick={() => setExpandedCard(isOpen ? null : item.id)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      {item.icon}
+                      <h3 className={`text-sm font-semibold ${item.titleColor}`}>{item.title}</h3>
+                    </div>
+                    <ChevronDown 
+                      className={`w-5 h-5 transition-transform duration-300 ${
+                        item.titleColor
+                      } ${
+                        isOpen ? 'rotate-180' : ''
+                      }`} 
+                    />
+                  </div>
+                  
+                  <div className={`overflow-hidden transition-all duration-300 ${
+                    isOpen ? 'max-h-96 opacity-100 mt-4' : 'max-h-0 opacity-0'
+                  }`}>
+                    {item.content}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Related Products Section */}

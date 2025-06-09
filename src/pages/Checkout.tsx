@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext'; // Aggiungi questo import
 import { useWooCommerceCustomer, useWooCommercePaymentGateways, useUpdateWooCommerceCustomer } from '@/hooks/useWooCommerce';
@@ -21,13 +23,14 @@ const Checkout = () => {
   
   console.log('Checkout component authState:', authState); // Add this debug log
   
-  // Step management - ora solo 3 step
+  // Step management - ora 4 step
   const [currentStep, setCurrentStep] = useState(0);
-  const [allowAutoSkip, setAllowAutoSkip] = useState(true); // Nuova variabile per controllare il salto automatico
+  const [allowAutoSkip, setAllowAutoSkip] = useState(true);
   const steps = [
     { id: 0, name: 'INDIRIZZO di CONSEGNA', icon: MapPin },
-    { id: 1, name: 'RIEPILOGO ORDINE', icon: ShoppingBag },
-    { id: 2, name: 'TIPO di PAGAMENTO', icon: PaymentIcon }
+    { id: 1, name: 'DATA CONSEGNA', icon: Package },
+    { id: 2, name: 'RIEPILOGO ORDINE', icon: ShoppingBag },
+    { id: 3, name: 'TIPO di PAGAMENTO', icon: PaymentIcon }
   ];
   
   // Rimuovere questa riga
@@ -53,8 +56,11 @@ const Checkout = () => {
     postalCode: '',
     province: '',
     orderNotes: '',
+    deliveryDate: '',
+    deliveryTimeSlot: '',
   });
 
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [paymentMethod, setPaymentMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedPaymentDetails, setExpandedPaymentDetails] = useState<string | null>(null);
@@ -115,322 +121,363 @@ const Checkout = () => {
   // Validazione per ogni step
   const validateStep = (step: number) => {
     switch (step) {
-      case 0: // INDIRIZZO (include tutto)
+      case 0: // INDIRIZZO
         return formData.firstName && formData.lastName && formData.email && formData.phone &&
                formData.address && formData.city && formData.postalCode && formData.province;
-      case 1: // RIEPILOGO
+      case 1: // DATA CONSEGNA
+        return formData.deliveryDate && formData.deliveryTimeSlot;
+      case 2: // RIEPILOGO
         return true; // Sempre valido
-      case 2: // PAGAMENTO
-        return paymentMethod;
+      case 3: // PAGAMENTO
+        return paymentMethod !== '';
       default:
         return false;
     }
   };
 
-  const nextStep = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-      setAllowAutoSkip(true); // Riabilita il salto automatico
-    }
-  };
-
-  const prevStep = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-
-  // Aggiungi questa funzione dopo validateStep
-  const validateAllSteps = () => {
-    // Verifica tutti gli step
-    return steps.every((_, index) => validateStep(index));
-  };
-
+  // Funzione per renderizzare il contenuto di ogni step
   const renderStepContent = () => {
     switch (currentStep) {
       case 0: // INDIRIZZO
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="relative">
-          <Label htmlFor="firstName">Nome *</Label>
-          <div className="relative">
-            <Input
-              id="firstName"
-              name="firstName"
-              value={formData.firstName}
-              onChange={handleInputChange}
-              required
-              className={`pr-10 ${formData.firstName ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              {formData.firstName ? (
-                <span className="text-[#40691E] text-lg font-bold">✓</span>
-              ) : (
-                <span className="text-[#A40800] text-lg font-bold">✗</span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="relative">
-          <Label htmlFor="lastName">Cognome *</Label>
-          <div className="relative">
-            <Input
-              id="lastName"
-              name="lastName"
-              value={formData.lastName}
-              onChange={handleInputChange}
-              required
-              className={`pr-10 ${formData.lastName ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              {formData.lastName ? (
-                <span className="text-[#40691E] text-lg font-bold">✓</span>
-              ) : (
-                <span className="text-[#A40800] text-lg font-bold">✗</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="relative">
-          <Label htmlFor="email">Email *</Label>
-          <div className="relative">
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              required
-              className={`pr-10 ${formData.email ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              {formData.email ? (
-                <span className="text-[#40691E] text-lg font-bold">✓</span>
-              ) : (
-                <span className="text-[#A40800] text-lg font-bold">✗</span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="relative">
-          <Label htmlFor="phone">Telefono *</Label>
-          <div className="relative">
-            <Input
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleInputChange}
-              required
-              className={`pr-10 ${formData.phone ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              {formData.phone ? (
-                <span className="text-[#40691E] text-lg font-bold">✓</span>
-              ) : (
-                <span className="text-[#A40800] text-lg font-bold">✗</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="relative">
-        <Label htmlFor="address">Indirizzo *</Label>
-        <div className="relative">
-          <Input
-            id="address"
-            name="address"
-            value={formData.address}
-            onChange={handleInputChange}
-            required
-            className={`pr-10 ${formData.address ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
-          />
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            {formData.address ? (
-              <span className="text-[#40691E] text-lg font-bold">✓</span>
-            ) : (
-              <span className="text-[#A40800] text-lg font-bold">✗</span>
-            )}
-          </div>
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="relative">
-          <Label htmlFor="city">Città *</Label>
-          <div className="relative">
-            <Input
-              id="city"
-              name="city"
-              value={formData.city}
-              onChange={handleInputChange}
-              required
-              className={`pr-10 ${formData.city ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              {formData.city ? (
-                <span className="text-[#40691E] text-lg font-bold">✓</span>
-              ) : (
-                <span className="text-[#A40800] text-lg font-bold">✗</span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="relative">
-          <Label htmlFor="postalCode">CAP *</Label>
-          <div className="relative">
-            <Input
-              id="postalCode"
-              name="postalCode"
-              value={formData.postalCode}
-              onChange={handleInputChange}
-              required
-              className={`pr-10 ${formData.postalCode ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              {formData.postalCode ? (
-                <span className="text-[#40691E] text-lg font-bold">✓</span>
-              ) : (
-                <span className="text-[#A40800] text-lg font-bold">✗</span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="relative">
-          <Label htmlFor="province">Provincia *</Label>
-          <div className="relative">
-            <Input
-              id="province"
-              name="province"
-              value={formData.province}
-              onChange={handleInputChange}
-              required
-              className={`pr-10 ${formData.province ? 'border-[#40691E] bg-[#40691E]/10 focus:border-[#40691E] focus:ring-[#40691E] focus:bg-[#40691E]/20' : 'border-[#A40800] bg-[#A40800]/10 focus:border-[#A40800] focus:ring-[#A40800] focus:bg-[#A40800]/20'}`}
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              {formData.province ? (
-                <span className="text-[#40691E] text-lg font-bold">✓</span>
-              ) : (
-                <span className="text-[#A40800] text-lg font-bold">✗</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-            
-            {/* Rimuovere questa sezione delle note */}
-            {/* 
-            <div>
-              <Label htmlFor="orderNotes">Note per l'ordine (opzionale)</Label>
-              <Input
-                id="orderNotes"
-                name="orderNotes"
-                value={formData.orderNotes}
-                onChange={handleInputChange}
-              />
-            </div>
-            */}
-          </div>
-        );
-        
-      case 1: // RIEPILOGO
         return (
           <div className="space-y-4">
-            <div className="border rounded-md p-4">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-bold" style={{color: '#1B5AAB'}}>Dati di spedizione</h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setAllowAutoSkip(false); // Disabilita il salto automatico
-                    setCurrentStep(0);
-                  }}
-                  className="text-xs px-2 py-1"
-                >
-                  Modifica
-                </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName">Nome *</Label>
+                <Input
+                  id="firstName"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className={!formData.firstName ? 'border-red-300' : ''}
+                  required
+                />
               </div>
-              <p className="text-sm">
-                {formData.firstName} {formData.lastName}<br />
-                {formData.address}<br />
-                {formData.postalCode}, {formData.city} ({formData.province})<br />
-                Email: {formData.email}<br />
-                Tel: {formData.phone}
-              </p>
+              <div>
+                <Label htmlFor="lastName">Cognome *</Label>
+                <Input
+                  id="lastName"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className={!formData.lastName ? 'border-red-300' : ''}
+                  required
+                />
+              </div>
             </div>
             
-            <div className="border rounded-md p-4">
-              <h3 className="font-bold mb-2" style={{color: '#1B5AAB'}}>Prodotti nel carrello</h3>
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={!formData.email ? 'border-red-300' : ''}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="phone">Telefono *</Label>
+                <Input
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleInputChange}
+                  className={!formData.phone ? 'border-red-300' : ''}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="address">Indirizzo *</Label>
+              <Input
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleInputChange}
+                className={!formData.address ? 'border-red-300' : ''}
+                required
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="city">Città *</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  className={!formData.city ? 'border-red-300' : ''}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="postalCode">CAP *</Label>
+                <Input
+                  id="postalCode"
+                  name="postalCode"
+                  value={formData.postalCode}
+                  onChange={handleInputChange}
+                  className={!formData.postalCode ? 'border-red-300' : ''}
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="province">Provincia *</Label>
+              <Select value={formData.province} onValueChange={(value) => setFormData(prev => ({ ...prev, province: value }))}>
+                <SelectTrigger className={!formData.province ? 'border-red-300' : ''}>
+                  <SelectValue placeholder="Seleziona provincia" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AG">Agrigento</SelectItem>
+                  <SelectItem value="AL">Alessandria</SelectItem>
+                  <SelectItem value="AN">Ancona</SelectItem>
+                  <SelectItem value="AO">Aosta</SelectItem>
+                  <SelectItem value="AR">Arezzo</SelectItem>
+                  <SelectItem value="AP">Ascoli Piceno</SelectItem>
+                  <SelectItem value="AT">Asti</SelectItem>
+                  <SelectItem value="AV">Avellino</SelectItem>
+                  <SelectItem value="BA">Bari</SelectItem>
+                  <SelectItem value="BT">Barletta-Andria-Trani</SelectItem>
+                  <SelectItem value="BL">Belluno</SelectItem>
+                  <SelectItem value="BN">Benevento</SelectItem>
+                  <SelectItem value="BG">Bergamo</SelectItem>
+                  <SelectItem value="BI">Biella</SelectItem>
+                  <SelectItem value="BO">Bologna</SelectItem>
+                  <SelectItem value="BZ">Bolzano</SelectItem>
+                  <SelectItem value="BS">Brescia</SelectItem>
+                  <SelectItem value="BR">Brindisi</SelectItem>
+                  <SelectItem value="CA">Cagliari</SelectItem>
+                  <SelectItem value="CL">Caltanissetta</SelectItem>
+                  <SelectItem value="CB">Campobasso</SelectItem>
+                  <SelectItem value="CI">Carbonia-Iglesias</SelectItem>
+                  <SelectItem value="CE">Caserta</SelectItem>
+                  <SelectItem value="CT">Catania</SelectItem>
+                  <SelectItem value="CZ">Catanzaro</SelectItem>
+                  <SelectItem value="CH">Chieti</SelectItem>
+                  <SelectItem value="CO">Como</SelectItem>
+                  <SelectItem value="CS">Cosenza</SelectItem>
+                  <SelectItem value="CR">Cremona</SelectItem>
+                  <SelectItem value="KR">Crotone</SelectItem>
+                  <SelectItem value="CN">Cuneo</SelectItem>
+                  <SelectItem value="EN">Enna</SelectItem>
+                  <SelectItem value="FM">Fermo</SelectItem>
+                  <SelectItem value="FE">Ferrara</SelectItem>
+                  <SelectItem value="FI">Firenze</SelectItem>
+                  <SelectItem value="FG">Foggia</SelectItem>
+                  <SelectItem value="FC">Forlì-Cesena</SelectItem>
+                  <SelectItem value="FR">Frosinone</SelectItem>
+                  <SelectItem value="GE">Genova</SelectItem>
+                  <SelectItem value="GO">Gorizia</SelectItem>
+                  <SelectItem value="GR">Grosseto</SelectItem>
+                  <SelectItem value="IM">Imperia</SelectItem>
+                  <SelectItem value="IS">Isernia</SelectItem>
+                  <SelectItem value="SP">La Spezia</SelectItem>
+                  <SelectItem value="AQ">L'Aquila</SelectItem>
+                  <SelectItem value="LT">Latina</SelectItem>
+                  <SelectItem value="LE">Lecce</SelectItem>
+                  <SelectItem value="LC">Lecco</SelectItem>
+                  <SelectItem value="LI">Livorno</SelectItem>
+                  <SelectItem value="LO">Lodi</SelectItem>
+                  <SelectItem value="LU">Lucca</SelectItem>
+                  <SelectItem value="MC">Macerata</SelectItem>
+                  <SelectItem value="MN">Mantova</SelectItem>
+                  <SelectItem value="MS">Massa-Carrara</SelectItem>
+                  <SelectItem value="MT">Matera</SelectItem>
+                  <SelectItem value="VS">Medio Campidano</SelectItem>
+                  <SelectItem value="ME">Messina</SelectItem>
+                  <SelectItem value="MI">Milano</SelectItem>
+                  <SelectItem value="MO">Modena</SelectItem>
+                  <SelectItem value="MB">Monza e Brianza</SelectItem>
+                  <SelectItem value="NA">Napoli</SelectItem>
+                  <SelectItem value="NO">Novara</SelectItem>
+                  <SelectItem value="NU">Nuoro</SelectItem>
+                  <SelectItem value="OG">Ogliastra</SelectItem>
+                  <SelectItem value="OT">Olbia-Tempio</SelectItem>
+                  <SelectItem value="OR">Oristano</SelectItem>
+                  <SelectItem value="PD">Padova</SelectItem>
+                  <SelectItem value="PA">Palermo</SelectItem>
+                  <SelectItem value="PR">Parma</SelectItem>
+                  <SelectItem value="PV">Pavia</SelectItem>
+                  <SelectItem value="PG">Perugia</SelectItem>
+                  <SelectItem value="PU">Pesaro e Urbino</SelectItem>
+                  <SelectItem value="PE">Pescara</SelectItem>
+                  <SelectItem value="PC">Piacenza</SelectItem>
+                  <SelectItem value="PI">Pisa</SelectItem>
+                  <SelectItem value="PT">Pistoia</SelectItem>
+                  <SelectItem value="PN">Pordenone</SelectItem>
+                  <SelectItem value="PZ">Potenza</SelectItem>
+                  <SelectItem value="PO">Prato</SelectItem>
+                  <SelectItem value="RG">Ragusa</SelectItem>
+                  <SelectItem value="RA">Ravenna</SelectItem>
+                  <SelectItem value="RC">Reggio Calabria</SelectItem>
+                  <SelectItem value="RE">Reggio Emilia</SelectItem>
+                  <SelectItem value="RI">Rieti</SelectItem>
+                  <SelectItem value="RN">Rimini</SelectItem>
+                  <SelectItem value="RM">Roma</SelectItem>
+                  <SelectItem value="RO">Rovigo</SelectItem>
+                  <SelectItem value="SA">Salerno</SelectItem>
+                  <SelectItem value="SS">Sassari</SelectItem>
+                  <SelectItem value="SV">Savona</SelectItem>
+                  <SelectItem value="SI">Siena</SelectItem>
+                  <SelectItem value="SR">Siracusa</SelectItem>
+                  <SelectItem value="SO">Sondrio</SelectItem>
+                  <SelectItem value="TA">Taranto</SelectItem>
+                  <SelectItem value="TE">Teramo</SelectItem>
+                  <SelectItem value="TR">Terni</SelectItem>
+                  <SelectItem value="TO">Torino</SelectItem>
+                  <SelectItem value="TP">Trapani</SelectItem>
+                  <SelectItem value="TN">Trento</SelectItem>
+                  <SelectItem value="TV">Treviso</SelectItem>
+                  <SelectItem value="TS">Trieste</SelectItem>
+                  <SelectItem value="UD">Udine</SelectItem>
+                  <SelectItem value="VA">Varese</SelectItem>
+                  <SelectItem value="VE">Venezia</SelectItem>
+                  <SelectItem value="VB">Verbano-Cusio-Ossola</SelectItem>
+                  <SelectItem value="VC">Vercelli</SelectItem>
+                  <SelectItem value="VR">Verona</SelectItem>
+                  <SelectItem value="VV">Vibo Valentia</SelectItem>
+                  <SelectItem value="VI">Vicenza</SelectItem>
+                  <SelectItem value="VT">Viterbo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        );
+
+      case 1: // DATA CONSEGNA
+        return (
+          <div className="space-y-6">
+            <div>
+              <Label className="text-base font-medium mb-3 block">Seleziona la data di consegna</Label>
+              <div className="flex justify-center">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    setSelectedDate(date);
+                    if (date) {
+                      setFormData(prev => ({
+                        ...prev,
+                        deliveryDate: date.toISOString().split('T')[0]
+                      }));
+                    }
+                  }}
+                  disabled={(date) => {
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    return date < today;
+                  }}
+                  className="rounded-md border"
+                />
+              </div>
+            </div>
+            
+            {formData.deliveryDate && (
+              <div>
+                <Label htmlFor="deliveryTimeSlot">Fascia oraria *</Label>
+                <Select 
+                  value={formData.deliveryTimeSlot} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, deliveryTimeSlot: value }))}
+                >
+                  <SelectTrigger className={!formData.deliveryTimeSlot ? 'border-red-300' : ''}>
+                    <SelectValue placeholder="Seleziona fascia oraria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="09:00-12:00">Mattina (09:00 - 12:00)</SelectItem>
+                    <SelectItem value="14:00-17:00">Pomeriggio (14:00 - 17:00)</SelectItem>
+                    <SelectItem value="17:00-20:00">Sera (17:00 - 20:00)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
+        );
+
+      case 2: // RIEPILOGO
+        return (
+          <div className="space-y-6">
+            {/* Dati di spedizione */}
+            <div>
+              <h3 className="font-semibold mb-3 flex items-center">
+                <Truck className="w-5 h-5 mr-2" />
+                Dati di Spedizione
+              </h3>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                <p><span className="font-medium">Nome:</span> {formData.firstName} {formData.lastName}</p>
+                <p><span className="font-medium">Email:</span> {formData.email}</p>
+                <p><span className="font-medium">Telefono:</span> {formData.phone}</p>
+                <p><span className="font-medium">Indirizzo:</span> {formData.address}</p>
+                <p><span className="font-medium">Città:</span> {formData.city}, {formData.province} {formData.postalCode}</p>
+                {formData.deliveryDate && (
+                  <p><span className="font-medium">Data consegna:</span> {new Date(formData.deliveryDate).toLocaleDateString('it-IT')}</p>
+                )}
+                {formData.deliveryTimeSlot && (
+                  <p><span className="font-medium">Fascia oraria:</span> {formData.deliveryTimeSlot}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Prodotti nel carrello */}
+            <div>
+              <h3 className="font-semibold mb-3 flex items-center">
+                <Package className="w-5 h-5 mr-2" />
+                Prodotti Ordinati
+              </h3>
+              <div className="space-y-3">
                 {state.items.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <div className="w-12 h-12 bg-gray-100 rounded-md mr-3 flex-shrink-0">
-                        {item.image && (
-                          <img 
-                            src={item.image} 
-                            alt={item.name} 
-                            className="w-full h-full object-cover rounded-md"
-                            onError={(e) => {
-                              e.currentTarget.src = '/placeholder.svg';
-                            }}
-                          />
-                        )}
-                      </div>
+                  <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      {item.images && item.images.length > 0 && (
+                        <img 
+                          src={item.images[0].src} 
+                          alt={item.name}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                      )}
                       <div>
-                        <p className="font-bold" style={{color: '#1B5AAB'}}>{item.name}</p>
-                        <p className="text-sm text-gray-500">Quantità: {item.quantity}</p>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-sm text-gray-600">Quantità: {item.quantity}</p>
                       </div>
                     </div>
-                    <p className="font-medium">
-                      {(item.price * item.quantity).toFixed(2)}€
-                    </p>
+                    <p className="font-semibold">{(item.price * item.quantity).toFixed(2)}€</p>
                   </div>
                 ))}
               </div>
-              
-              {/* Nuova sezione per le note dell'ordine */}
-              <div className="mt-4 pt-4 border-t">
-                <div>
-                  <Label htmlFor="orderNotes" style={{color: '#CFA200'}} className="font-medium">Note per l'ordine (opzionale)</Label>
-                  <Input
-                    id="orderNotes"
-                    name="orderNotes"
-                    value={formData.orderNotes}
-                    onChange={handleInputChange}
-                    className="mt-2"
-                    style={{borderColor: '#CFA200'}}
-                    placeholder="Inserisci eventuali note per il tuo ordine..."
-                  />
-                </div>
-              </div>
-              
-              <div className="mt-4 pt-4 border-t">
+            </div>
+
+            {/* Totali */}
+            <div>
+              <h3 className="font-semibold mb-3 flex items-center">
+                <Receipt className="w-5 h-5 mr-2" />
+                Riepilogo Costi
+              </h3>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between">
-                  <p>Subtotale</p>
-                  <p className="font-medium">{calculateSubtotal().toFixed(2)}€</p>
+                  <span>Subtotale:</span>
+                  <span>{calculateSubtotal().toFixed(2)}€</span>
                 </div>
-                <div className="flex justify-between mt-1">
-                  <p>Spedizione</p>
-                  <p className="text-green-600 font-semibold">
-                    {calculateShipping() === 0 ? 'GRATUITA' : `${calculateShipping().toFixed(2)}€`}
-                  </p>
+                <div className="flex justify-between">
+                  <span>Spedizione:</span>
+                  <span className="text-green-600 font-medium">Gratuita</span>
                 </div>
-                <div className="flex justify-between mt-2 text-lg font-bold">
-                  <p>Totale</p>
-                  <p>{calculateTotal().toFixed(2)}€</p>
+                <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                  <span>Totale:</span>
+                  <span>{calculateTotal().toFixed(2)}€</span>
                 </div>
               </div>
             </div>
           </div>
         );
-        
-      case 2: // PAGAMENTO
+
+      case 3: // PAGAMENTO
         return (
           <div className="space-y-4">
             {paymentGatewaysLoading ? (
@@ -547,7 +594,7 @@ const Checkout = () => {
         return null;
     }
   };
-  
+
   // Aggiungi queste funzioni per calcolare i totali
   const calculateSubtotal = () => {
     return state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -661,6 +708,24 @@ const Checkout = () => {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  // Funzioni di navigazione - ALL'INTERNO DEL COMPONENTE
+  const nextStep = () => {
+    if (currentStep < steps.length - 1 && validateStep(currentStep)) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  // Funzione per validare tutti gli step
+  const validateAllSteps = () => {
+    return validateStep(0) && validateStep(1) && validateStep(2) && validateStep(3);
   };
 
   return (
@@ -788,40 +853,33 @@ const Checkout = () => {
   );
 };
 
-  // Funzione per ottenere la descrizione principale (breve)
-  const getMainDescription = (gateway: any) => {
-    switch (gateway.id) {
-      case 'cod':
-        return 'Pagamento in CONTANTI o con CARTA DI CREDITO al momento della consegna.';
-      case 'stripe':
-        return 'Pagamento sicuro con carta di credito online.';
-      case 'paypal':
-        return 'Paga con PayPal.';
-      case 'satispay':
-        return 'Pagamento veloce con Satispay.';
-      case 'bacs':
-        return 'Bonifico bancario.';
-      default:
-        return gateway.title;
-    }
-  };
+// Funzioni helper che NON usano state - FUORI DAL COMPONENTE
+const getMainDescription = (gateway: any) => {
+  switch (gateway.id) {
+    case 'cod':
+      return 'Pagamento in CONTANTI o con CARTA DI CREDITO al momento della consegna.';
+    case 'stripe':
+      return 'Pagamento sicuro con carta di credito online.';
+    case 'paypal':
+      return 'Paga con PayPal.';
+    case 'satispay':
+      return 'Pagamento veloce con Satispay.';
+    case 'bacs':
+      return 'Bonifico bancario.';
+    default:
+      return gateway.title;
+  }
+};
 
-  // Funzione per ottenere i detta
-  const getFullDescription = (gateway: any) => {
-    switch (gateway.id) {
-      case 'cod':
-        return 'I nostri collaboratori durante la consegna del vostro ordine, saranno muniti di contanti o con POS per agevolarvi nel pagamento.';
-      case 'paypal':
-        return 'Paga facilmente e in sicurezza con il tuo account PayPal.';
-      default:
-        return gateway.description;
-    }
-  };
+const getFullDescription = (gateway: any) => {
+  switch (gateway.id) {
+    case 'cod':
+      return 'I nostri collaboratori durante la consegna del vostro ordine, saranno muniti di contanti o con POS per agevolarvi nel pagamento.';
+    case 'paypal':
+      return 'Paga facilmente e in sicurezza con il tuo account PayPal.';
+    default:
+      return gateway.description;
+  }
+};
 
-  // Rimuovi queste righe orfane:
-  // 
-  // return null;
-  // };
-
-// At the end of the file, DELETE this entire function
 export default Checkout;
