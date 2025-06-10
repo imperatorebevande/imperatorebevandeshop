@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import DeliveryCalendar from '@/components/DeliveryCalendar/DeliveryCalendar';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -8,8 +9,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { useCart } from '@/context/CartContext';
-import { useAuth } from '@/context/AuthContext'; // Aggiungi questo import
+import { useAuth } from '@/context/AuthContext';
 import { useWooCommerceCustomer, useWooCommercePaymentGateways, useUpdateWooCommerceCustomer } from '@/hooks/useWooCommerce';
+import { wooCommerceService, CalendarData, DeliveryTimeSlot } from '@/services/woocommerce'; // Aggiungi questo import
 import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2, ShoppingBag, MapPin, Package, Receipt, CreditCard as PaymentIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreateWooCommerceOrder } from '@/hooks/useWooCommerce';
@@ -64,6 +66,8 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedPaymentDetails, setExpandedPaymentDetails] = useState<string | null>(null);
+  
+  // (Stati calendario rimossi perché gestiti da DeliveryCalendar)
 
   // Precompila i dati dal profilo utente quando vengono caricati
   useEffect(() => {
@@ -112,9 +116,20 @@ const Checkout = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    // Non gestire direttamente deliveryDate e deliveryTimeSlot qui, sono gestiti da DeliveryCalendar
+    if (name === 'deliveryDate' || name === 'deliveryTimeSlot') return;
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  // Handler per DeliveryCalendar
+  const handleDateTimeChange = (date: string, timeSlot: string) => {
+    setFormData(prev => ({
+      ...prev,
+      deliveryDate: date,
+      deliveryTimeSlot: timeSlot,
     }));
   };
 
@@ -125,7 +140,7 @@ const Checkout = () => {
         return formData.firstName && formData.lastName && formData.email && formData.phone &&
                formData.address && formData.city && formData.postalCode && formData.province;
       case 1: // DATA CONSEGNA
-        return formData.deliveryDate && formData.deliveryTimeSlot;
+        return formData.deliveryDate !== '' && formData.deliveryTimeSlot !== '';
       case 2: // RIEPILOGO
         return true; // Sempre valido
       case 3: // PAGAMENTO
@@ -354,51 +369,13 @@ const Checkout = () => {
 
       case 1: // DATA CONSEGNA
         return (
-          <div className="space-y-6">
-            <div>
-              <Label className="text-base font-medium mb-3 block">Seleziona la data di consegna</Label>
-              <div className="flex justify-center">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(date) => {
-                    setSelectedDate(date);
-                    if (date) {
-                      setFormData(prev => ({
-                        ...prev,
-                        deliveryDate: date.toISOString().split('T')[0]
-                      }));
-                    }
-                  }}
-                  disabled={(date) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    return date < today;
-                  }}
-                  className="rounded-md border"
-                />
-              </div>
-            </div>
-            
-            {formData.deliveryDate && (
-              <div>
-                <Label htmlFor="deliveryTimeSlot">Fascia oraria *</Label>
-                <Select 
-                  value={formData.deliveryTimeSlot} 
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, deliveryTimeSlot: value }))}
-                >
-                  <SelectTrigger className={!formData.deliveryTimeSlot ? 'border-red-300' : ''}>
-                    <SelectValue placeholder="Seleziona fascia oraria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="09:00-12:00">Mattina (09:00 - 12:00)</SelectItem>
-                    <SelectItem value="14:00-17:00">Pomeriggio (14:00 - 17:00)</SelectItem>
-                    <SelectItem value="17:00-20:00">Sera (17:00 - 20:00)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
+          <DeliveryCalendar
+            formData={{
+              deliveryDate: formData.deliveryDate,
+              deliveryTimeSlot: formData.deliveryTimeSlot
+            }}
+            onDateTimeChange={handleDateTimeChange}
+          />
         );
 
       case 2: // RIEPILOGO
@@ -727,6 +704,8 @@ const Checkout = () => {
   const validateAllSteps = () => {
     return validateStep(0) && validateStep(1) && validateStep(2) && validateStep(3);
   };
+
+  // (Gestione calendario spostata in DeliveryCalendar)
 
   return (
     <div className="min-h-screen bg-gray-50">

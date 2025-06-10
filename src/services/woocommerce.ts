@@ -739,6 +739,46 @@ class WooCommerceService {
       throw error;
     }
   }
+
+  // Metodo per recuperare date e fasce orarie di consegna
+  async getDeliveryCalendar(): Promise<CalendarData> {
+    try {
+      // Usa il proxy in sviluppo, URL diretto in produzione
+      const apiUrl = import.meta.env.DEV 
+        ? '/api/calendar' 
+        : 'https://www.imperatorebevande.it/oraricalendarioreact.php';
+      
+      console.log('Chiamata API calendario:', apiUrl);
+      
+      const response = await axios.get(apiUrl, {
+        timeout: 10000,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Calendario consegne recuperato:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero del calendario consegne:', error);
+      throw error;
+    }
+  }
 } // Chiusura della classe WooCommerceService
 
 export const wooCommerceService = new WooCommerceService();
+
+
+// Spostare le interfacce prima della classe (all'inizio del file, dopo gli altri import)
+export interface DeliveryTimeSlot {
+  date: string;
+  slots: string[]; // CAMBIATO da timeSlots a slots
+  available: boolean;
+}
+
+export interface CalendarData {
+  success: boolean;
+  data: DeliveryTimeSlot[];
+  message?: string;
+}
