@@ -318,8 +318,8 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
 
       {selectedDate && (
         <div>
-          <Label className="text-base font-medium mb-3 block">Seleziona la fascia oraria</Label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        <Label className="text-base font-medium mb-3 block text-center text-blue-800">Seleziona la Fascia Oraria</Label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {availableTimeSlots.length > 0 ? (
               availableTimeSlots.map((timeSlot, index) => (
                 <button

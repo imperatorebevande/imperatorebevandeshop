@@ -667,7 +667,21 @@ const Checkout = () => {
           product_id: item.id,
           quantity: item.quantity
         })),
-        customer_note: formData.orderNotes
+        customer_note: formData.orderNotes,
+        meta_data: [
+          {
+            key: 'Delivery Date',
+            value: `${new Date(formData.deliveryDate).toLocaleDateString('it-IT', {
+              day: 'numeric',
+              month: 'numeric',
+              year: 'numeric'
+            })} ${formData.deliveryTimeSlot}`
+          },
+          {
+            key: '_orddd_timestamp',
+            value: Math.floor(new Date(formData.deliveryDate).getTime() / 1000).toString()
+          }
+        ]
       };
 
       console.log('Creating order with customer_id:', customerId);
