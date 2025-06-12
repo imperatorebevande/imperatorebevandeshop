@@ -686,12 +686,21 @@ const Checkout = () => {
 
       console.log('Creating order with customer_id:', customerId);
       
-      await createOrder(orderData);
+      const createdOrder = await createOrder(orderData);
       
       dispatch({ type: 'CLEAR_CART' });
       
       toast.success('Ordine creato con successo!');
-      navigate('/account?tab=orders');
+      
+      // Redirect alla pagina di conferma ordine con i dati dell'ordine
+      navigate('/order-success', {
+        state: {
+          orderNumber: createdOrder.number,
+          orderId: createdOrder.id,
+          total: createdOrder.total
+        }
+      });
+      // RIMUOVERE questa riga: navigate('/account?tab=orders');
       
     } catch (error) {
       console.error('Errore nella creazione dell\'ordine:', error);
