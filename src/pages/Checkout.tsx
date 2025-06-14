@@ -8,20 +8,24 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import EditAddress from '@/components/EditAddress';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useWooCommerceCustomer, useWooCommercePaymentGateways, useUpdateWooCommerceCustomer } from '@/hooks/useWooCommerce';
-import { wooCommerceService, CalendarData, DeliveryTimeSlot } from '@/services/woocommerce'; // Aggiungi questo import
+import { wooCommerceService, CalendarData, DeliveryTimeSlot } from '@/services/woocommerce';
 import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2, ShoppingBag, MapPin, Package, Receipt, CreditCard as PaymentIcon, User, Mail, Phone, Home, Calendar as CalendarIcon, Clock, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreateWooCommerceOrder } from '@/hooks/useWooCommerce';
+import { MessageSquare } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
   const navigate = useNavigate(); 
   const createOrder = useCreateWooCommerceOrder();
-  const updateCustomer = useUpdateWooCommerceCustomer(); // Aggiungi questa riga
-  const { authState } = useAuth(); // authState is defined here
+  const updateCustomer = useUpdateWooCommerceCustomer();
+  const { authState } = useAuth();
   
   console.log('Checkout component authState:', authState); // Add this debug log
   
@@ -246,123 +250,14 @@ const Checkout = () => {
             
             <div>
               <Label htmlFor="province">Provincia *</Label>
-              <Select value={formData.province} onValueChange={(value) => setFormData(prev => ({ ...prev, province: value }))}>
-                <SelectTrigger className={!formData.province ? 'border-red-300' : ''}>
-                  <SelectValue placeholder="Seleziona provincia" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AG">Agrigento</SelectItem>
-                  <SelectItem value="AL">Alessandria</SelectItem>
-                  <SelectItem value="AN">Ancona</SelectItem>
-                  <SelectItem value="AO">Aosta</SelectItem>
-                  <SelectItem value="AR">Arezzo</SelectItem>
-                  <SelectItem value="AP">Ascoli Piceno</SelectItem>
-                  <SelectItem value="AT">Asti</SelectItem>
-                  <SelectItem value="AV">Avellino</SelectItem>
-                  <SelectItem value="BA">Bari</SelectItem>
-                  <SelectItem value="BT">Barletta-Andria-Trani</SelectItem>
-                  <SelectItem value="BL">Belluno</SelectItem>
-                  <SelectItem value="BN">Benevento</SelectItem>
-                  <SelectItem value="BG">Bergamo</SelectItem>
-                  <SelectItem value="BI">Biella</SelectItem>
-                  <SelectItem value="BO">Bologna</SelectItem>
-                  <SelectItem value="BZ">Bolzano</SelectItem>
-                  <SelectItem value="BS">Brescia</SelectItem>
-                  <SelectItem value="BR">Brindisi</SelectItem>
-                  <SelectItem value="CA">Cagliari</SelectItem>
-                  <SelectItem value="CL">Caltanissetta</SelectItem>
-                  <SelectItem value="CB">Campobasso</SelectItem>
-                  <SelectItem value="CI">Carbonia-Iglesias</SelectItem>
-                  <SelectItem value="CE">Caserta</SelectItem>
-                  <SelectItem value="CT">Catania</SelectItem>
-                  <SelectItem value="CZ">Catanzaro</SelectItem>
-                  <SelectItem value="CH">Chieti</SelectItem>
-                  <SelectItem value="CO">Como</SelectItem>
-                  <SelectItem value="CS">Cosenza</SelectItem>
-                  <SelectItem value="CR">Cremona</SelectItem>
-                  <SelectItem value="KR">Crotone</SelectItem>
-                  <SelectItem value="CN">Cuneo</SelectItem>
-                  <SelectItem value="EN">Enna</SelectItem>
-                  <SelectItem value="FM">Fermo</SelectItem>
-                  <SelectItem value="FE">Ferrara</SelectItem>
-                  <SelectItem value="FI">Firenze</SelectItem>
-                  <SelectItem value="FG">Foggia</SelectItem>
-                  <SelectItem value="FC">Forlì-Cesena</SelectItem>
-                  <SelectItem value="FR">Frosinone</SelectItem>
-                  <SelectItem value="GE">Genova</SelectItem>
-                  <SelectItem value="GO">Gorizia</SelectItem>
-                  <SelectItem value="GR">Grosseto</SelectItem>
-                  <SelectItem value="IM">Imperia</SelectItem>
-                  <SelectItem value="IS">Isernia</SelectItem>
-                  <SelectItem value="SP">La Spezia</SelectItem>
-                  <SelectItem value="AQ">L'Aquila</SelectItem>
-                  <SelectItem value="LT">Latina</SelectItem>
-                  <SelectItem value="LE">Lecce</SelectItem>
-                  <SelectItem value="LC">Lecco</SelectItem>
-                  <SelectItem value="LI">Livorno</SelectItem>
-                  <SelectItem value="LO">Lodi</SelectItem>
-                  <SelectItem value="LU">Lucca</SelectItem>
-                  <SelectItem value="MC">Macerata</SelectItem>
-                  <SelectItem value="MN">Mantova</SelectItem>
-                  <SelectItem value="MS">Massa-Carrara</SelectItem>
-                  <SelectItem value="MT">Matera</SelectItem>
-                  <SelectItem value="VS">Medio Campidano</SelectItem>
-                  <SelectItem value="ME">Messina</SelectItem>
-                  <SelectItem value="MI">Milano</SelectItem>
-                  <SelectItem value="MO">Modena</SelectItem>
-                  <SelectItem value="MB">Monza e Brianza</SelectItem>
-                  <SelectItem value="NA">Napoli</SelectItem>
-                  <SelectItem value="NO">Novara</SelectItem>
-                  <SelectItem value="NU">Nuoro</SelectItem>
-                  <SelectItem value="OG">Ogliastra</SelectItem>
-                  <SelectItem value="OT">Olbia-Tempio</SelectItem>
-                  <SelectItem value="OR">Oristano</SelectItem>
-                  <SelectItem value="PD">Padova</SelectItem>
-                  <SelectItem value="PA">Palermo</SelectItem>
-                  <SelectItem value="PR">Parma</SelectItem>
-                  <SelectItem value="PV">Pavia</SelectItem>
-                  <SelectItem value="PG">Perugia</SelectItem>
-                  <SelectItem value="PU">Pesaro e Urbino</SelectItem>
-                  <SelectItem value="PE">Pescara</SelectItem>
-                  <SelectItem value="PC">Piacenza</SelectItem>
-                  <SelectItem value="PI">Pisa</SelectItem>
-                  <SelectItem value="PT">Pistoia</SelectItem>
-                  <SelectItem value="PN">Pordenone</SelectItem>
-                  <SelectItem value="PZ">Potenza</SelectItem>
-                  <SelectItem value="PO">Prato</SelectItem>
-                  <SelectItem value="RG">Ragusa</SelectItem>
-                  <SelectItem value="RA">Ravenna</SelectItem>
-                  <SelectItem value="RC">Reggio Calabria</SelectItem>
-                  <SelectItem value="RE">Reggio Emilia</SelectItem>
-                  <SelectItem value="RI">Rieti</SelectItem>
-                  <SelectItem value="RN">Rimini</SelectItem>
-                  <SelectItem value="RM">Roma</SelectItem>
-                  <SelectItem value="RO">Rovigo</SelectItem>
-                  <SelectItem value="SA">Salerno</SelectItem>
-                  <SelectItem value="SS">Sassari</SelectItem>
-                  <SelectItem value="SV">Savona</SelectItem>
-                  <SelectItem value="SI">Siena</SelectItem>
-                  <SelectItem value="SR">Siracusa</SelectItem>
-                  <SelectItem value="SO">Sondrio</SelectItem>
-                  <SelectItem value="TA">Taranto</SelectItem>
-                  <SelectItem value="TE">Teramo</SelectItem>
-                  <SelectItem value="TR">Terni</SelectItem>
-                  <SelectItem value="TO">Torino</SelectItem>
-                  <SelectItem value="TP">Trapani</SelectItem>
-                  <SelectItem value="TN">Trento</SelectItem>
-                  <SelectItem value="TV">Treviso</SelectItem>
-                  <SelectItem value="TS">Trieste</SelectItem>
-                  <SelectItem value="UD">Udine</SelectItem>
-                  <SelectItem value="VA">Varese</SelectItem>
-                  <SelectItem value="VE">Venezia</SelectItem>
-                  <SelectItem value="VB">Verbano-Cusio-Ossola</SelectItem>
-                  <SelectItem value="VC">Vercelli</SelectItem>
-                  <SelectItem value="VR">Verona</SelectItem>
-                  <SelectItem value="VV">Vibo Valentia</SelectItem>
-                  <SelectItem value="VI">Vicenza</SelectItem>
-                  <SelectItem value="VT">Viterbo</SelectItem>
-                </SelectContent>
-              </Select>
+              <Input
+                id="province"
+                name="province"
+                value={formData.province}
+                onChange={handleInputChange}
+                placeholder="Inserisci provincia"
+                className={!formData.province ? 'border-red-300' : ''}
+              />
             </div>
           </div>
         );
@@ -391,11 +286,11 @@ const Checkout = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentStep(0)}
+                  onClick={() => setIsEditAddressOpen(true)}
                   className="text-xs px-3 py-1 border-[#1B5AAB] text-[#1B5AAB] hover:bg-[#1B5AAB] hover:text-white"
                 >
-                  <Edit className="w-3 h-3 mr-1" />
-                  Modifica
+                  <MapPin className="w-3 h-3 mr-1" />
+                  Modifica Indirizzo
                 </Button>
               </h3>
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
@@ -459,6 +354,26 @@ const Checkout = () => {
                     <p className="font-semibold">{(item.price * item.quantity).toFixed(2)}€</p>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Note per l'ordine */}
+            <div>
+              <h3 className="font-semibold mb-3 flex items-center" style={{ color: '#1B5AAB' }}>
+                <MessageSquare className="w-5 h-5 mr-2" />
+                Note per l'ordine
+              </h3>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <Textarea
+                  name="orderNotes"
+                  value={formData.orderNotes}
+                  onChange={handleInputChange}
+                  placeholder="Inserisci eventuali note per l'ordine (es. indirizzo di consegna temporaneo, istruzioni speciali, ecc.)"
+                  className="min-h-[100px] resize-none"
+                />
+                <p className="text-sm text-gray-500 mt-2">
+                  💡 Puoi utilizzare questo campo per comunicare informazioni aggiuntive come indirizzi di consegna temporanei o istruzioni speciali.
+                </p>
               </div>
             </div>
 
@@ -604,6 +519,9 @@ const Checkout = () => {
     }
   };
 
+  // Aggiungi questo stato per il dialog EditAddress
+  const [isEditAddressOpen, setIsEditAddressOpen] = useState(false);
+  
   // Aggiungi queste funzioni per calcolare i totali
   const calculateSubtotal = () => {
     return state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -891,6 +809,21 @@ const Checkout = () => {
 
       {/* Rimuovi completamente questa sezione dei Security badges */}
       {/* Security badges - ELIMINATA */}
+      
+      {/* Dialog per EditAddress */}
+      {customer && (
+        <Dialog open={isEditAddressOpen} onOpenChange={setIsEditAddressOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Modifica Indirizzo</DialogTitle>
+            </DialogHeader>
+            <EditAddress 
+              customer={customer} 
+              onClose={() => setIsEditAddressOpen(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
