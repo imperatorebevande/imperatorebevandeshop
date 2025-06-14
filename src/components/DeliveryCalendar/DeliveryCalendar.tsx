@@ -35,9 +35,23 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
   );
   const [availableTimeSlots, setAvailableTimeSlots] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState<boolean>(false); // NUOVO
   const [error, setError] = useState<string | null>(null);
 
-  // Aggiungi questa funzione helper per formattare le date
+  // Fasce orarie standard sempre visibili
+  const standardTimeSlots = [
+    "07:00 - 08:00",
+    "08:00 - 09:00", 
+    "09:00 - 10:00",
+    "10:00 - 11:00",
+    "11:00 - 12:00",
+    "12:00 - 13:00",
+    "13:00 - 14:00",
+    "14:00 - 15:00",
+    "15:00 - 16:00"
+  ];
+
+  // Funzione helper per formattare le date
   const formatDateLocal = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -45,7 +59,7 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     return `${year}-${month}-${day}`;
   };
 
-  // CORREZIONE: Rimuovi selectedDate dalle dipendenze per evitare loop infiniti
+  // Caricamento iniziale del calendario
   const loadCalendarData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -53,7 +67,6 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     try {
       const response = await wooCommerceService.getDeliveryCalendar() as any;
       
-      // Gestisci diversi formati di risposta
       let slots: ApiSlot[] = [];
       
       if (Array.isArray(response)) {
@@ -93,82 +106,89 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // Nessuna dipendenza per evitare loop
 
-  const updateTimeSlots = useCallback((date: Date, slots: ApiSlot[]) => {
-    const dateString = formatDateLocal(date);
-    console.log('🕐 Aggiornamento time slots per data:', dateString);
-    console.log('🔍 Tutti gli slots disponibili:', slots);
-    
-    const daySlot = slots.find(slot => {
-      const slotDate = formatDateLocal(new Date(slot.date));
-      console.log('🔍 Confronto:', slotDate, 'con', dateString);
-      return slotDate === dateString;
-    });
-    console.log('🔍 Slot trovato per la data:', daySlot);
-    
-    if (daySlot && daySlot.slots && daySlot.slots.length > 0) {
-      console.log('✅ Time slots disponibili:', daySlot.slots);
-      setAvailableTimeSlots(daySlot.slots);
-    } else {
-      console.log('❌ Nessun time slot disponibile per questa data');
-      setAvailableTimeSlots([]);
-    }
-  }, []);
-
-  // Aggiungi questa nuova funzione dopo updateTimeSlots
-  const loadTimeSlotsForDate = useCallback((date: Date) => {
-    console.log('🔄 Caricamento time slots per data:', formatDateLocal(date));
-    updateTimeSlots(date, apiData);
-  }, [updateTimeSlots, apiData]);
-
+  // Caricamento iniziale del calendario
   useEffect(() => {
     loadCalendarData();
   }, [loadCalendarData]);
 
-  // CORREZIONE: Aggiungi più logging e gestisci meglio l'aggiornamento dei time slots
-  useEffect(() => {
-    console.log('🔄 Effect per aggiornamento time slots');
-    console.log('📅 selectedDate:', selectedDate?.toISOString().split('T')[0]);
-    console.log('📊 apiData.length:', apiData.length);
+  // Funzione per caricare gli slot per una data specifica
+  const loadTimeSlotsForDate = useCallback(async (date: Date) => {
+    const dateString = formatDateLocal(date);
+    console.log('🔄 Caricamento time slots dinamici per data:', dateString);
     
-    if (selectedDate && apiData.length > 0) {
-      console.log('✅ Condizioni soddisfatte, aggiorno time slots');
-      updateTimeSlots(selectedDate, apiData);
-    } else {
-      console.log('❌ Condizioni non soddisfatte, resetto time slots');
+    setIsLoadingTimeSlots(true); // NUOVO: Inizia loading
+    
+    try {
+      // SEMPRE usa l'API dinamica per avere i dati più aggiornati
+      console.log('🔄 Chiamata API dinamica per:', dateString);
+      const timeSlots = await wooCommerceService.getDeliveryTimeSlotsForDate(dateString);
+      
+      if (timeSlots && Array.isArray(timeSlots) && timeSlots.length > 0) {
+        const availableSlots = timeSlots.map(slot => slot.time_slot).filter(Boolean);
+        console.log('✅ Time slots dinamici disponibili:', availableSlots);
+        setAvailableTimeSlots(availableSlots);
+      } else {
+        console.log('❌ Nessun time slot disponibile per questa data');
+        setAvailableTimeSlots([]);
+      }
+    } catch (error) {
+      console.error('❌ Errore nel caricamento time slots dinamici:', error);
       setAvailableTimeSlots([]);
+      toast.error('Errore nel caricamento delle fasce orarie');
+    } finally {
+      setIsLoadingTimeSlots(false); // NUOVO: Fine loading
     }
-  }, [selectedDate, apiData, updateTimeSlots]);
+  }, []); // Rimuovi apiData dalle dipendenze
 
-  // Modifica il useEffect esistente per aggiornare sempre gli slot quando cambia la data
+  // Effetto per caricare gli slot quando cambia la data selezionata
   useEffect(() => {
-    console.log('🔄 Effect per aggiornamento time slots');
-    console.log('📅 selectedDate:', selectedDate ? formatDateLocal(selectedDate) : 'nessuna');
-    console.log('📊 apiData.length:', apiData.length);
-    
-    if (selectedDate && apiData.length > 0) {
-      console.log('✅ Condizioni soddisfatte, aggiorno time slots');
-      // Usa loadTimeSlotsForDate invece di updateTimeSlots per avere sempre dati aggiornati
+    if (selectedDate) {
+      console.log('📅 Data selezionata cambiata:', formatDateLocal(selectedDate));
       loadTimeSlotsForDate(selectedDate);
     } else {
-      console.log('❌ Condizioni non soddisfatte, resetto time slots');
       setAvailableTimeSlots([]);
     }
-  }, [selectedDate, apiData, loadTimeSlotsForDate]);
+  }, [selectedDate, loadTimeSlotsForDate]);
 
-  // Modifica handleDateSelect per essere più semplice
-  const handleDateSelect = async (date: Date | undefined) => {
-    if (!date) return;
-    const dateString = formatDateLocal(date);
-    console.log('📅 Data selezionata manualmente:', dateString);
+  // Auto-selezione della prima data disponibile
+  useEffect(() => {
+    if (availableDates.length > 0 && !selectedDate) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      let dateToSelect = availableDates[0];
+      
+      // Se la prima data è oggi e ci sono altre date, usa la seconda
+      if (availableDates.length > 1) {
+        const firstDate = new Date(availableDates[0]);
+        firstDate.setHours(0, 0, 0, 0);
+        
+        if (firstDate.getTime() === today.getTime()) {
+          dateToSelect = availableDates[1];
+        }
+      }
+      
+      console.log('🎯 Auto-selezione prima data disponibile:', formatDateLocal(dateToSelect));
+      setSelectedDate(dateToSelect);
+      onDateTimeChange(formatDateLocal(dateToSelect), '');
+    }
+  }, [availableDates, selectedDate, onDateTimeChange]);
+
+  const handleDateSelect = (date: Date | undefined) => {
+    console.log('📅 Data selezionata manualmente:', date ? formatDateLocal(date) : 'nessuna');
     setSelectedDate(date);
-    onDateTimeChange(dateString, ''); // Reset time slot
     
-    // Non serve chiamare loadTimeSlotsForDate qui perché lo fa già il useEffect
+    if (date) {
+      const dateString = formatDateLocal(date);
+      onDateTimeChange(dateString, ''); // Reset time slot
+    } else {
+      onDateTimeChange('', '');
+      setAvailableTimeSlots([]);
+    }
   };
 
-  // AGGIUNTA: Funzione per gestire la selezione dello slot orario
   const handleTimeSlotSelect = (timeSlot: string) => {
     if (!selectedDate) return;
     const dateString = formatDateLocal(selectedDate);
@@ -176,7 +196,6 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     onDateTimeChange(dateString, timeSlot);
   };
 
-  // Aggiorna anche isDateDisabled
   const isDateDisabled = (date: Date) => {
     // Disabilita date passate E la data odierna
     const today = new Date();
@@ -190,7 +209,6 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     );
   };
 
-  // Funzione per personalizzare il rendering delle date
   const customDayContent = (date: Date) => {
     const isDisabled = isDateDisabled(date);
     const today = new Date();
@@ -226,8 +244,6 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     return date.getDate();
   };
 
-  // Sposta il useEffect PRIMA del return condizionale
-  // Auto-selezione della prima data disponibile con delay
   useEffect(() => {
     // Verifica che availableDates sia definito e abbia elementi
     if (Array.isArray(availableDates) && availableDates.length > 0 && !selectedDate) {
@@ -258,7 +274,6 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     }
   }, [availableDates, selectedDate, onDateTimeChange]);
 
-  // Condizione di caricamento
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -268,7 +283,6 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     );
   }
 
-  // Condizione di errore
   if (error) {
     return (
       <div className="text-center py-8">
@@ -318,40 +332,69 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
 
       {selectedDate && (
         <div>
-        <Label className="text-base font-medium mb-3 block text-center text-blue-800">Seleziona la Fascia Oraria</Label>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {availableTimeSlots.length > 0 ? (
-              availableTimeSlots.map((timeSlot, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={() => handleTimeSlotSelect(timeSlot)}
-                  className={`
-                    px-3 py-2 rounded-md border text-sm font-medium transition-colors flex items-center justify-center relative
-                    ${
-                      formData.deliveryTimeSlot === timeSlot
-                        ? 'bg-green-500 text-white border-green-500'
-                        : 'bg-blue-500 text-white border-blue-500 hover:bg-blue-600'
-                    }
-                  `}
-                >
-                  {timeSlot}
-                  {formData.deliveryTimeSlot === timeSlot && (
-                    <span className="text-white font-bold absolute right-2">✓</span>
-                  )}
-                </button>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-4 text-gray-500">
-                Nessuna fascia oraria disponibile per questa data
-                {selectedDate && (
-                  <div className="text-xs mt-1">
-                    Data selezionata: {selectedDate.toISOString().split('T')[0]}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          <Label className="text-base font-medium mb-3 block text-center text-blue-800">Seleziona la Fascia Oraria</Label>
+          
+          {/* NUOVO: Mostra loading durante il caricamento */}
+          {isLoadingTimeSlots ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Caricamento fasce orarie...</span>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {standardTimeSlots
+                .filter(timeSlot => {
+                  // Se è sabato, nascondi gli slot 14:00-15:00 e 15:00-16:00
+                  if (selectedDate && selectedDate.getDay() === 6) { // 6 = sabato
+                    return timeSlot !== "14:00 - 15:00" && timeSlot !== "15:00 - 16:00";
+                  }
+                  return true; // Mostra tutti gli slot per gli altri giorni
+                })
+                .map((timeSlot, index) => {
+                const isAvailable = availableTimeSlots.includes(timeSlot);
+                const isSelected = formData.deliveryTimeSlot === timeSlot;
+                
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => isAvailable ? handleTimeSlotSelect(timeSlot) : null}
+                    disabled={!isAvailable}
+                    className={`
+                      px-3 py-2 rounded-md border-2 text-sm font-bold transition-colors flex flex-col items-center justify-center relative min-h-[60px]
+                      ${
+                        !isAvailable
+                          ? 'cursor-not-allowed bg-white'
+                          : isSelected
+                          ? 'cursor-pointer'
+                          : 'cursor-pointer hover:opacity-80 bg-white'
+                      }
+                    `}
+                    style={{
+                      borderColor: !isAvailable ? '#A40800' : isSelected ? '#3F691D' : '#1B5AAB',
+                      backgroundColor: isSelected ? '#3F691D' : 'white',
+                      color: isSelected ? 'white' : (!isAvailable ? '#A40800' : '#1B5AAB')
+                    }}
+                  >
+                    <span className="font-bold">
+                      {timeSlot}
+                    </span>
+                    {isSelected ? (
+                      <span className="text-white font-bold text-lg mt-1">✓</span>
+                    ) : isAvailable ? (
+                      <span className="font-bold text-xs mt-1" style={{ color: '#1B5AAB' }}>
+                        DISPONIBILE
+                      </span>
+                    ) : (
+                      <span className="font-bold text-xs mt-1" style={{ color: '#A40800' }}>
+                        AL COMPLETO
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </div>

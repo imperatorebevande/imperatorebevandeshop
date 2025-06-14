@@ -28,18 +28,22 @@ const Login: React.FC<LoginProps> = ({ onClose }) => {
       toast.error('Inserisci email/username e password');
       return;
     }
-
+  
     try {
       await login(formData.emailOrUsername, formData.password);
-      toast.success('Login effettuato con successo!');
       
-      // Navigazione esplicita alla pagina account
-      setTimeout(() => {
-        navigate('/account');
-        if (onClose) {
-          onClose();
-        }
-      }, 1000);
+      // Verifica se il login è effettivamente riuscito prima di mostrare il messaggio
+      if (authState.isAuthenticated) {
+        toast.success('Login effettuato con successo!');
+        
+        // Navigazione esplicita alla pagina account
+        setTimeout(() => {
+          navigate('/account');
+          if (onClose) {
+            onClose();
+          }
+        }, 1000);
+      }
     } catch (error) {
       toast.error('Credenziali non valide');
     }

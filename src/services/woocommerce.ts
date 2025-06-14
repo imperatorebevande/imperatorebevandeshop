@@ -695,7 +695,29 @@ class WooCommerceService {
     }
   }
 
-  // Aggiungi questo nuovo metodo all'INTERNO della classe
+  // Aggiungi questo nuovo metodo nella classe WooCommerceService
+  async getDeliveryTimeSlotsForDate(date: string): Promise<any[]> {
+    try {
+      const apiUrl = `https://imperatorebevande.it/wp-json/orddd/v1/delivery_schedule/0?date=${date}`;
+      
+      console.log('Chiamata API fasce orarie per data:', apiUrl);
+      
+      const response = await axios.get(apiUrl, {
+        timeout: 10000,
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Fasce orarie recuperate per', date, ':', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nel recupero delle fasce orarie per la data', date, ':', error);
+      throw error;
+    }
+  }
+
   async getCustomerByWordPressUserId(wpUserId: number): Promise<WooCommerceCustomer[]> {
     if (!this.isConfigured) {
       throw new Error('WooCommerce non è configurato');

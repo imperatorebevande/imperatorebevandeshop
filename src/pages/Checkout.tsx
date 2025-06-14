@@ -12,7 +12,7 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useWooCommerceCustomer, useWooCommercePaymentGateways, useUpdateWooCommerceCustomer } from '@/hooks/useWooCommerce';
 import { wooCommerceService, CalendarData, DeliveryTimeSlot } from '@/services/woocommerce'; // Aggiungi questo import
-import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2, ShoppingBag, MapPin, Package, Receipt, CreditCard as PaymentIcon } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2, ShoppingBag, MapPin, Package, Receipt, CreditCard as PaymentIcon, User, Mail, Phone, Home, Calendar as CalendarIcon, Clock, Edit } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreateWooCommerceOrder } from '@/hooks/useWooCommerce';
 
@@ -383,28 +383,60 @@ const Checkout = () => {
           <div className="space-y-6">
             {/* Dati di spedizione */}
             <div>
-              <h3 className="font-semibold mb-3 flex items-center">
-                <Truck className="w-5 h-5 mr-2" />
-                Dati di Spedizione
+              <h3 className="font-semibold mb-3 flex items-center justify-between" style={{ color: '#1B5AAB' }}>
+                <div className="flex items-center">
+                  <Truck className="w-5 h-5 mr-2" />
+                  Dati di Spedizione
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentStep(0)}
+                  className="text-xs px-3 py-1 border-[#1B5AAB] text-[#1B5AAB] hover:bg-[#1B5AAB] hover:text-white"
+                >
+                  <Edit className="w-3 h-3 mr-1" />
+                  Modifica
+                </Button>
               </h3>
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
-                <p><span className="font-medium">Nome:</span> {formData.firstName} {formData.lastName}</p>
-                <p><span className="font-medium">Email:</span> {formData.email}</p>
-                <p><span className="font-medium">Telefono:</span> {formData.phone}</p>
-                <p><span className="font-medium">Indirizzo:</span> {formData.address}</p>
-                <p><span className="font-medium">Città:</span> {formData.city}, {formData.province} {formData.postalCode}</p>
+                <p className="flex items-center">
+                  <User className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
+                  <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.firstName} {formData.lastName}
+                </p>
+                <p className="flex items-center">
+                  <Mail className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
+                  <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.email}
+                </p>
+                <p className="flex items-center">
+                  <Phone className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
+                  <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.phone}
+                </p>
+                <p className="flex items-center">
+                  <Home className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
+                  <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.address}
+                </p>
+                <p className="flex items-center">
+                  <MapPin className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
+                  <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.city}, {formData.province} {formData.postalCode}
+                </p>
                 {formData.deliveryDate && (
-                  <p><span className="font-medium">Data consegna:</span> {new Date(formData.deliveryDate).toLocaleDateString('it-IT')}</p>
+                  <p className="flex items-center">
+                    <CalendarIcon className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
+                    <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {new Date(formData.deliveryDate).toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  </p>
                 )}
                 {formData.deliveryTimeSlot && (
-                  <p><span className="font-medium">Fascia oraria:</span> {formData.deliveryTimeSlot}</p>
+                  <p className="flex items-center">
+                    <Clock className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
+                    <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.deliveryTimeSlot}
+                  </p>
                 )}
               </div>
             </div>
 
             {/* Prodotti nel carrello */}
             <div>
-              <h3 className="font-semibold mb-3 flex items-center">
+              <h3 className="font-semibold mb-3 flex items-center" style={{ color: '#1B5AAB' }}>
                 <Package className="w-5 h-5 mr-2" />
                 Prodotti Ordinati
               </h3>
@@ -432,8 +464,8 @@ const Checkout = () => {
 
             {/* Totali */}
             <div>
-              <h3 className="font-semibold mb-3 flex items-center">
-                <Receipt className="w-5 h-5 mr-2" />
+            <h3 className="font-semibold mb-3 flex items-center" style={{ color: '#1B5AAB' }}>
+                <Package className="w-5 h-5 mr-2" />
                 Riepilogo Costi
               </h3>
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
@@ -445,7 +477,7 @@ const Checkout = () => {
                   <span>Spedizione:</span>
                   <span className="text-green-600 font-medium">Gratuita</span>
                 </div>
-                <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                <div className="border-t pt-2 flex justify-between font-bold text-lg" style={{ color: '#A40800' }}>
                   <span>Totale:</span>
                   <span>{calculateTotal().toFixed(2)}€</span>
                 </div>
@@ -712,6 +744,12 @@ const Checkout = () => {
 
   // Funzioni di navigazione - ALL'INTERNO DEL COMPONENTE
   const nextStep = () => {
+    // Se siamo nel riepilogo (step 2) e mancano data o fascia oraria, torna al calendario
+    if (currentStep === 2 && (!formData.deliveryDate || !formData.deliveryTimeSlot)) {
+      setCurrentStep(1); // Torna al calendario
+      return;
+    }
+    
     if (currentStep < steps.length - 1 && validateStep(currentStep)) {
       setCurrentStep(currentStep + 1);
     }
@@ -831,7 +869,7 @@ const Checkout = () => {
               </Button>
             ) : (
               <Button
-                onClick={handleSubmit}
+                onClick={calculateTotal() === 0 ? () => navigate('/products') : handleSubmit}
                 disabled={isProcessing || !validateStep(currentStep)}
                 className="px-6 py-2 text-sm gradient-primary"
               >
@@ -840,6 +878,8 @@ const Checkout = () => {
                     <Loader2 className="w-4 h-4 mr-1 animate-spin" />
                     Elaborazione...
                   </>
+                ) : calculateTotal() === 0 ? (
+                  'Nessun Prodotto Selezionato - Vai allo SHOP'
                 ) : (
                   `Completa Ordine - ${calculateTotal().toFixed(2)}€`
                 )}

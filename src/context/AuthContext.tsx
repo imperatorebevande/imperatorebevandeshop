@@ -100,63 +100,67 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (usernameOrEmail: string, password: string) => {
+    dispatch({ type: 'LOGIN_START' });
+    
     try {
       console.log('Tentativo di login con:', usernameOrEmail);
       
       const loginResponse = await wooCommerceService.loginWithJwt(usernameOrEmail, password);
       console.log('JWT Response completa:', loginResponse);
       
-      // Nel metodo login
-      if (loginResponse.token) {
-        localStorage.setItem('jwtToken', loginResponse.token);
-        
-        // Recupera direttamente l'ID cliente WooCommerce usando l'ID utente WordPress
-        let userId = 0;
-        try {
-          // Se loginResponse contiene l'ID utente WordPress
-          if (loginResponse.user_id) {
-            const customers = await wooCommerceService.getCustomerByWordPressUserId(loginResponse.user_id);
-            if (customers && customers.length > 0) {
-              userId = customers[0].id; // This should be the WooCommerce customer ID
-              console.log('ID cliente WooCommerce trovato tramite ID WordPress:', userId);
-            }
-          } else {
-            // Fallback alla ricerca per email/username
-            const isEmail = usernameOrEmail.includes('@');
-            let customers;
-            
-            if (isEmail) {
-              customers = await wooCommerceService.getCustomerByEmail(usernameOrEmail);
-            } else {
-              customers = await wooCommerceService.getCustomerByUsername(usernameOrEmail);
-            }
-            
-            if (customers && customers.length > 0) {
-              userId = customers[0].id; // This should be the WooCommerce customer ID
-              console.log('ID cliente WooCommerce trovato:', userId);
-            }
-          }
-        } catch (error) {
-          console.error('Errore nel recupero ID cliente WooCommerce:', error);
-        }
-        
-        // Ensure userData conforms to the User interface with an 'id' property
-        const userData: User = {
-          id: userId, // Use 'id' here
-          email: loginResponse.user_email || usernameOrEmail,
-          username: loginResponse.user_nicename || usernameOrEmail,
-          first_name: loginResponse.user_display_name?.split(' ')[0] || '',
-          last_name: loginResponse.user_display_name?.split(' ').slice(1).join(' ') || ''
-        };
-        
-        console.log('UserData creato con ID:', userData); // Log updated to reflect 'id'
-        localStorage.setItem('user', JSON.stringify(userData));
-        dispatch({ type: 'LOGIN_SUCCESS', payload: userData });
-        console.log('Login completato con successo');
+      // Verifica se il token è presente nella risposta
+      if (!loginResponse.token) {
+        dispatch({ type: 'LOGIN_FAILURE' });
+        throw new Error('Login fallito: token non ricevuto');
       }
+      
+      // Recupera direttamente l'ID cliente WooCommerce usando l'ID utente WordPress
+      let userId = 0;
+      try {
+        // Se loginResponse contiene l'ID utente WordPress
+        if (loginResponse.user_id) {
+          const customers = await wooCommerceService.getCustomerByWordPressUserId(loginResponse.user_id);
+          if (customers && customers.length > 0) {
+            userId = customers[0].id; // This should be the WooCommerce customer ID
+            console.log('ID cliente WooCommerce trovato tramite ID WordPress:', userId);
+          }
+        } else {
+          // Fallback alla ricerca per email/username
+          const isEmail = usernameOrEmail.includes('@');
+          let customers;
+          
+          if (isEmail) {
+            customers = await wooCommerceService.getCustomerByEmail(usernameOrEmail);
+          } else {
+            customers = await wooCommerceService.getCustomerByUsername(usernameOrEmail);
+          }
+          
+          if (customers && customers.length > 0) {
+            userId = customers[0].id; // This should be the WooCommerce customer ID
+            console.log('ID cliente WooCommerce trovato:', userId);
+          }
+        }
+      } catch (error) {
+        console.error('Errore nel recupero ID cliente WooCommerce:', error);
+      }
+      
+      // Ensure userData conforms to the User interface with an 'id' property
+      const userData: User = {
+        id: userId,
+        email: loginResponse.user_email || usernameOrEmail,
+        username: loginResponse.user_nicename || usernameOrEmail,
+        first_name: loginResponse.user_display_name?.split(' ')[0] || '',
+        last_name: loginResponse.user_display_name?.split(' ').slice(1).join(' ') || ''
+      };
+      
+      localStorage.setItem('user', JSON.stringify(userData));
+      dispatch({ type: 'LOGIN_SUCCESS', payload: userData });
+      console.log('Login completato con successo');
     } catch (error) {
       console.error('Errore durante il login:', error);
       dispatch({ type: 'LOGIN_FAILURE' });
+      // Assicurati che l'errore venga propagato
+      throw error;
     }
   };
 
