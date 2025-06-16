@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'; // Assicurati che useCallback sia qui
 import DeliveryCalendar from '@/components/DeliveryCalendar/DeliveryCalendar';
+import PaymentSection from '@/components/PaymentSection';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -68,6 +69,12 @@ const Checkout = () => {
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [paymentMethod, setPaymentMethod] = useState('');
+  
+  // Avvolgi setPaymentMethod con useCallback
+  const handleSetPaymentMethod = useCallback((method: string) => {
+    setPaymentMethod(method);
+  }, []); // Nessuna dipendenza, quindi la funzione viene creata una sola volta
+
   const [isProcessing, setIsProcessing] = useState(false);
   const [expandedPaymentDetails, setExpandedPaymentDetails] = useState<string | null>(null);
   
@@ -104,12 +111,15 @@ const Checkout = () => {
     }
   }, [authState.isAuthenticated, customer]);
 
-  // Imposta il primo metodo di pagamento disponibile come default
+  // Imposta il primo metodo di pagamento disponibile come default, solo se non già impostato
   useEffect(() => {
-    if (filteredPaymentGateways && filteredPaymentGateways.length > 0 && !paymentMethod) {
-      setPaymentMethod(filteredPaymentGateways[0].id);
+    if (!paymentMethod && filteredPaymentGateways && filteredPaymentGateways.length > 0) {
+      const defaultPaymentMethod = filteredPaymentGateways[0].id;
+      if (filteredPaymentGateways.some(gateway => gateway.id === defaultPaymentMethod)) {
+        handleSetPaymentMethod(defaultPaymentMethod); // Usa la versione memoizzata
+      }
     }
-  }, [filteredPaymentGateways, paymentMethod]);
+  }, [filteredPaymentGateways, paymentMethod, handleSetPaymentMethod]); // Aggiungi handleSetPaymentMethod alle dipendenze
 
   // Salta automaticamente al riepilogo se l'indirizzo è già completo
   useEffect(() => {
@@ -402,116 +412,26 @@ const Checkout = () => {
         );
 
       case 3: // PAGAMENTO
+        if (paymentGatewaysLoading) { 
+          return (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+          );
+        }
         return (
-          <div className="space-y-4">
-            {paymentGatewaysLoading ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="w-6 h-6 animate-spin" />
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredPaymentGateways.map((gateway) => {
-                  // Definisci i colori per ogni metodo di pagamento - sempre visibili
-                  const getPaymentColors = (gatewayId: string, isSelected: boolean) => {
-                    switch (gatewayId) {
-                      case 'cod': // Pagamento in CONTANTI o con CARTA DI CREDITO
-                        return isSelected 
-                          ? 'border-[#40691E] bg-[#40691E]/20' 
-                          : 'border-[#40691E] bg-[#40691E]/10 hover:bg-[#40691E]/15';
-                      case 'stripe': // Paga ADESSO con Carta di Credito
-                      case 'paypal': // Paga ADESSO con PayPal
-                      case 'satispay': // Satispay
-                        return isSelected 
-                          ? 'border-[#1B5AAB] bg-[#1B5AAB]/20' 
-                          : 'border-[#1B5AAB] bg-[#1B5AAB]/10 hover:bg-[#1B5AAB]/15';
-                      case 'bacs': // Bonifico Bancario
-                        return isSelected 
-                          ? 'border-[#CFA200] bg-[#CFA200]/20' 
-                          : 'border-[#CFA200] bg-[#CFA200]/10 hover:bg-[#CFA200]/15';
-                      default:
-                        return isSelected 
-                          ? 'border-blue-500 bg-blue-50' 
-                          : 'border-gray-200 hover:bg-gray-50';
-                    }
-                  };
-
-                  const getRadioColors = (gatewayId: string, isSelected: boolean) => {
-                    switch (gatewayId) {
-                      case 'cod':
-                        return isSelected 
-                          ? 'border-[#40691E] bg-[#40691E]' 
-                          : 'border-[#40691E]';
-                      case 'stripe':
-                      case 'paypal':
-                      case 'satispay':
-                        return isSelected 
-                          ? 'border-[#1B5AAB] bg-[#1B5AAB]' 
-                          : 'border-[#1B5AAB]';
-                      case 'bacs':
-                        return isSelected 
-                          ? 'border-[#CFA200] bg-[#CFA200]' 
-                          : 'border-[#CFA200]';
-                      default:
-                        return isSelected 
-                          ? 'border-blue-500 bg-blue-500' 
-                          : 'border-gray-300';
-                    }
-                  };
-
-                  return (
-                    <div 
-                      key={gateway.id}
-                      className={`border-2 rounded-md p-3 cursor-pointer transition-colors ${getPaymentColors(gateway.id, paymentMethod === gateway.id)}`}
-                      onClick={() => setPaymentMethod(gateway.id)}
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center space-x-3">
-                          <div className="flex-shrink-0">
-                            {gateway.id === 'cod' && <CreditCard className="w-5 h-5" />}
-                            {gateway.id === 'stripe' && <CreditCard className="w-5 h-5" />}
-                            {gateway.id === 'paypal' && <CreditCard className="w-5 h-5" />}
-                            {gateway.id === 'satispay' && <CreditCard className="w-5 h-5" />}
-                            {gateway.id === 'bacs' && <CreditCard className="w-5 h-5" />}
-                          </div>
-                          <div>
-                            <p className="font-medium">{gateway.title}</p>
-                            <p className="text-sm text-gray-500">{getMainDescription(gateway)}</p>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <button 
-                            type="button"
-                            className="text-blue-500 hover:text-blue-700"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setExpandedPaymentDetails(expandedPaymentDetails === gateway.id ? null : gateway.id);
-                            }}
-                          >
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                            </svg>
-                          </button>
-                          
-                          <div className={`w-4 h-4 rounded-full border-2 ${getRadioColors(gateway.id, paymentMethod === gateway.id)}`}>
-                            {paymentMethod === gateway.id && (
-                              <div className="w-full h-full rounded-full bg-white scale-50"></div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {expandedPaymentDetails === gateway.id && (
-                        <div className="mt-2 pt-2 border-t text-sm text-gray-600">
-                          {getFullDescription(gateway)}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          <PaymentSection
+            paymentGatewaysLoading={paymentGatewaysLoading} 
+            filteredPaymentGateways={filteredPaymentGateways}
+            paymentMethod={paymentMethod} // Passa lo stato paymentMethod
+            setPaymentMethod={handleSetPaymentMethod} // Passa la funzione memoizzata
+            expandedPaymentDetails={expandedPaymentDetails} 
+            setExpandedPaymentDetails={setExpandedPaymentDetails} 
+            onPayPalSuccess={handlePayPalSuccess} 
+            onPayPalError={handlePayPalError}     
+            orderTotal={calculateTotal().toString()} 
+            currency="EUR" 
+          />
         );
 
       default:
@@ -536,22 +456,10 @@ const Checkout = () => {
     return calculateSubtotal() + calculateShipping();
   };
 
-  // Aggiungi questa funzione handleSubmit
-  const handleSubmit = async () => {
-    if (!validateAllSteps()) {
-      toast.error('Completa tutti i campi obbligatori');
-      return;
-    }
-
-    if (state.items.length === 0) {
-      toast.error('Il carrello è vuoto');
-      return;
-    }
-
+  // Funzione per creare l'ordine (estratta per essere usata anche da PayPal)
+  const createOrderAndNavigate = async (paymentDetails?: any) => {
     setIsProcessing(true);
-
     try {
-      // Se l'utente è loggato, aggiorna i suoi dati prima di creare l'ordine
       if (customerId && authState.isAuthenticated) {
         const customerUpdateData = {
           first_name: formData.firstName,
@@ -578,10 +486,6 @@ const Checkout = () => {
             country: 'IT'
           }
         };
-
-        console.log('Aggiornamento dati cliente:', customerUpdateData);
-        
-        // Aggiorna i dati del cliente in WooCommerce
         await updateCustomer.mutateAsync({
           id: customerId,
           customerData: customerUpdateData
@@ -592,7 +496,7 @@ const Checkout = () => {
         customer_id: customerId,
         payment_method: paymentMethod,
         payment_method_title: filteredPaymentGateways.find(g => g.id === paymentMethod)?.title || paymentMethod,
-        set_paid: false,
+        set_paid: paymentMethod === 'paypal' && paymentDetails ? true : false, // Imposta set_paid a true se PayPal e ci sono dettagli
         billing: {
           first_name: formData.firstName,
           last_name: formData.lastName,
@@ -631,18 +535,16 @@ const Checkout = () => {
             key: '_orddd_timestamp',
             value: Math.floor(new Date(formData.deliveryDate).getTime() / 1000).toString()
           }
-        ]
+        ],
+        // Aggiungi transaction_id se il pagamento è PayPal e i dettagli sono disponibili
+        ...(paymentMethod === 'paypal' && paymentDetails && paymentDetails.purchase_units && paymentDetails.purchase_units[0]?.payments?.captures[0]?.id && {
+          transaction_id: paymentDetails.purchase_units[0].payments.captures[0].id
+        })
       };
 
-      console.log('Creating order with customer_id:', customerId);
-      
       const createdOrder = await createOrder(orderData);
-      
       dispatch({ type: 'CLEAR_CART' });
-      
       toast.success('Ordine creato con successo!');
-      
-      // Redirect alla pagina di conferma ordine con i dati dell'ordine
       navigate('/order-success', {
         state: {
           orderNumber: createdOrder.number,
@@ -650,8 +552,6 @@ const Checkout = () => {
           total: createdOrder.total
         }
       });
-      // RIMUOVERE questa riga: navigate('/account?tab=orders');
-      
     } catch (error) {
       console.error('Errore nella creazione dell\'ordine:', error);
       toast.error('Errore nella creazione dell\'ordine. Riprova.');
@@ -660,16 +560,57 @@ const Checkout = () => {
     }
   };
 
-  // Funzioni di navigazione - ALL'INTERNO DEL COMPONENTE
-  const nextStep = () => {
-    // Se siamo nel riepilogo (step 2) e mancano data o fascia oraria, torna al calendario
-    if (currentStep === 2 && (!formData.deliveryDate || !formData.deliveryTimeSlot)) {
-      setCurrentStep(1); // Torna al calendario
+  const handlePayPalSuccess = (details: any) => {
+    console.log('PayPal Success:', details);
+    // Qui crei l'ordine DOPO che PayPal ha avuto successo
+    // Passa i dettagli del pagamento a createOrderAndNavigate
+    createOrderAndNavigate(details); 
+  };
+
+  const handlePayPalError = (error: any) => {
+    console.error('PayPal Error:', error);
+    toast.error('Pagamento PayPal fallito o annullato.');
+    setIsProcessing(false); // Assicurati di resettare lo stato di processing
+  };
+
+
+  // Modifica handleSubmit per gestire PayPal
+  const handleSubmit = async () => {
+    if (!validateAllSteps()) {
+      toast.error('Completa tutti i campi obbligatori');
       return;
     }
-    
-    if (currentStep < steps.length - 1 && validateStep(currentStep)) {
-      setCurrentStep(currentStep + 1);
+
+    if (state.items.length === 0) {
+      toast.error('Il carrello è vuoto');
+      return;
+    }
+
+    // Se il metodo di pagamento NON è PayPal, procedi come prima
+    if (paymentMethod !== 'paypal') {
+      await createOrderAndNavigate();
+    } else {
+      // Se è PayPal, non fare nulla qui. 
+      // Il pagamento e la creazione dell'ordine sono gestiti da PayPalNativeCheckout e handlePayPalSuccess.
+      // Potresti voler mostrare un messaggio o semplicemente attendere che l'utente interagisca con i pulsanti PayPal.
+      // Assicurati che i pulsanti PayPal siano visibili e attivi.
+      toast.info('Procedi con il pagamento tramite PayPal.');
+      // Non chiamare setIsProcessing(true) qui, perché PayPalNativeCheckout gestirà il suo stato di caricamento.
+    }
+  };
+
+  // Funzioni di navigazione - ALL'INTERNO DEL COMPONENTE
+  const nextStep = () => {
+    if (currentStep === steps.length - 1) {
+      // Se siamo all'ultimo step (Pagamento), chiama handleSubmit
+      handleSubmit();
+    } else if (currentStep < steps.length - 1 && validateStep(currentStep)) {
+        // Se siamo nel riepilogo (step 2) e mancano data o fascia oraria, torna al calendario
+        if (currentStep === 2 && (!formData.deliveryDate || !formData.deliveryTimeSlot)) {
+            setCurrentStep(1); // Torna al calendario
+            return;
+        }
+        setCurrentStep(currentStep + 1);
     }
   };
 
