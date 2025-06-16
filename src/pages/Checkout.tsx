@@ -429,7 +429,7 @@ const Checkout = () => {
             setExpandedPaymentDetails={setExpandedPaymentDetails} 
             onPayPalSuccess={handlePayPalSuccess} 
             onPayPalError={handlePayPalError}     
-            orderTotal={calculateTotal().toString()} 
+            orderTotal={calculateTotal().toFixed(2)} // Ensure two decimal places
             currency="EUR" 
           />
         );
@@ -453,7 +453,17 @@ const Checkout = () => {
   };
   
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateShipping();
+    const subtotal = calculateSubtotal();
+    const shipping = calculateShipping();
+    
+    // Aggiungi commissione PayPal (3.5% + 0.50€) se PayPal è selezionato
+    let paypalFee = 0;
+    if (paymentMethod === 'paypal') {
+      paypalFee = parseFloat(((subtotal * 0.035) + 0.50).toFixed(2)); // Round fee to 2 decimal places
+    }
+    
+    // Round final total to 2 decimal places
+    return parseFloat((subtotal + shipping + paypalFee).toFixed(2)); 
   };
 
   // Funzione per creare l'ordine (estratta per essere usata anche da PayPal)
