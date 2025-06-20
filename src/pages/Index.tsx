@@ -1,35 +1,66 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Star, Truck, Shield, Headphones, MapPin, Clock, Droplets, ChevronLeft, ChevronRight, ShoppingCart, RotateCcw } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useWooCommerceBestSellingProducts, useWooCommerceSaleProducts, useWooCommerceCustomerOrders } from '@/hooks/useWooCommerce';
+import { ArrowRight, Truck, Clock, MapPin, RotateCcw } from 'lucide-react'; // ✅ Aggiunta RotateCcw
+import { useWooCommerceSaleProducts, useWooCommerceCustomerOrders, useWooCommerceProducts } from '@/hooks/useWooCommerce';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
-import { wooCommerceService } from '@/services/woocommerce'; // ✅ Aggiunta importazione
+import { wooCommerceService } from '@/services/woocommerce';
 
 const Index = () => {
   const { authState } = useAuth();
   const { dispatch } = useCart();
+
+  // ✅ PRECARICAMENTO PRODOTTI - Carica tutti i prodotti in background
+  // Questo renderà la navigazione verso lo shop molto più veloce
+  const { data: allProductsPage1 } = useWooCommerceProducts({
+    per_page: 100,
+    page: 1,
+    status: 'publish'
+  });
   
-  // Hook esistenti
-  const { data: bestSellingProducts = [], isLoading: bestSellingLoading } = useWooCommerceBestSellingProducts({ per_page: 10 });
-  const { data: saleProducts = [], isLoading: saleLoading } = useWooCommerceSaleProducts({ per_page: 4 });
-  
-  // Nuovo hook per ottenere l'ultimo ordine del cliente
+  const { data: allProductsPage2 } = useWooCommerceProducts({
+    per_page: 100,
+    page: 2,
+    status: 'publish'
+  });
+
+  // Hook per ottenere i prodotti più venduti
+  const { data: bestSellingProducts = [], isLoading: bestSellingLoading } = useWooCommerceProducts({
+    orderby: 'popularity',
+    per_page: 20,
+    status: 'publish'
+  });
+
+  // Hook per ottenere i prodotti in offerta
+  const { data: saleProducts = [], isLoading: saleLoading } = useWooCommerceSaleProducts({
+    per_page: 10,
+    status: 'publish'
+  });
+
+  // Hook per ottenere l'ultimo ordine del cliente
   const customerId = authState?.isAuthenticated && authState?.user?.id ? authState.user.id : null;
   const { data: customerOrders = [], isLoading: ordersLoading } = useWooCommerceCustomerOrders(
     customerId,
     { per_page: 1, orderby: 'date', order: 'desc' },
     { enabled: !!customerId }
   );
-  
+
   const lastOrder = customerOrders[0];
-  
+
+  // ✅ Log per verificare che i prodotti vengano precaricati
+  useEffect(() => {
+    if (allProductsPage1 && allProductsPage2) {
+      const totalProducts = [...(allProductsPage1 || []), ...(allProductsPage2 || [])];
+      console.log(`✅ Prodotti precaricati: ${totalProducts.length} prodotti in cache`);
+    }
+  }, [allProductsPage1, allProductsPage2]);
+
   // Funzione per aggiungere l'ultimo ordine al carrello
   const addLastOrderToCart = async () => { // ✅ Resa asincrona
     if (!lastOrder || !lastOrder.line_items) {

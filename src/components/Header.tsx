@@ -64,25 +64,34 @@ const Header = () => {
               <nav className="flex space-x-4 mr-2">
                 <Link 
                   to="/" 
-                  className="text-gray-700 hover:text-blue-600 transition-colors font-medium px-2 py-2 rounded-md hover:bg-blue-50"
+                  className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg" 
+                  style={{'--hover-color': '#1B5AAB'} as React.CSSProperties}
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = ''}
                 >
                   Home
                 </Link>
                 <Link 
                   to="/products" 
-                  className="text-gray-700 hover:text-blue-600 transition-colors font-medium px-2 py-2 rounded-md hover:bg-blue-50"
+                  className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = ''}
                 >
                   Shop
                 </Link>
                 <Link 
                   to="/products?category=acqua" 
-                  className="text-gray-700 hover:text-blue-600 transition-colors font-medium px-2 py-2 rounded-md hover:bg-blue-50"
+                  className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = ''}
                 >
                   Acqua
                 </Link>
                 <Link 
                   to="/products?category=bevande" 
-                  className="text-gray-700 hover:text-blue-600 transition-colors font-medium px-2 py-2 rounded-md hover:bg-blue-50"
+                  className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = ''}
                 >
                   Bevande
                 </Link>
@@ -104,25 +113,33 @@ const Header = () => {
               <nav className="flex space-x-4 ml-2">
                 <Link 
                   to="/products?category=birra" 
-                  className="text-gray-700 hover:text-blue-600 transition-colors font-medium px-2 py-2 rounded-md hover:bg-blue-50"
+                  className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = ''}
                 >
                   Birra
                 </Link>
                 <Link 
                   to="/products?category=vino" 
-                  className="text-gray-700 hover:text-blue-600 transition-colors font-medium px-2 py-2 rounded-md hover:bg-blue-50"
+                  className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = ''}
                 >
                   Vino
                 </Link>
                 <Link 
                   to="/contact" 
-                  className="text-gray-700 hover:text-blue-600 transition-colors font-medium px-2 py-2 rounded-md hover:bg-blue-50"
+                  className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = ''}
                 >
                   Contatti
                 </Link>
                 <Link 
                   to="/faq" 
-                  className="text-gray-700 hover:text-blue-600 transition-colors font-medium px-2 py-2 rounded-md hover:bg-blue-50"
+                  className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
+                  onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = ''}
                 >
                   FAQ
                 </Link>
@@ -145,7 +162,7 @@ const Header = () => {
             {/* Cart e User - posizionati all'estrema destra */}
             <div className="absolute right-0 flex items-center space-x-4">
               <Link to="/cart" className="relative">
-                <Button variant="ghost" size="sm" className="relative flex flex-col items-center text-blue-600">
+                <Button variant="ghost" size="sm" className="relative flex flex-col items-center" style={{color: '#1B5AAB'}}>
                   <ShoppingBag className="w-4 h-4" />
                   {itemCount > 0 && (
                     <>
@@ -288,7 +305,7 @@ const Header = () => {
 
             <div className="flex items-center space-x-2">
               <Link to="/cart" className="relative">
-                <Button variant="ghost" size="sm" className="relative flex flex-col items-center text-blue-600">
+                <Button variant="ghost" size="sm" className="relative flex flex-col items-center" style={{color: '#1B5AAB'}}>
                   <ShoppingBag className="w-4 h-4" />
                   {itemCount > 0 && (
                     <>
