@@ -23,7 +23,9 @@ const PayPalNativeCheckout: React.FC<PayPalNativeCheckoutProps> = ({
     'client-id': paypalClientId,
     currency: currency,
     intent: 'capture',
-    // 'data-client-token': 'sandbox_token', // Prova a commentare o rimuovere questa riga
+    // Aggiungi opzioni per migliorare la gestione del modal
+    'disable-funding': 'credit,card',
+    'data-page-type': 'checkout'
   };
 
   const createOrder = (data: any, actions: any) => {
@@ -59,18 +61,21 @@ const PayPalNativeCheckout: React.FC<PayPalNativeCheckoutProps> = ({
 
   return (
     <PayPalScriptProvider options={initialOptions}>
-      <div className="paypal-container">
+      <div className="paypal-container relative z-10">
         <PayPalButtons
           style={{
             layout: 'vertical',
             color: 'blue',
             shape: 'rect',
             label: 'paypal',
+            height: 40
           }}
           createOrder={createOrder}
           onApprove={onApprove}
           onError={onErrorHandler}
           onCancel={onCancelHandler}
+          // Aggiungi questa opzione per migliorare la gestione del modal
+          forceReRender={[amount, currency]}
         />
       </div>
     </PayPalScriptProvider>

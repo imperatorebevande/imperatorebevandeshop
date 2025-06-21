@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Assicurati che useCallback sia qui
+import React, { useState, useCallback, useEffect } from 'react';
 import DeliveryCalendar from '@/components/DeliveryCalendar/DeliveryCalendar';
 import PaymentSection from '@/components/PaymentSection';
 import { useNavigate } from 'react-router-dom';
@@ -306,34 +306,55 @@ const Checkout = () => {
               <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 <p className="flex items-center">
                   <User className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
-                  <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.firstName} {formData.lastName}
+                  <span className="font-medium" style={{ color: '#1B5AAB' }}>Nome: </span> {formData.firstName} {formData.lastName}
                 </p>
                 <p className="flex items-center">
                   <Mail className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
-                  <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.email}
+                  <span className="font-medium" style={{ color: '#1B5AAB' }}>Email: </span> {formData.email}
                 </p>
                 <p className="flex items-center">
                   <Phone className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
-                  <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.phone}
+                  <span className="font-medium" style={{ color: '#1B5AAB' }}>Telefono: </span> {formData.phone}
                 </p>
                 <p className="flex items-center">
                   <Home className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
-                  <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.address}
+                  <span className="font-medium" style={{ color: '#1B5AAB' }}>Indirizzo: </span> {formData.address}
                 </p>
                 <p className="flex items-center">
                   <MapPin className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
-                  <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.city}, {formData.province} {formData.postalCode}
+                  <span className="font-medium" style={{ color: '#1B5AAB' }}>Città: </span> {formData.city}, {formData.province} {formData.postalCode}
                 </p>
+              </div>
+            </div>
+
+            {/* Data e Orario di Consegna - Sezione separata */}
+            <div>
+              <h3 className="font-semibold mb-3 flex items-center justify-between" style={{ color: '#1B5AAB' }}>
+                <div className="flex items-center">
+                  <CalendarIcon className="w-5 h-5 mr-2" />
+                  Data e Orario di Consegna
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentStep(1)}
+                  className="text-xs px-3 py-1 border-[#1B5AAB] text-[#1B5AAB] hover:bg-[#1B5AAB] hover:text-white"
+                >
+                  <Edit className="w-3 h-3 mr-1" />
+                  Modifica Data
+                </Button>
+              </h3>
+              <div className="bg-gray-50 p-4 rounded-lg space-y-2">
                 {formData.deliveryDate && (
                   <p className="flex items-center">
                     <CalendarIcon className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
-                    <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {new Date(formData.deliveryDate).toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    <span className="font-medium" style={{ color: '#1B5AAB' }}>Data: </span> {new Date(formData.deliveryDate).toLocaleDateString('it-IT', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}
                   </p>
                 )}
                 {formData.deliveryTimeSlot && (
                   <p className="flex items-center">
                     <Clock className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
-                    <span className="font-medium" style={{ color: '#1B5AAB' }}>: </span> {formData.deliveryTimeSlot}
+                    <span className="font-medium" style={{ color: '#1B5AAB' }}>Orario: </span> {formData.deliveryTimeSlot}
                   </p>
                 )}
               </div>

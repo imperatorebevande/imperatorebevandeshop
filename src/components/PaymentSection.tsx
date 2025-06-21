@@ -18,7 +18,7 @@ interface PaymentSectionProps {
 const getMainDescription = (gateway: any) => {
   switch (gateway.id) {
     case 'cod':
-      return 'Cash on delivery';
+      return 'Contanti o carta di credito alla consegna ';
     case 'stripe':
       return 'Credit Card';
     case 'paypal':
