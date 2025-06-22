@@ -442,16 +442,17 @@ const Checkout = () => {
         }
         return (
           <PaymentSection
-            paymentGatewaysLoading={paymentGatewaysLoading} 
+            paymentGatewaysLoading={paymentGatewaysLoading}
             filteredPaymentGateways={filteredPaymentGateways}
-            paymentMethod={paymentMethod} // Passa lo stato paymentMethod
-            setPaymentMethod={handleSetPaymentMethod} // Passa la funzione memoizzata
-            expandedPaymentDetails={expandedPaymentDetails} 
-            setExpandedPaymentDetails={setExpandedPaymentDetails} 
-            onPayPalSuccess={handlePayPalSuccess} 
-            onPayPalError={handlePayPalError}     
-            orderTotal={calculateTotal().toFixed(2)} // Ensure two decimal places
-            currency="EUR" 
+            paymentMethod={paymentMethod}
+            setPaymentMethod={setPaymentMethod}
+            expandedPaymentDetails={expandedPaymentDetails}
+            setExpandedPaymentDetails={setExpandedPaymentDetails}
+            orderTotal={calculateTotal().toFixed(2)}
+            onPayPalSuccess={handlePayPalSuccess}
+            onPayPalError={handlePayPalError}
+            onStripeSuccess={handleStripeSuccess}
+            onStripeError={handleStripeError}
           />
         );
 
@@ -602,6 +603,20 @@ const Checkout = () => {
     console.error('PayPal Error:', error);
     toast.error('Pagamento PayPal fallito o annullato.');
     setIsProcessing(false); // Assicurati di resettare lo stato di processing
+  };
+
+  // Aggiungi queste funzioni QUI, all'interno del componente
+  const handleStripeSuccess = (paymentIntent: any) => {
+    console.log('Stripe payment successful:', paymentIntent);
+    // Gestisci il successo del pagamento Stripe
+    // Procedi con la creazione dell'ordine
+    createOrderAndNavigate(paymentIntent);
+  };
+
+  const handleStripeError = (error: any) => {
+    console.error('Stripe payment error:', error);
+    toast.error('Errore nel pagamento con carta di credito');
+    setIsProcessing(false);
   };
 
 
@@ -830,3 +845,16 @@ const getFullDescription = (gateway: any) => {
 };
 
 export default Checkout;
+
+
+  const handleStripeSuccess = (paymentIntent: any) => {
+    console.log('Stripe payment successful:', paymentIntent);
+    // Gestisci il successo del pagamento Stripe
+    // Puoi procedere con la creazione dell'ordine
+    handleOrderSubmit();
+  };
+
+  const handleStripeError = (error: any) => {
+    console.error('Stripe payment error:', error);
+    toast.error('Errore nel pagamento con carta di credito');
+  };

@@ -1,6 +1,7 @@
 import React from 'react';
 import { CreditCard, Loader2 } from 'lucide-react';
 import PayPalNativeCheckout from './PayPalNativeCheckout';
+import StripeCheckout from './StripeCheckout';
 
 interface PaymentSectionProps {
   paymentGatewaysLoading: boolean;
@@ -12,6 +13,8 @@ interface PaymentSectionProps {
   orderTotal?: string;
   onPayPalSuccess?: (details: any) => void;
   onPayPalError?: (error: any) => void;
+  onStripeSuccess?: (paymentIntent: any) => void;
+  onStripeError?: (error: any) => void;
 }
 
 // Funzioni helper per le descrizioni
@@ -36,6 +39,8 @@ const getFullDescription = (gateway: any) => {
   switch (gateway.id) {
     case 'cod':
       return 'I nostri collaboratori durante la consegna del vostro ordine, saranno muniti di contanti o con POS per agevolarvi nel pagamento.';
+    case 'stripe':
+      return 'Paga in modo sicuro con la tua carta di credito. I tuoi dati sono protetti con crittografia SSL.';
     case 'paypal':
       return 'Paga facilmente e in sicurezza con il tuo account PayPal.';
     default:
@@ -70,7 +75,9 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   setExpandedPaymentDetails,
   orderTotal = '0',
   onPayPalSuccess,
-  onPayPalError
+  onPayPalError,
+  onStripeSuccess,
+  onStripeError
 }) => {
   if (paymentGatewaysLoading) {
     return (
@@ -161,8 +168,23 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
                 </div>
               )}
 
+              {/* Sezione espansa per Stripe */}
+              {isSelected && gateway.id === 'stripe' && onStripeSuccess && onStripeError && (
+                <div className="ml-9 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-600 mb-3">
+                    {getFullDescription(gateway)}
+                  </p>
+                  <StripeCheckout
+                    amount={orderTotal}
+                    currency="EUR"
+                    onSuccess={onStripeSuccess}
+                    onError={onStripeError}
+                  />
+                </div>
+              )}
+
               {/* Sezione espansa per altri metodi */}
-              {isSelected && gateway.id !== 'paypal' && (
+              {isSelected && gateway.id !== 'paypal' && gateway.id !== 'stripe' && (
                 <div className="ml-9 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-sm text-gray-600">
                     {getFullDescription(gateway)}
