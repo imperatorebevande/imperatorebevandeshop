@@ -24,7 +24,7 @@ const PayPalNativeCheckout: React.FC<PayPalNativeCheckoutProps> = ({
     currency: currency,
     intent: 'capture',
     // Aggiungi opzioni per migliorare la gestione del modal
-    'disable-funding': 'credit,card',
+    'disable-funding': 'credit,card,mybank',
     'data-page-type': 'checkout'
   };
 
