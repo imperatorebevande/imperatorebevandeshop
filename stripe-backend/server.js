@@ -8,7 +8,12 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:8080', // URL del tuo frontend
+  origin: [
+    'http://localhost:8080',
+    'http://localhost:3000', 
+    'https://imperatorebevandeshop-three.vercel.app',
+    'https://imperatorebevandeshop-j0bnyuydx-imperatorebevandes-projects.vercel.app'
+  ],
   credentials: true
 }));
 app.use(express.json());
@@ -101,7 +106,13 @@ app.post('/webhook', express.raw({type: 'application/json'}), (req, res) => {
   res.json({received: true});
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server in esecuzione sulla porta ${PORT}`);
-});
+// Per Vercel, esporta come funzione
+module.exports = app;
+
+// Per sviluppo locale
+if (require.main === module) {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}

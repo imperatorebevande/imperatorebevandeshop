@@ -1,9 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
+import { useWooCommerceCustomer } from '@/hooks/useWooCommerce';
 import { Minus, Plus, Trash2, ArrowLeft, CreditCard } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -11,6 +13,39 @@ import { getBorderColor } from '@/lib/utils';
 
 const Cart = () => {
   const { state, dispatch } = useCart();
+  const { authState } = useAuth();
+  
+  // Precarica i dati del cliente se l'utente è loggato
+  const customerId = authState?.isAuthenticated && authState?.user?.id ? authState.user.id : null;
+  const { data: customer, isLoading: customerLoading } = useWooCommerceCustomer(customerId, {
+    enabled: !!customerId // Abilita la query solo se c'è un customerId
+  });
+
+  // Effetto per precaricare i dati in background
+  useEffect(() => {
+    if (authState.isAuthenticated && customer) {
+      console.log('✅ Dati utente precaricati per checkout:', {
+        nome: customer.first_name,
+        cognome: customer.last_name,
+        email: customer.email,
+        telefono: customer.billing?.phone,
+        indirizzo: customer.shipping?.address_1 || customer.billing?.address_1,
+        città: customer.shipping?.city || customer.billing?.city,
+        cap: customer.shipping?.postcode || customer.billing?.postcode,
+        provincia: customer.shipping?.state || customer.billing?.state
+      });
+      
+      // Mostra un toast discreto per informare l'utente
+      toast.success('Dati profilo precaricati per un checkout più veloce! 🚀', {
+        duration: 3000,
+        style: {
+          backgroundColor: '#1B5AAB',
+          color: 'white',
+          border: 'none'
+        }
+      });
+    }
+  }, [authState.isAuthenticated, customer]);
 
   const updateQuantity = (id: number, quantity: number) => {
     if (quantity <= 0) {
@@ -79,6 +114,11 @@ const Cart = () => {
           </h1>
           <p className="text-gray-600 text-sm sm:text-base">
             {state.items.length} {state.items.length === 1 ? 'prodotto' : 'prodotti'} nel carrello
+            {authState.isAuthenticated && (
+              <span className="ml-2 text-green-600 font-medium">
+                {customerLoading ? '⏳ Caricamento dati...' : customer ? '✅ Dati precaricati' : ''}
+              </span>
+            )}
           </p>
         </div>
 
@@ -105,7 +145,7 @@ const Cart = () => {
                           {item.name}
                         </h3>
                         <p className="font-bold text-lg" style={{color: '#A40800'}}>
-                          €{item.price.toFixed(2)}
+                          {item.price.toFixed(2)}€
                         </p>
                       </div>
                       <Button
@@ -145,7 +185,7 @@ const Cart = () => {
                       
                       <div className="text-right">
                         <p className="font-bold text-lg">
-                          €{(item.price * item.quantity).toFixed(2)}
+                          {(item.price * item.quantity).toFixed(2)}€
                         </p>
                       </div>
                     </div>
@@ -164,7 +204,7 @@ const Cart = () => {
                         {item.name}
                       </h3>
                       <p className="font-bold text-xl" style={{color: '#A40800'}}>
-                        €{item.price.toFixed(2)}
+                        {item.price.toFixed(2)}€
                       </p>
                     </div>
 
@@ -194,7 +234,7 @@ const Cart = () => {
 
                     <div className="text-right">
                       <p className="font-bold text-lg">
-                        €{(item.price * item.quantity).toFixed(2)}
+                        {(item.price * item.quantity).toFixed(2)}€
                       </p>
                       <Button
                         variant="ghost"
@@ -259,7 +299,7 @@ const Cart = () => {
                 <Link to="/checkout">
                   <Button size="lg" className="w-full hover:opacity-90" style={{backgroundColor: '#1B5AAB', color: 'white'}}>
                     <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    Procedi all'Ordine
+                    {authState.isAuthenticated && customer ? 'Checkout Veloce' : 'Procedi all\'Ordine'}
                   </Button>
                 </Link>
 
@@ -267,6 +307,9 @@ const Cart = () => {
                   <p>🔒 Pagamento sicuro e protetto</p>
                   <p>✓ Garanzia soddisfatti o rimborsati</p>
                   <p>🚚 Spedizione sempre gratuita</p>
+                  {authState.isAuthenticated && customer && (
+                    <p className="text-green-600 font-medium">⚡ Checkout veloce attivo</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

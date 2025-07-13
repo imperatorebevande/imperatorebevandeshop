@@ -10,9 +10,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      position="top-center"
+      duration={1000} // Toast scompaiono dopo 4 secondi
       toastOptions={{
         classNames: {
-          toast: // Rimosso group-[.toaster]:text-[hsl(var(--border))] per permettere l'ereditarietà dalle classi specifiche
+          toast:
             "group toast group-[.toaster]:bg-background group-[.toaster]:border-border group-[.toaster]:shadow-lg",
           description: "group-[.toast]:text-inherit", 
           actionButton:
@@ -23,7 +25,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
             "group toast group-[.toaster]:bg-[#2A4614] group-[.toaster]:text-[#2A4614] group-[.toaster]:border-[#2A4614] group-[.toaster]:shadow-lg",
           info: 
             "group toast group-[.toaster]:bg-background group-[.toaster]:text-[#EAB308] group-[.toaster]:border-[#EAB308] group-[.toaster]:shadow-lg",
-          // Assicurati che anche warning ed error abbiano il loro colore di testo definito se li usi
           warning:
             "group toast group-[.toaster]:bg-background group-[.toaster]:text-orange-500 group-[.toaster]:border-orange-500 group-[.toaster]:shadow-lg",
           error:

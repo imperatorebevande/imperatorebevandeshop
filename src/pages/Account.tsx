@@ -3,16 +3,17 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { User, MapPin, Package, Heart, Settings, LogOut, Loader2 } from 'lucide-react';
+import { User, MapPin, Package, Heart, Settings, LogOut, Loader2, Eye } from 'lucide-react';
 import { useWooCommerceCustomer, useWooCommerceCustomerOrders, useWooCommerceCustomerByEmail } from '@/hooks/useWooCommerce';
 import { toast } from 'sonner'; // This is the one we keep
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import EditProfile from '@/components/EditProfile';
 import EditAddress from '@/components/EditAddress';
+import OrderDetails from '@/components/OrderDetails';
 import { useAuth } from '@/context/AuthContext';
 import { Link } from 'react-router-dom';
 import { woocommerceService } from '../services/woocommerceService';
-import { Order } from '../services/woocommerce';
+import { Order, WooCommerceOrder } from '../services/woocommerce';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -28,6 +29,8 @@ const Account: React.FC = () => {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const [isEditAddressOpen, setIsEditAddressOpen] = useState(false);
+  const [isOrderDetailsOpen, setIsOrderDetailsOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<WooCommerceOrder | null>(null);
   const [searchCompleted, setSearchCompleted] = useState(false);
 
   // Determina l'ID del cliente dall'auth
@@ -204,12 +207,18 @@ const formatDate = (dateString: string) => {
 };
 
 const formatPrice = (price: string) => {
-  return `€${parseFloat(price).toFixed(2)}`;
+  return `${parseFloat(price).toFixed(2)}€`;
 };
 
 const handleLogout = () => {
   logout();
   toast.success('Logout effettuato con successo!');
+};
+
+// Aggiungi questa funzione
+const handleOrderClick = (order: WooCommerceOrder) => {
+  setSelectedOrder(order);
+  setIsOrderDetailsOpen(true);
 };
 
 // RETURN CONDIZIONALE DOPO TUTTI GLI HOOK
@@ -330,22 +339,29 @@ return (
                   ) : orders && orders.length > 0 ? (
                     <div className="space-y-4">
                       {orders.map(order => (
-                        <div key={order.id} className="border rounded-lg p-4">
+                        <div 
+                          key={order.id} 
+                          className="border rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => handleOrderClick(order)}
+                        >
                           <div className="flex justify-between items-start mb-2">
                             <div>
                               <h3 className="font-semibold">Ordine #{order.number}</h3>
                               <p className="text-sm text-gray-600">{formatDate(order.date_created)}</p>
                             </div>
-                            <div className="text-right">
-                              <p className="font-semibold">{formatPrice(order.total)}</p>
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                order.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
-                                order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {order.status}
-                              </span>
+                            <div className="text-right flex items-center gap-2">
+                              <div>
+                                <p className="font-semibold">{formatPrice(order.total)}</p>
+                                <span className={`text-xs px-2 py-1 rounded ${
+                                  order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                  order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                                  order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {order.status}
+                                </span>
+                              </div>
+                              <Eye className="w-4 h-4 text-gray-400" />
                             </div>
                           </div>
                           <div className="text-sm text-gray-600">
@@ -470,6 +486,19 @@ return (
           customer={customer} 
           onClose={() => setIsEditAddressOpen(false)}
         />
+      </DialogContent>
+    </Dialog>
+
+    <Dialog open={isOrderDetailsOpen} onOpenChange={setIsOrderDetailsOpen}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle>Dettagli Ordine</DialogTitle>
+        </DialogHeader>
+        {selectedOrder && (
+          <OrderDetails 
+            order={selectedOrder}
+          />
+        )}
       </DialogContent>
     </Dialog>
   </div>

@@ -16,6 +16,7 @@ import Account from "./pages/Account";
 import Login from "./pages/Login";
 import FAQ from "./pages/FAQ";
 import NotFound from "./pages/NotFound";
+import AutoLogin from "./components/AutoLogin";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/account" element={<Account />} />
               <Route path="/login" element={<Login />} />
               <Route path="/faq" element={<FAQ />} />
+              <Route path="/auto-login/:userId" element={<AutoLogin />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

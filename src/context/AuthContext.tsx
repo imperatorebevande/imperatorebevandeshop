@@ -4,9 +4,11 @@ import { wooCommerceService } from '@/services/woocommerce';
 export interface User {
   id: number;
   email: string;
-  first_name: string;
-  last_name: string;
+  firstName: string;  // Cambiato da first_name per consistenza
+  lastName: string;   // Cambiato da last_name per consistenza
   username: string;
+  billing?: any;      // Aggiunto per supportare i dati di fatturazione
+  shipping?: any;     // Aggiunto per supportare i dati di spedizione
 }
 
 interface AuthState {
@@ -20,6 +22,7 @@ type AuthAction =
   | { type: 'LOGIN_SUCCESS'; payload: User }
   | { type: 'LOGIN_FAILURE' }
   | { type: 'LOGOUT' }
+  | { type: 'SET_USER'; payload: User }  // Aggiunto nuovo action
   | { type: 'SET_LOADING'; payload: boolean };
 
 const authReducer = (state: AuthState, action: AuthAction): AuthState => {
@@ -28,6 +31,14 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
       return { ...state, isLoading: true };
     case 'LOGIN_SUCCESS':
       console.log('Reducer LOGIN_SUCCESS, payload:', action.payload);
+      return {
+        ...state,
+        isAuthenticated: true,
+        user: action.payload,
+        isLoading: false
+      };
+    case 'SET_USER':  // Nuovo case per setUser
+      console.log('Reducer SET_USER, payload:', action.payload);
       return {
         ...state,
         isAuthenticated: true,
@@ -60,9 +71,10 @@ const initialState: AuthState = {
 };
 
 interface AuthContextType {
-  authState: AuthState; // Cambiato da 'state' a 'authState'
+  authState: AuthState;
   login: (emailOrUsername: string, password: string) => Promise<void>;
   logout: () => void;
+  setUser: (user: User) => void;  // Aggiunto nuovo metodo
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -76,24 +88,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (savedUserString) {
       try {
         const savedUserData = JSON.parse(savedUserString);
-        // Transform to ensure the User interface is matched, prioritizing 'id' then 'customer_id'
+        // Transform to ensure the User interface is matched
         const userForState: User = {
-          id: savedUserData.id || savedUserData.customer_id || 0, // Ensure 'id' is populated
+          id: savedUserData.id || savedUserData.customer_id || 0,
           email: savedUserData.email || '',
-          first_name: savedUserData.first_name || '',
-          last_name: savedUserData.last_name || '',
+          firstName: savedUserData.firstName || savedUserData.first_name || '',
+          lastName: savedUserData.lastName || savedUserData.last_name || '',
           username: savedUserData.username || '',
+          billing: savedUserData.billing,
+          shipping: savedUserData.shipping
         };
 
-        // Only dispatch if a valid user ID was found/transformed
         if (userForState.id > 0) {
           dispatch({ type: 'LOGIN_SUCCESS', payload: userForState });
         } else {
-          // Optional: handle case where user in localStorage has no valid ID
           localStorage.removeItem('user');
         }
       } catch (error) {
-        console.error('Error parsing user from localStorage or invalid user structure:', error);
+        console.error('Error parsing user from localStorage:', error);
         localStorage.removeItem('user');
       }
     }
@@ -108,24 +120,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const loginResponse = await wooCommerceService.loginWithJwt(usernameOrEmail, password);
       console.log('JWT Response completa:', loginResponse);
       
-      // Verifica se il token è presente nella risposta
       if (!loginResponse.token) {
         dispatch({ type: 'LOGIN_FAILURE' });
         throw new Error('Login fallito: token non ricevuto');
       }
       
-      // Recupera direttamente l'ID cliente WooCommerce usando l'ID utente WordPress
       let userId = 0;
       try {
-        // Se loginResponse contiene l'ID utente WordPress
         if (loginResponse.user_id) {
           const customers = await wooCommerceService.getCustomerByWordPressUserId(loginResponse.user_id);
           if (customers && customers.length > 0) {
-            userId = customers[0].id; // This should be the WooCommerce customer ID
+            userId = customers[0].id;
             console.log('ID cliente WooCommerce trovato tramite ID WordPress:', userId);
           }
         } else {
-          // Fallback alla ricerca per email/username
           const isEmail = usernameOrEmail.includes('@');
           let customers;
           
@@ -136,7 +144,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           }
           
           if (customers && customers.length > 0) {
-            userId = customers[0].id; // This should be the WooCommerce customer ID
+            userId = customers[0].id;
             console.log('ID cliente WooCommerce trovato:', userId);
           }
         }
@@ -144,13 +152,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error('Errore nel recupero ID cliente WooCommerce:', error);
       }
       
-      // Ensure userData conforms to the User interface with an 'id' property
       const userData: User = {
         id: userId,
         email: loginResponse.user_email || usernameOrEmail,
         username: loginResponse.user_nicename || usernameOrEmail,
-        first_name: loginResponse.user_display_name?.split(' ')[0] || '',
-        last_name: loginResponse.user_display_name?.split(' ').slice(1).join(' ') || ''
+        firstName: loginResponse.user_display_name?.split(' ')[0] || '',
+        lastName: loginResponse.user_display_name?.split(' ').slice(1).join(' ') || ''
       };
       
       localStorage.setItem('user', JSON.stringify(userData));
@@ -159,9 +166,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     } catch (error) {
       console.error('Errore durante il login:', error);
       dispatch({ type: 'LOGIN_FAILURE' });
-      // Assicurati che l'errore venga propagato
       throw error;
     }
+  };
+
+  // Nuovo metodo setUser
+  const setUser = (user: User) => {
+    console.log('Impostazione utente direttamente:', user);
+    localStorage.setItem('user', JSON.stringify(user));
+    dispatch({ type: 'SET_USER', payload: user });
   };
 
   const logout = () => {
@@ -172,7 +185,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ authState: state, login, logout }}>
+    <AuthContext.Provider value={{ authState: state, login, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );
@@ -185,7 +198,6 @@ export const useAuth = () => {
   }
   return context;
 };
-
 
 interface UserData {
   customer_id: number;

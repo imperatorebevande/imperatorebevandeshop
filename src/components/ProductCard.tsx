@@ -262,11 +262,11 @@ const ProductCard = ({ product }: ProductCardProps) => {
           <div className="flex flex-col">
             {product.originalPrice && (
               <span className="text-xs text-gray-500 line-through">
-                €{product.originalPrice.toFixed(2)}
+                {product.originalPrice.toFixed(2)}€
               </span>
             )}
             <span className="font-bold text-sm" style={{color: '#A40800'}}>
-              €{product.price.toFixed(2)}
+              {product.price.toFixed(2)}€
             </span>
           </div>
         </div>

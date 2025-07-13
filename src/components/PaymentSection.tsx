@@ -21,7 +21,7 @@ interface PaymentSectionProps {
 const getMainDescription = (gateway: any) => {
   switch (gateway.id) {
     case 'cod':
-      return 'Contanti o carta di credito alla consegna ';
+      return '💶 Contanti o carta di credito alla consegna';
     case 'stripe':
       return 'Credit Card';
     case 'paypal':
@@ -52,7 +52,7 @@ const getFullDescription = (gateway: any) => {
 const getPaymentIcon = (gatewayId: string) => {
   switch (gatewayId) {
     case 'cod':
-      return '💳';
+      return '💶';
     case 'stripe':
       return '💳';
     case 'paypal':
@@ -92,7 +92,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Choose payment Option:
+        Scegli l'opzione di pagamento:
       </h3>
       
       <div className="space-y-3">
@@ -137,7 +137,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
                   {gateway.id === 'paypal' ? (
                     <span className="text-2xl">🅿️</span>
                   ) : gateway.id === 'cod' ? (
-                    <span className="text-2xl">💳</span>
+                    <span className="text-2xl">💶</span>
                   ) : gateway.id === 'stripe' ? (
                     <span className="text-2xl">💳</span>
                   ) : (

@@ -9,8 +9,11 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    outDir: 'dist'
+  },
   server: {
-    port: 8080, // Assicurati che la porta sia corretta
+    port: 8080,
     proxy: {
       '/api/calendar': {
         target: 'https://www.imperatorebevande.it',

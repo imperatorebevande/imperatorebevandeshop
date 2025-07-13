@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { useCreateWooCommerceOrder } from '@/hooks/useWooCommerce';
 import { MessageSquare } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
+import { getBorderColor } from '@/lib/utils';
 
 const Checkout = () => {
   const { state, dispatch } = useCart();
@@ -368,7 +369,14 @@ const Checkout = () => {
               </h3>
               <div className="space-y-3">
                 {state.items.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                  <div 
+                    key={item.id} 
+                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border-2"
+                    style={{ 
+                      borderColor: getBorderColor(item.category),
+                      backgroundColor: `${getBorderColor(item.category)}10` // Sfondo leggero con opacità
+                    }}
+                  >
                     <div className="flex items-center space-x-3">
                       {item.images && item.images.length > 0 && (
                         <img 
@@ -604,6 +612,7 @@ const Checkout = () => {
     toast.error('Pagamento PayPal fallito o annullato.');
     setIsProcessing(false); // Assicurati di resettare lo stato di processing
   };
+
 
   // Aggiungi queste funzioni QUI, all'interno del componente
   const handleStripeSuccess = (paymentIntent: any) => {

@@ -532,6 +532,172 @@ class WooCommerceService {
     }
   }
 
+  // Nuovo metodo per cercare cliente per numero di telefono
+  async getCustomerByPhone(phone: string): Promise<WooCommerceCustomer[]> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      // Normalizza il numero di telefono
+      const normalizedPhone = phone.replace(/[\s\-\(\)\+]/g, '');
+      
+      console.log('Cercando cliente per telefono:', normalizedPhone);
+      
+      // Prova prima con una ricerca diretta usando meta_query
+      try {
+        const response = await this.api.get('/customers', {
+          params: {
+            search: phone, // Ricerca diretta
+            per_page: 100
+          }
+        });
+        
+        // Filtra i risultati per telefono esatto
+        const exactMatches = response.data.filter(
+          (customer: WooCommerceCustomer) => {
+            const customerPhone = customer.billing?.phone?.replace(/[\s\-\(\)\+]/g, '') || '';
+            return customerPhone === normalizedPhone;
+          }
+        );
+        
+        if (exactMatches.length > 0) {
+          console.log('Cliente trovato con ricerca diretta');
+          return exactMatches;
+        }
+      } catch (searchError) {
+        console.log('Ricerca diretta fallita, uso ricerca paginata');
+      }
+      
+      // Fallback: ricerca paginata ottimizzata (solo se necessario)
+      let page = 1;
+      const per_page = 100;
+      let foundCustomers: WooCommerceCustomer[] = [];
+      let hasMorePages = true;
+      let maxPages = 20; // Limita a 2000 clienti per evitare timeout
+      
+      while (hasMorePages && foundCustomers.length === 0 && page <= maxPages) {
+        console.log(`Cercando nella pagina ${page}...`);
+        
+        const response = await this.api.get('/customers', {
+          params: {
+            page,
+            per_page,
+            role: 'all',
+            orderby: 'registered_date', // Ordina per data registrazione
+            order: 'desc' // I clienti più recenti prima
+          }
+        });
+        
+        if (response.data.length === 0) {
+          hasMorePages = false;
+        } else {
+          foundCustomers = response.data.filter(
+            (customer: WooCommerceCustomer) => {
+              const customerPhone = customer.billing?.phone?.replace(/[\s\-\(\)\+]/g, '') || '';
+              return customerPhone === normalizedPhone;
+            }
+          );
+          
+          if (foundCustomers.length > 0) {
+            console.log(`Cliente trovato nella pagina ${page}`);
+            break;
+          }
+          
+          page++;
+        }
+      }
+      
+      if (foundCustomers.length === 0 && page > maxPages) {
+        console.log('Ricerca limitata alle prime 2000 voci per performance');
+      }
+      
+      return foundCustomers;
+    } catch (error) {
+      console.error('Errore nella ricerca cliente per telefono:', error);
+      throw error;
+    }
+  }
+
+  // Nuovo metodo per login telefono veloce usando endpoint WordPress personalizzato
+  async loginWithPhone(phone: string): Promise<{ success: boolean; token?: string; user_id?: number; customer?: WooCommerceCustomer }> {
+    try {
+      const normalizedPhone = phone.replace(/[\s\-\(\)\+]/g, '');
+      
+      console.log('🔍 Login telefono con endpoint personalizzato:', normalizedPhone);
+      
+      const response = await axios.post('https://imperatorebevande.it/wp-json/custom/v1/phone-login', {
+        phone: normalizedPhone
+      }, {
+        timeout: 5000
+      });
+      
+      if (response.data.success && response.data.user_id) {
+        console.log('✅ Login riuscito con endpoint personalizzato');
+        
+        try {
+          const customerData = await this.getCustomer(response.data.user_id);
+          
+          return {
+            success: true,
+            token: response.data.token,
+            user_id: response.data.user_id,
+            customer: customerData
+          };
+        } catch (customerError) {
+          console.error('⚠️ Errore nel recupero dati cliente:', customerError);
+          return {
+            success: true,
+            token: response.data.token,
+            user_id: response.data.user_id
+          };
+        }
+      }
+      
+      return { success: false };
+    } catch (error: any) {
+      console.error('❌ Errore login telefono:', error.response?.data || error.message);
+      
+      if (error.response?.status === 404) {
+        console.log('📞 Numero non trovato, provo fallback tradizionale');
+        
+        try {
+          const customers = await this.getCustomerByPhone(phone);
+          if (customers.length > 0) {
+            console.log('✅ Trovato con metodo tradizionale');
+            return {
+              success: true,
+              customer: customers[0]
+            };
+          }
+        } catch (fallbackError) {
+          console.error('❌ Errore anche nel fallback:', fallbackError);
+        }
+      }
+      
+      return { success: false };
+    }
+  }
+
+  // Metodo ottimizzato per ricerca telefono con cache
+  async getCustomerByPhoneFast(phone: string): Promise<WooCommerceCustomer | null> {
+    try {
+      // Prima prova con l'endpoint veloce
+      const loginResult = await this.loginWithPhone(phone);
+      
+      if (loginResult.success && loginResult.customer) {
+        return loginResult.customer;
+      }
+      
+      // Fallback al metodo tradizionale
+      const customers = await this.getCustomerByPhone(phone);
+      return customers.length > 0 ? customers[0] : null;
+    } catch (error) {
+      console.error('Errore ricerca telefono veloce:', error);
+      return null;
+    }
+  }
+
   // Ottenere tutti gli ordini
   async getOrders(params: any = {}): Promise<WooCommerceOrder[]> {
     if (!this.isConfigured) {
@@ -785,6 +951,61 @@ class WooCommerceService {
     } catch (error) {
       console.error('Errore nel recupero del calendario consegne:', error);
       throw error;
+    }
+  }
+
+  // Aggiungi questo metodo per il login con ID utente
+  async loginWithUserId(userId: number): Promise<{ success: boolean; customer?: WooCommerceCustomer }> {
+    try {
+      console.log('🔍 Login con ID utente:', userId);
+      
+      const customer = await this.getCustomer(userId);
+      
+      if (customer) {
+        console.log('✅ Cliente trovato con ID:', customer.email);
+        return {
+          success: true,
+          customer: customer
+        };
+      }
+      
+      return { success: false };
+    } catch (error: any) {
+      console.error('❌ Errore login con ID utente:', error.message);
+      return { success: false };
+    }
+  }
+
+  // Metodo unificato per tutti i tipi di login
+  async loginWithCredential(credential: string, type: 'phone' | 'email' | 'userId'): Promise<{ success: boolean; token?: string; user_id?: number; customer?: WooCommerceCustomer }> {
+    try {
+      switch (type) {
+        case 'phone':
+          return await this.loginWithPhone(credential);
+        
+        case 'email':
+          const emailCustomers = await this.getCustomerByEmail(credential);
+          if (emailCustomers.length > 0) {
+            return {
+              success: true,
+              customer: emailCustomers[0]
+            };
+          }
+          return { success: false };
+        
+        case 'userId':
+          const userId = parseInt(credential);
+          if (isNaN(userId)) {
+            throw new Error('ID utente non valido');
+          }
+          return await this.loginWithUserId(userId);
+        
+        default:
+          return { success: false };
+      }
+    } catch (error) {
+      console.error(`❌ Errore login ${type}:`, error);
+      return { success: false };
     }
   }
 } // Chiusura della classe WooCommerceService

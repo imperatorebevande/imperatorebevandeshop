@@ -27,7 +27,7 @@ const ProductDetail = () => {
   const categoryId = wooProduct?.categories?.[0]?.id;
   const { data: relatedWooProducts, isLoading: isLoadingRelated } = useWooCommerceProducts({
     category: categoryId?.toString() || '',
-    per_page: 4,
+    per_page: 12, // Aumentato da 4 a 12 per avere più prodotti da cui filtrare
     exclude: [parseInt(id || '0')]
   }, {
     enabled: !!categoryId
@@ -49,11 +49,10 @@ const ProductDetail = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <div className="container mx-auto px-4 py-16 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-600" />
-            <p className="text-gray-600">Caricamento prodotto...</p>
-          </div>
+        <div className="container mx-auto px-4 py-16 text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-600" />
+          <h1 className="text-2xl font-bold mb-4">Caricamento prodotto...</h1>
+          <p className="text-gray-600">Stiamo recuperando le informazioni del prodotto.</p>
         </div>
       </div>
     );
@@ -188,7 +187,7 @@ const ProductDetail = () => {
       ? wooProduct.categories[0].name : undefined,
     short_description: wooProduct.short_description || wooProduct.description,
     stock_status: wooProduct.stock_status
-  })) || [];
+  })).filter(product => product.inStock) || []; // ✅ AGGIUNTO FILTRO per mostrare solo prodotti disponibili
 
   const discountPercentage = product.originalPrice 
     ? Math.round((product.originalPrice - product.price) / product.originalPrice * 100) 
@@ -245,36 +244,23 @@ const ProductDetail = () => {
               <div className="flex-1">
                 <h1 className="text-2xl font-bold mb-3" style={{color: '#A40800'}}>{product.name}</h1>
                 
-                {/* Rating */}
-                {product.rating > 0 && (
-                  <div className="flex items-center mb-3">
-                    <div className="flex text-yellow-400 mr-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className={`w-4 h-4 ${i < Math.floor(product.rating) ? 'fill-current' : ''}`} 
-                        />
-                      ))}
-                    </div>
-                    <span className="text-sm text-gray-600">({product.reviews} recensioni)</span>
-                  </div>
-                )}
-
-                {/* Price */}
+                {/* Rimuovi completamente la sezione Rating/Recensioni */}
+                
+                {/* Price - Formato modificato */}
                 <div className="mb-4">
                   <div className="flex items-center space-x-3">
                     <span className="text-2xl font-bold text-sky-600">
-                      €{product.price.toFixed(2)}
+                      {product.price.toFixed(2)}€
                     </span>
                     {product.originalPrice && (
                       <span className="text-lg text-gray-500 line-through">
-                        €{product.originalPrice.toFixed(2)}
+                        {product.originalPrice.toFixed(2)}€
                       </span>
                     )}
                   </div>
                   {discountPercentage && product.inStock && (
                     <span className="text-green-600 font-medium text-sm">
-                      Risparmi €{(product.originalPrice! - product.price).toFixed(2)}!
+                      Risparmi {(product.originalPrice! - product.price).toFixed(2)}€!
                     </span>
                   )}
                 </div>
@@ -503,9 +489,9 @@ const ProductDetail = () => {
               id: 'delivery',
               icon: <Truck className="w-6 h-6 text-blue-600" />,
               title: 'Consegna direttamente al piano',
-              borderColor: 'border-blue-600',
-              titleColor: 'text-blue-600',
-              ringColor: 'ring-blue-500',
+              borderColor: 'border-[#1B5AAB]',
+              titleColor: 'text-[#1B5AAB]',
+              ringColor: 'ring-[#1B5AAB]',
               content: (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-600">Questo prodotto verrà consegnato direttamente fin dietro la porta di casa vostra o dove vi risulterà più comodo. Ovviamente non ci saranno costi aggiuntivi. È tutto incluso nel prezzo che vedete esposto.</p>
@@ -516,11 +502,11 @@ const ProductDetail = () => {
             },
             {
               id: 'timing',
-              icon: <RotateCcw className="w-6 h-6 text-red-600" />,
+              icon: <RotateCcw className="w-6 h-6 text-[#A40800]" />,
               title: 'Tempi di consegna immediati',
-              borderColor: 'border-red-600',
-              titleColor: 'text-red-600',
-              ringColor: 'ring-red-500',
+              borderColor: 'border-[#A40800]',
+              titleColor: 'text-[#A40800]',
+              ringColor: 'ring-[#A40800]',
               content: (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-600">Questo prodotto è presente nei nostri magazzini e sarà consegnato a distanza di un solo giorno lavorativo.</p>
@@ -567,9 +553,24 @@ const ProductDetail = () => {
           })}
         </div>
 
+        {/* Banner Promozionale sopra Prodotti Simili */}
+        <div className="mt-16 mb-8">
+          <div className={`bg-gradient-to-r ${getBannerColor(product.category)} text-white py-6 overflow-hidden relative rounded-lg shadow-lg`}>
+            <div className="animate-marquee whitespace-nowrap flex text-xl font-bold">
+              {getBannerMessages(product.category).map((message, index) => (
+                <span key={index} className="mx-12">{message}</span>
+              ))}
+              {/* Duplicazione delle frasi per scorrimento continuo */}
+              {getBannerMessages(product.category).map((message, index) => (
+                <span key={`duplicate-${index}`} className="mx-12">{message}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Related Products Section */}
         {relatedProducts.length > 0 && (
-          <div className="mt-12">
+          <div className="mt-12 mb-8 md:mb-4">
             <h2 className="text-2xl mb-6 font-bold text-center text-red-700">
               Prodotti Simili
             </h2>
@@ -579,10 +580,45 @@ const ProductDetail = () => {
                 <p className="text-gray-600">Caricamento prodotti correlati...</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-5 gap-6">
-                {relatedProducts.map(relatedProduct => (
-                  <ProductCard key={relatedProduct.id} product={relatedProduct} />
-                ))}
+              <div className="relative">
+                <div 
+                  className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide scroll-smooth cursor-grab active:cursor-grabbing"
+                  style={{
+                    scrollBehavior: 'smooth'
+                  }}
+                  onMouseDown={(e) => {
+                    const container = e.currentTarget;
+                    const startX = e.pageX - container.offsetLeft;
+                    const scrollLeft = container.scrollLeft;
+                    
+                    const handleMouseMove = (e: MouseEvent) => {
+                      const x = e.pageX - container.offsetLeft;
+                      const walk = (x - startX) * 2;
+                      container.scrollLeft = scrollLeft - walk;
+                    };
+                    
+                    const handleMouseUp = () => {
+                      document.removeEventListener('mousemove', handleMouseMove);
+                      document.removeEventListener('mouseup', handleMouseUp);
+                      container.style.cursor = 'grab';
+                    };
+                    
+                    container.style.cursor = 'grabbing';
+                    document.addEventListener('mousemove', handleMouseMove);
+                    document.addEventListener('mouseup', handleMouseUp);
+                    
+                    // Previeni la selezione del testo durante il drag
+                    e.preventDefault();
+                  }}
+                >
+                  <div className="flex gap-6">
+                    {relatedProducts.map(relatedProduct => (
+                      <div key={relatedProduct.id} className="flex-shrink-0 w-48">
+                        <ProductCard product={relatedProduct} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -593,3 +629,84 @@ const ProductDetail = () => {
 };
 
 export default ProductDetail;
+
+// Aggiungi questa funzione helper dopo gli import (intorno alla riga 13)
+const getBannerColor = (category?: string) => {
+  if (!category) return 'from-gray-400 via-gray-500 to-gray-400'; // grigio di default
+
+  const lowerCategory = category.toLowerCase();
+
+  if (lowerCategory.includes('acqua')) return 'from-blue-400 via-blue-500 to-blue-400';
+  if (lowerCategory.includes('birra')) return 'from-amber-400 via-amber-500 to-amber-400';
+  if (lowerCategory.includes('bevande') || lowerCategory.includes('coca') || lowerCategory.includes('fanta') || lowerCategory.includes('schweppes')) return 'from-green-400 via-green-500 to-green-400';
+  if (lowerCategory.includes('vino')) return 'from-purple-400 via-purple-500 to-purple-400';
+
+  return 'from-gray-400 via-gray-500 to-gray-400'; // grigio di default per altre categorie
+};
+
+// Aggiungi questa funzione dopo getBannerColor
+// Modifica la funzione getBannerMessages per essere più robusta
+const getBannerMessages = (category: string) => {
+  if (!category) {
+    // Default per categorie non definite: mostra le frasi delle bevande quando la categoria non viene trovata o non è definita.
+    return [
+      '🍹 Un Momento di Piacere in Ogni Sorso!',
+      '❄️ Rinfresca le Tue Giornate con Stile e Gusto!',
+      '🌸 Ogni Bevanda è un\'Esperienza da Vivere!'
+    ];
+  }
+  
+  const normalizedCategory = category.toLowerCase().trim();
+  
+  // Debug: aggiungi un console.log per vedere la categoria
+  console.log('Categoria prodotto:', category, 'Normalizzata:', normalizedCategory);
+  
+  if (normalizedCategory.includes('birra')) {
+    return [
+      '🍺 Ricca di Vitamine del Gruppo B: Gusto e Benessere!',
+      '🍻 Stimola il Relax e Favorisce la Socialità!',
+      '🌾 Fonte Naturale di Antiossidanti dai Cereali!',
+      '🫀 Se Consumata con Moderazione, Fa Bene al Cuore!'
+    ];
+  }
+  
+  if (normalizedCategory.includes('vino')) {
+    return [
+      '🍷 Un Bicchiere al Giorno, per il Benessere del Cuore!',
+      '🍇 Ricco di Polifenoli: Gusto e Proprietà Antiossidanti!',
+      '🧘‍♂️ Favorisce il Relax e la Buona Compagnia!',
+      '🫀 Il Piacere del Vino, con Benefici per la Circolazione!'
+    ];
+  }
+  
+  if (normalizedCategory.includes('bevande') || normalizedCategory.includes('bevanda')) {
+    return [
+      '🍹 Un Momento di Piacere in Ogni Sorso!',
+      '❄️ Rinfresca le Tue Giornate con Stile e Gusto!',
+      '🌸 Ogni Bevanda è un\'Esperienza da Vivere!'
+    ];
+  }
+  
+  if (normalizedCategory.includes('acqua')) {
+    return [
+      '💧 Idratazione Ottimale per Tutta la Giornata!',
+      '🧠 Aiuta la Concentrazione e la Memoria!',
+      '🌿 Favorisce la Depurazione dell\'Organismo!',
+      '💪 Supporta le Prestazioni Fisiche e Sportive!',
+      '🛌 Migliora la Qualità del Sonno!',
+      '🌞 Essenziale Durante le Giornate Calde!',
+      '🧴 Pelle più Luminosa e Sana!',
+      '⚖️ Aiuta a Mantenere il Peso Forma!',
+      '🫀 Stimola la Circolazione e la Salute del Cuore!',
+      '🚿 Purifica e Rinfresca in Ogni Momento!'
+    ];
+  }
+  
+  // Default per tutte le altre categorie: mostra le frasi delle bevande
+  return [
+    '🍹 Un Momento di Piacere in Ogni Sorso!',
+    '🍵 Coccole Calde per l\'Anima e il Corpo!',
+    '❄️ Rinfresca le Tue Giornate con Stile e Gusto!',
+    '🌸 Ogni Bevanda è un\'Esperienza da Vivere!'
+  ];
+};

@@ -45,7 +45,19 @@ const Products = () => {
     try {
       const productPromises = lastOrder.line_items.map(async (item: any) => {
         try {
+          // Nella funzione addLastOrderToCart, sostituisci il debug esistente con:
           const product = await wooCommerceService.getProduct(item.product_id);
+          
+          // ✅ Debug più dettagliato
+          console.log('=== DEBUG RIORDINO ===');
+          console.log('Prodotto completo:', JSON.stringify(product, null, 2));
+          console.log('Categories array:', product.categories);
+          console.log('Prima categoria:', product.categories?.[0]);
+          console.log('Slug prima categoria:', product.categories?.[0]?.slug);
+          
+          const category = getProductCategory(product);
+          console.log('Categoria determinata:', category);
+          console.log('=== FINE DEBUG ===');
           
           const cartItem = {
             id: item.product_id,
@@ -54,7 +66,7 @@ const Products = () => {
             image: product.images && product.images.length > 0 
               ? product.images[0].src 
               : '/placeholder.svg',
-            category: 'altri'
+            category: category
           };
           
           return { cartItem, quantity: item.quantity };
@@ -78,7 +90,7 @@ const Products = () => {
         for (let i = 0; i < quantity; i++) {
           dispatch({ type: 'ADD_ITEM', payload: cartItem });
         }
-        addedItems += quantity;
+        addedItems += quantity; // ✅ Spostato dentro il forEach
       });
       
       toast.success(`${addedItems} prodotti dall'ultimo ordine aggiunti al carrello!`);

@@ -8,6 +8,7 @@ import {
 import { loadStripe } from '@stripe/stripe-js';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 // Chiave pubblicabile Stripe aggiornata
 const stripePromise = loadStripe('pk_test_q2T6zSXCsZgSDBoczp5ESl9I');
@@ -28,6 +29,7 @@ const CheckoutForm: React.FC<{
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
+  const { authState } = useAuth(); // Aggiungi questo
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -37,7 +39,6 @@ const CheckoutForm: React.FC<{
     }
 
     const cardElement = elements.getElement(CardElement);
-
     if (!cardElement) {
       return;
     }
@@ -45,52 +46,35 @@ const CheckoutForm: React.FC<{
     setIsProcessing(true);
 
     try {
-      // Crea il Payment Intent sul backend
-      const response = await fetch('http://localhost:3001/api/create-payment-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // Costruisci il nome completo dall'utente loggato
+      const userName = authState.user 
+        ? `${authState.user.first_name} ${authState.user.last_name}`.trim()
+        : 'Cliente Imperatore Bevande';
+
+      // Con il plugin WooCommerce Stripe, non serve il backend personalizzato
+      // Semplicemente validiamo la carta e creiamo il payment method
+      const { error, paymentMethod } = await stripe.createPaymentMethod({
+        type: 'card',
+        card: cardElement,
+        billing_details: {
+          name: userName, // Usa il nome dell'utente loggato
+          email: authState.user?.email || undefined, // Aggiungi anche l'email se disponibile
         },
-        body: JSON.stringify({
-          amount: Math.round(parseFloat(amount) * 100), // Converti in centesimi
-          currency: currency.toLowerCase(),
-          metadata: {
-            source: 'imperatore-bevande-checkout'
-          }
-        }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Errore HTTP: ${response.status}`);
-      }
-
-      const { client_secret } = await response.json();
-
-      // Conferma il pagamento
-      const { error, paymentIntent } = await stripe.confirmCardPayment(
-        client_secret,
-        {
-          payment_method: {
-            card: cardElement,
-            billing_details: {
-              name: 'Cliente Imperatore Bevande',
-            },
-          },
-        }
-      );
-
       if (error) {
-        console.error('Errore pagamento:', error);
-        toast.error('Errore nel pagamento: ' + error.message);
+        console.error('Errore validazione carta:', error);
+        toast.error('Errore nella validazione della carta: ' + error.message);
         onError(error);
       } else {
-        console.log('Pagamento riuscito:', paymentIntent);
-        toast.success('Pagamento completato con successo!');
-        onSuccess(paymentIntent);
+        console.log('Metodo di pagamento creato:', paymentMethod);
+        toast.success('Carta validata con successo!');
+        // Il plugin WooCommerce Stripe gestirà il resto automaticamente
+        onSuccess(paymentMethod);
       }
     } catch (error) {
       console.error('Errore:', error);
-      toast.error('Errore durante il pagamento');
+      toast.error('Errore durante la validazione della carta');
       onError(error);
     } finally {
       setIsProcessing(false);
@@ -102,6 +86,7 @@ const CheckoutForm: React.FC<{
       <div className="p-4 border border-gray-300 rounded-lg">
         <CardElement
           options={{
+            hidePostalCode: true, // Aggiunge questa opzione per nascondere il CAP
             style: {
               base: {
                 fontSize: '16px',
