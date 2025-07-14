@@ -99,7 +99,7 @@ const AutoLogin: React.FC = () => {
               <div className="bg-blue-50 rounded-lg p-4 mb-6">
                 <p className="text-sm text-blue-600 mb-2">Parametri ricevuti:</p>
                 <p className="text-xs text-blue-500">✓ ID Utente: {userId}</p>
-                <p className="text-xs text-blue-500">✓ Token: {token}</p>
+                <p className="text-xs text-blue-500">✓ Token: ✓ Verificato</p>
               </div>
             </>
           )}
@@ -133,7 +133,7 @@ const AutoLogin: React.FC = () => {
               <div className="bg-red-50 rounded-lg p-4 mb-6">
                 <p className="text-sm text-red-600 mb-2">Dettagli errore:</p>
                 <p className="text-xs text-red-500">ID Utente: {userId || '✗ Mancante'}</p>
-                <p className="text-xs text-red-500">Token: {token || '✗ Mancante'}</p>
+                <p className="text-xs text-red-500">Token: {token ? '✓ Presente' : '✗ Mancante'}</p>
               </div>
               
               <div className="space-y-3">
