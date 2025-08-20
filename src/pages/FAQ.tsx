@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Clock, Truck, CreditCard, User, Droplets } from 'lucide-react';
+import { ChevronDown, ChevronUp, Clock, Truck, CreditCard, User, Droplets, MessageCircle } from 'lucide-react';
 
 const FAQ = () => {
   const [openItems, setOpenItems] = useState<string[]>([]);
@@ -133,10 +134,19 @@ const FAQ = () => {
               <p>📍 Per modificare l'indirizzo di consegna, ti basterà andare nella pagina del tuo <strong>Account</strong> 👤</p>
               <p>📝 e Seguire in ordine questi semplici passaggi:</p>
               <ol className="list-decimal list-inside space-y-1 ml-4">
-                <li>👆 Clicca su <strong>"IMPOSTAZIONI UTENTE"</strong></li>
-                <li>🏠 Clicca su <strong>"MODIFICA INDIRIZZO"</strong></li>
-                <li>✏️ Clicca su <strong>"MODIFICA"</strong></li>
+                <li>🏠 Clicca su <strong>"Indirizzi"</strong> nella barra di navigazione</li>
+                <li>✏️ Per l'indirizzo principale, clicca su <strong>"Modifica Indirizzo Principale"</strong></li>
+                <li>📝 Compila i campi richiesti e clicca <strong>"Salva"</strong></li>
               </ol>
+              <div className="bg-blue-50 p-3 rounded-lg mt-4">
+                <p className="text-blue-800 font-semibold">🆕 Novità: Indirizzi multipli!</p>
+                <p className="text-blue-700">Ora puoi salvare più indirizzi di consegna:</p>
+                <ul className="list-disc list-inside space-y-1 ml-4 text-blue-700">
+                  <li>➕ Clicca su <strong>"Aggiungi Indirizzo"</strong> nella sezione "Altri indirizzi di Consegna"</li>
+                  <li>📝 Compila tutti i campi e salva</li>
+                  <li>✏️ Puoi modificare o eliminare gli indirizzi salvati in qualsiasi momento</li>
+                </ul>
+              </div>
               <p className="text-amber-600">💡 Se invece l'indirizzo di consegna è temporaneo e non vuoi modificarlo ogni volta, puoi scriverlo all'interno delle <strong>NOTE</strong> nel momento in cui effettuerai l'ORDINE per un indirizzo differente 📝✨</p>
             </div>
           )
@@ -168,14 +178,15 @@ const FAQ = () => {
           question: '👤 Modificare Username & Password',
           answer: (
             <div className="space-y-3">
-              <p>🔧 Per modificare Username o la Password, ti basterà andare nella pagina del tuo <strong>Account</strong> 👤</p>
+              <p>🔧 Per modificare la Password, ti basterà andare nella pagina del tuo <strong>Account</strong> 👤</p>
               <p>📝 e Seguire in ordine questi semplici passaggi:</p>
               <ol className="list-decimal list-inside space-y-1 ml-4">
-                <li>⚙️ Clicca su <strong>"IMPOSTAZIONI UTENTE"</strong></li>
-                <li>🔑 Clicca su <strong>"MODIFICA USER & PASSWORD"</strong></li>
+                <li>⚙️ Clicca su <strong>"Impostazioni"</strong></li>
+                <li>🔑 Nella sezione <strong>"Cambia Password"</strong>, inserisci la nuova password</li>
+                <li>🔄 Conferma la nuova password nel campo di conferma</li>
+                <li>💾 Clicca su <strong>"Cambia Password"</strong> per salvare</li>
               </ol>
-              <p>✏️ Effetua le modifiche nei campi stabiliti e infine per rendere effettive le modifiche, ricordati di cliccare su</p>
-              <p className="text-green-600 font-medium">👉🏻 <strong>"SALVA LE MODIFICHE"</strong> 💾✅</p>
+              <p className="text-blue-600 font-medium">💡 <strong>Nota:</strong> Essendo già autenticato, puoi cambiare direttamente la password senza inserire quella attuale ✅</p>
             </div>
           )
         }
@@ -184,20 +195,21 @@ const FAQ = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Header />
       
       {/* Hero Section */}
       <div className="bg-[#1B5AAB] text-white py-16">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">❓ F.A.Q ❓</h1>
-          <p className="text-xl md:text-2xl mb-6">🤔 Frequently Asked Questions 💭</p>
-          <p className="text-lg max-w-4xl mx-auto">
-            📝 Ovvero le domande che più ci vengono poste: alcune sono semplici curiosità 🧐, 
-            mentre altre servono per alcuni dubbi che ci possono essere per i nuovi clienti 🆕.
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">❓ Domande Frequenti ❓</h1>
+          <p className="text-xl md:text-2xl mb-6">🤔 Tutto quello che vorresti sapere su Imperatore Bevande 💭</p>
+          <p className="text-lg max-w-4xl mx-auto leading-relaxed">
+            📝 Abbiamo raccolto qui le domande che ci vengono poste più spesso dai nostri clienti. 
+            Dalle semplici curiosità 🧐 ai dubbi più comuni per chi si avvicina per la prima volta 
+            al nostro servizio di consegna bevande a domicilio 🆕.
           </p>
-          <p className="text-lg mt-4">
-            🗂️ Per una migliore navigazione, abbiamo diviso le domande per categorie 📋
+          <p className="text-lg mt-6 font-medium">
+            🗂️ Le domande sono organizzate per categorie per facilitare la tua ricerca 📋
           </p>
         </div>
       </div>
@@ -248,16 +260,23 @@ const FAQ = () => {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl font-bold mb-4">🤷‍♂️ Non hai trovato la risposta che cercavi? 🔍</h2>
           <p className="text-lg mb-6">📞 Contattaci direttamente, saremo felici di aiutarti! 😊💙</p>
-          <div className="flex flex-col md:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-8">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              <span>🗓️ Lun-Ven: 6:30 - 16:30 ⏰</span>
+              <span>🗓️ Lun-Ven: 07:00-16:00 | Sab: 07:00-14:00 ⏰</span>
             </div>
             <div className="flex items-center gap-2">
               <Truck className="w-5 h-5" />
               <span>🚚 Consegne a Bari e dintorni 🏠</span>
             </div>
           </div>
+          <Link 
+            to="/contatti" 
+            className="inline-flex items-center gap-2 bg-white text-[#1B5AAB] px-8 py-3 rounded-lg font-semibold text-lg hover:bg-gray-100 transition-colors shadow-lg"
+          >
+            <MessageCircle className="w-5 h-5" />
+            💬 Vai alla pagina Contatti
+          </Link>
         </div>
       </div>
     </div>

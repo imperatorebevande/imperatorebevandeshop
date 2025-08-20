@@ -82,16 +82,27 @@ const Cart = () => {
 
   if (state.items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
         <Header />
-        <div className="container mx-auto px-4 py-8 sm:py-16">
+        
+        {/* Fixed Mobile Navigation Bar for Empty Cart */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 md:hidden">
+          <Link to="/prodotti">
+            <Button size="lg" className="w-full" style={{backgroundColor: '#1B5AAB', color: 'white'}}>
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Continua lo Shopping
+            </Button>
+          </Link>
+        </div>
+        
+        <div className="container mx-auto px-4 py-8 sm:py-16 pb-32 sm:pb-16">
           <div className="text-center">
             <div className="text-4xl sm:text-6xl mb-4 sm:mb-6">🛒</div>
             <h1 className="text-2xl sm:text-3xl font-bold mb-4" style={{color: '#1B5AAB'}}>Il tuo carrello è vuoto</h1>
             <p className="text-gray-600 mb-6 sm:mb-8 px-4">
               Scopri i nostri fantastici prodotti e inizia a fare shopping!
             </p>
-            <Link to="/products">
+            <Link to="/prodotti" className="hidden md:block">
               <Button size="lg" className="gradient-primary w-full sm:w-auto">
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Continua lo Shopping
@@ -104,10 +115,24 @@ const Cart = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Header />
       
-      <div className="container mx-auto px-4 py-6 sm:py-8 pb-32 sm:pb-8">
+      <div className="container mx-auto px-4 py-6 sm:py-8 pb-40 sm:pb-8">
+        
+        {/* Fixed Mobile Checkout Button */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 md:hidden">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-semibold text-lg">Totale:</span>
+            <span className="font-bold text-xl" style={{color: '#A40800'}}>€{state.total.toFixed(2)}</span>
+          </div>
+          <Link to={authState.isAuthenticated ? "/checkout" : "/login"} state={!authState.isAuthenticated ? { from: '/checkout' } : undefined}>
+            <Button size="lg" className="w-full hover:opacity-90" style={{backgroundColor: '#1B5AAB', color: 'white'}}>
+              <CreditCard className="w-5 h-5 mr-2" />
+              {authState.isAuthenticated ? 'Procedi all\'Ordine' : 'Accedi per Ordinare'}
+            </Button>
+          </Link>
+        </div>
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-4xl font-bold mb-2 sm:mb-4" style={{color: '#1B5AAB'}}>
             Il Tuo Carrello
@@ -252,7 +277,7 @@ const Cart = () => {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-0 pt-4">
-              <Link to="/products" className="w-full sm:w-auto">
+              <Link to="/prodotti" className="w-full sm:w-auto">
                 <Button variant="outline" className="w-full sm:w-auto">
                   <ArrowLeft className="w-4 h-4 mr-2" />
                   Continua lo Shopping
@@ -272,7 +297,7 @@ const Cart = () => {
 
           {/* Order Summary */}
           <div className="lg:order-last mb-8 lg:mb-0">
-            <Card className="lg:sticky lg:top-32">
+            <Card className="lg:sticky lg:top-32 mb-20 md:mb-0">
               <CardHeader>
                 <CardTitle className="text-lg sm:text-xl">Riepilogo Ordine</CardTitle>
               </CardHeader>
@@ -296,10 +321,10 @@ const Cart = () => {
                   <span style={{color: '#A40800'}}>€{state.total.toFixed(2)}</span>
                 </div>
 
-                <Link to="/checkout">
+                <Link to={authState.isAuthenticated ? "/checkout" : "/login"} state={!authState.isAuthenticated ? { from: '/checkout' } : undefined} className="hidden md:block">
                   <Button size="lg" className="w-full hover:opacity-90" style={{backgroundColor: '#1B5AAB', color: 'white'}}>
                     <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                    {authState.isAuthenticated && customer ? 'Checkout Veloce' : 'Procedi all\'Ordine'}
+                    {authState.isAuthenticated ? 'Procedi all\'Ordine' : 'Accedi per Ordinare'}
                   </Button>
                 </Link>
 

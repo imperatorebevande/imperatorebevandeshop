@@ -1,22 +1,19 @@
-# Welcome to your Lovable project
+# Imperatore Bevande Shop
 
-## Project info
+Un'applicazione React per la vendita e consegna di bevande a domicilio.
 
-**URL**: https://lovable.dev/projects/4914f029-ade4-4e63-a696-d957c1ee7dd3
+## Descrizione del Progetto
 
-## How can I edit this code?
+Imperatore Bevande Shop è un e-commerce moderno sviluppato in React con TypeScript che permette ai clienti di:
+- Navigare il catalogo prodotti
+- Aggiungere articoli al carrello
+- Effettuare ordini con consegna a domicilio
+- Gestire il proprio account
+- Pagare con diversi metodi (PayPal, Stripe, Satispay, Contrassegno, Bonifico)
 
-There are several ways of editing your application.
+## Come modificare il codice
 
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/4914f029-ade4-4e63-a696-d957c1ee7dd3) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Puoi modificare questo progetto clonando il repository e utilizzando il tuo IDE preferito.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -62,12 +59,8 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/4914f029-ade4-4e63-a696-d957c1ee7dd3) and click on Share -> Publish.
+Configura il tuo servizio di hosting preferito e carica i file della cartella `dist` dopo aver eseguito `npm run build`.
 
-## Can I connect a custom domain to my Lovable project?
+## Configurazione del Dominio Personalizzato
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Puoi configurare un dominio personalizzato per il tuo progetto seguendo le istruzioni del tuo provider di hosting (Vercel, Netlify, etc.).

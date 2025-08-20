@@ -15,7 +15,7 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Header />
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="text-center max-w-md mx-auto">
@@ -53,7 +53,7 @@ const NotFound = () => {
                 </Button>
               </Link>
               
-              <Link to="/products">
+              <Link to="/prodotti">
                 <Button variant="outline" className="w-full border-purple-600 text-purple-600 hover:bg-purple-50 transition-all duration-300 hover:scale-105">
                   <ShoppingBag className="w-4 h-4 mr-2" />
                   Vai ai Prodotti

@@ -48,6 +48,21 @@ export const useWooCommerceProduct = (
   });
 };
 
+// Hook per ottenere un singolo prodotto per slug
+export const useWooCommerceProductBySlug = (
+  slug: string,
+  options?: Partial<UseQueryOptions<WooCommerceProduct, Error>>
+) => {
+  return useQuery({
+    queryKey: ['woocommerce-product-slug', slug],
+    queryFn: () => wooCommerceService.getProductBySlug(slug),
+    enabled: !!slug,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+    ...options,
+  });
+};
+
 // Hook per ottenere le categorie
 export const useWooCommerceCategories = (
   params: {
@@ -245,24 +260,53 @@ export const useUpdateWooCommerceCustomer = () => {
   
   return useMutation({
     mutationFn: async ({ id, customerData }: { id: number, customerData: Partial<WooCommerceCustomer> }) => {
-      console.log('Inviando richiesta di aggiornamento:', { id, customerData });
+      console.log('=== INIZIO AGGIORNAMENTO CLIENTE ===');
+      console.log('ID Cliente:', id);
+      console.log('Dati da aggiornare:', JSON.stringify(customerData, null, 2));
+      
+      // Validazione preliminare
+      if (!id || id <= 0) {
+        throw new Error('ID cliente non valido');
+      }
+      
       return await wooCommerceService.updateCustomer(id, customerData);
     },
     onSuccess: (data, variables) => {
-      console.log('Aggiornamento completato con successo:', data);
+      console.log('=== AGGIORNAMENTO COMPLETATO ===');
+      console.log('Dati aggiornati:', data);
+      
       // Invalida la cache per aggiornare i dati
       queryClient.invalidateQueries({ queryKey: ['woocommerce-customer', data.id] });
       
       // Messaggio specifico in base al tipo di aggiornamento
       if (variables.customerData.shipping || variables.customerData.billing) {
         toast.success('Indirizzo aggiornato con successo!');
+      } else if (variables.customerData.meta_data) {
+        // Non mostrare toast per aggiornamenti meta_data automatici
+        console.log('Meta data aggiornati silenziosamente');
       } else {
         toast.success('Profilo aggiornato con successo!');
       }
     },
-    onError: (error) => {
-      console.error('Errore dettagliato nell\'aggiornamento del cliente:', error);
-      toast.error('Errore nell\'aggiornamento dei dati cliente');
+    onError: (error: any) => {
+      console.error('=== ERRORE AGGIORNAMENTO CLIENTE ===');
+      console.error('Errore completo:', error);
+      
+      if (error.response?.data) {
+        console.error('Risposta API:', error.response.data);
+        
+        // Gestione errori specifici
+        if (error.response.data.code === 'rest_invalid_param') {
+          console.error('Parametri non validi:', error.response.data.data?.params);
+          toast.error('Errore: parametri non validi. Controlla i dati inseriti.');
+        } else if (error.response.data.message) {
+          toast.error(`Errore: ${error.response.data.message}`);
+        } else {
+          toast.error('Errore nell\'aggiornamento dei dati cliente');
+        }
+      } else {
+        toast.error('Errore di connessione. Riprova più tardi.');
+      }
     }
   });
 };

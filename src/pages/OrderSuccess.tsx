@@ -20,7 +20,7 @@ const OrderSuccess = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Header />
       
       <div className="container mx-auto px-4 py-16">
@@ -82,7 +82,7 @@ const OrderSuccess = () => {
                   </Button>
                 </Link>
                 
-                <Link to="/products">
+                <Link to="/prodotti">
                   <Button variant="outline">
                     Continua a Comprare
                   </Button>

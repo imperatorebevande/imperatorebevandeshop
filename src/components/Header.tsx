@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react'; // Aggiunto useRef
-import { Link, useNavigate } from 'react-router-dom'; // Aggiunto useNavigate
+import { Link, useNavigate, useLocation } from 'react-router-dom'; // Aggiunto useNavigate e useLocation
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { ShoppingBag, User, Menu, X, Search as SearchIcon, Home } from 'lucide-react'; // Aggiunto X
+import { ShoppingBag, User, Menu, X, Search as SearchIcon, Home, ChevronDown, ChevronUp } from 'lucide-react'; // Aggiunto X, ChevronDown, ChevronUp
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -13,10 +13,14 @@ const Header = () => {
   const { authState } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showMenuItems, setShowMenuItems] = useState(true);
+  const [isShopExpanded, setIsShopExpanded] = useState(false);
   const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);
   const [searchQuery, setSearchQuery] = useState(''); // Stato per la query di ricerca
   const navigate = useNavigate(); // Hook per la navigazione
+  const location = useLocation(); // Hook per la location
   const searchInputRef = useRef<HTMLInputElement>(null); // Ref per l'input di ricerca
+  const menuRef = useRef<HTMLDivElement>(null); // Ref per il menu hamburger
+  const menuButtonRef = useRef<HTMLButtonElement>(null); // Ref per il pulsante del menu hamburger
 
   // Funzione per controllare se c'è abbastanza spazio per il menu
   useEffect(() => {
@@ -36,11 +40,44 @@ const Header = () => {
     return () => window.removeEventListener('resize', checkMenuSpace);
   }, []);
 
+  // Funzione per chiudere il menu quando si clicca fuori
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const isClickInsideMenu = menuRef.current && menuRef.current.contains(target);
+      const isClickOnMenuButton = menuButtonRef.current && menuButtonRef.current.contains(target);
+      
+      // Controlla se il click è sul pulsante di espansione Shop (non deve chiudere il menu)
+      const isShopExpandButton = target.closest('button') && target.closest('button')?.textContent?.includes('Shop');
+      
+      // Chiudi il menu solo se il click è completamente fuori dal menu e dal pulsante
+      // E NON è sul pulsante Shop
+      if (!isClickInsideMenu && !isClickOnMenuButton && !isShopExpandButton && isMenuOpen) {
+        setIsMenuOpen(false);
+        setIsShopExpanded(false); // Chiudi anche il sottomenu Shop
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
+  // Chiudi il menu quando cambia la location (navigazione)
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setIsShopExpanded(false);
+  }, [location.pathname]);
+
   // Funzione per gestire l'invio della ricerca
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      navigate(`/prodotti?search=${encodeURIComponent(searchQuery.trim())}`);
       // Non pulire la barra di ricerca dopo l'invio
       // setSearchQuery(''); // Commentato per mantenere il valore nella barra di ricerca
     }
@@ -54,7 +91,7 @@ const Header = () => {
   return (
     <header className="bg-white shadow-sm border-b sticky top-0 z-50">
       {/* Desktop Header */}
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         {/* Rimuovere la barra di ricerca da qui */}
         
         <div className="container mx-auto px-4">
@@ -72,7 +109,7 @@ const Header = () => {
                   Home
                 </Link>
                 <Link 
-                  to="/products" 
+                  to="/prodotti" 
                   className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
                   onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
                   onMouseLeave={(e) => e.currentTarget.style.color = ''}
@@ -80,7 +117,7 @@ const Header = () => {
                   Shop
                 </Link>
                 <Link 
-                  to="/products?category=acqua" 
+                  to="/prodotti?category=acqua" 
                   className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
                   onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
                   onMouseLeave={(e) => e.currentTarget.style.color = ''}
@@ -88,7 +125,7 @@ const Header = () => {
                   Acqua
                 </Link>
                 <Link 
-                  to="/products?category=bevande" 
+                  to="/prodotti?category=bevande" 
                   className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
                   onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
                   onMouseLeave={(e) => e.currentTarget.style.color = ''}
@@ -112,7 +149,7 @@ const Header = () => {
             {showMenuItems && (
               <nav className="flex space-x-4 ml-2">
                 <Link 
-                  to="/products?category=birra" 
+                  to="/prodotti?category=birra" 
                   className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
                   onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
                   onMouseLeave={(e) => e.currentTarget.style.color = ''}
@@ -120,7 +157,7 @@ const Header = () => {
                   Birra
                 </Link>
                 <Link 
-                  to="/products?category=vino" 
+                  to="/prodotti?category=vino" 
                   className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
                   onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
                   onMouseLeave={(e) => e.currentTarget.style.color = ''}
@@ -128,7 +165,7 @@ const Header = () => {
                   Vino
                 </Link>
                 <Link 
-                  to="/contact" 
+                  to="/contatti" 
                   className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
                   onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
                   onMouseLeave={(e) => e.currentTarget.style.color = ''}
@@ -220,70 +257,100 @@ const Header = () => {
         
         {/* Menu dropdown per desktop quando le voci sono nascoste - Ora con lo stesso stile del menu mobile */}
         {!showMenuItems && isMenuOpen && (
-          <div className="border-t bg-white shadow-lg">
+          <div className="border-t bg-white shadow-lg max-h-96 overflow-y-auto">
             <nav className="container mx-auto px-4 py-2 space-y-2">
-              <Link to="/" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
+              <Link to="/" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
                 <Home className="w-4 h-4 mr-2" />
                 Home
               </Link>
-              <Link to="/products" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                </div>
-                Shop
-              </Link>
-              <Link to="/products?category=acqua" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                </div>
-                Acqua
-              </Link>
-              <Link to="/products?category=birra" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                </div>
-                Birra
-              </Link>
-              <Link to="/products?category=bevande" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                </div>
-                Bevande
-              </Link>
-              <Link to="/products?category=vino" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                </div>
-                Vino
-              </Link>
-              <Link to="/about" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
+              <div>
+                <button 
+                  onClick={() => setIsShopExpanded(!isShopExpanded)}
+                  className="flex items-center justify-between w-full text-gray-700 hover:text-gray-900 transition-colors py-2"
+                >
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                    </div>
+                    Shop
+                  </div>
+                  {isShopExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                {isShopExpanded && (
+                  <div className="ml-6 space-y-2">
+                    <Link to="/prodotti" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                      <div className="w-3 h-3 mr-2 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                      </div>
+                      Tutti i prodotti
+                    </Link>
+                    <Link to="/prodotti?category=acqua" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                      <div className="w-3 h-3 mr-2 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      </div>
+                      Acqua
+                    </Link>
+                    <Link to="/prodotti?category=birra" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                      <div className="w-3 h-3 mr-2 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></div>
+                      </div>
+                      Birra
+                    </Link>
+                    <Link to="/prodotti?category=bevande" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                      <div className="w-3 h-3 mr-2 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                      </div>
+                      Bevande
+                    </Link>
+                    <Link to="/prodotti?category=vino" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                      <div className="w-3 h-3 mr-2 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                      </div>
+                      Vino
+                    </Link>
+                  </div>
+                )}
+              </div>
+              <Link to="/chisiamo" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
                 <User className="w-4 h-4 mr-2" />
                 Chi siamo
               </Link>
-              <Link to="/contact" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
+              <Link to="/contatti" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
                 <SearchIcon className="w-4 h-4 mr-2" />
                 Contatti
               </Link>
-              <Link to="/faq" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
+              <Link to="/faq" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
                 <div className="w-4 h-4 mr-2 flex items-center justify-center">
                   <div className="text-xs font-bold">?</div>
                 </div>
                 FAQ
               </Link>
-              <Link to="/cart" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
+              <Link to="/cart" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
                 <ShoppingBag className="w-4 h-4 mr-2" />
                 Carrello ({itemCount})
               </Link>
+              {!authState.isAuthenticated ? (
+                <Link to="/login" className="flex items-center text-blue-600 hover:text-blue-800 transition-colors py-2">
+                  <User className="w-4 h-4 mr-2" />
+                  Accedi
+                </Link>
+              ) : (
+                <Link to="/account" className="flex items-center text-green-600 hover:text-green-800 transition-colors py-2">
+                  <User className="w-4 h-4 mr-2" />
+                  Il mio account
+                </Link>
+              )}
             </nav>
           </div>
         )}
       </div>
 
       {/* Mobile Header */}
-      <div className="md:hidden">
+      <div className="lg:hidden">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <Button
+              ref={menuButtonRef}
               variant="ghost"
               size="sm"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -357,73 +424,102 @@ const Header = () => {
 
         {/* Mobile Menu (hamburger menu) */}
         {isMenuOpen && (
-          <div className="border-t bg-white">
-            <nav className="px-4 py-2 space-y-2">
-              <Link to="/" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
+          <div ref={menuRef} className="border-t bg-white max-h-96 overflow-y-auto">
+            <nav className="px-4 py-2 pb-20 lg:pb-2 space-y-2">
+              <Link to="/" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
                 <Home className="w-4 h-4 mr-2" />
                 Home
               </Link>
-              <Link to="/products" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                </div>
-                Shop
-              </Link>
-              <Link to="/products?category=acqua" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                </div>
-                Acqua
-              </Link>
-              <Link to="/products?category=birra" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                </div>
-                Birra
-              </Link>
-              <Link to="/products?category=bevande" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                </div>
-                Bevande
-              </Link>
-              <Link to="/products?category=vino" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
-                <div className="w-4 h-4 mr-2 flex items-center justify-center">
-                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                </div>
-                Vino
-              </Link>
-              <Link to="/about" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
+              <div>
+                <button 
+                  onClick={() => setIsShopExpanded(!isShopExpanded)}
+                  className="flex items-center justify-between w-full text-gray-700 hover:text-gray-900 transition-colors py-2"
+                >
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                    </div>
+                    Shop
+                  </div>
+                  {isShopExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                </button>
+                {isShopExpanded && (
+                  <div className="ml-6 space-y-2">
+                    <Link to="/prodotti" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                      <div className="w-3 h-3 mr-2 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                      </div>
+                      Tutti i prodotti
+                    </Link>
+                    <Link to="/prodotti?category=acqua" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                      <div className="w-3 h-3 mr-2 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                      </div>
+                      Acqua
+                    </Link>
+                    <Link to="/prodotti?category=birra" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                      <div className="w-3 h-3 mr-2 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></div>
+                      </div>
+                      Birra
+                    </Link>
+                    <Link to="/prodotti?category=bevande" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                      <div className="w-3 h-3 mr-2 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                      </div>
+                      Bevande
+                    </Link>
+                    <Link to="/prodotti?category=vino" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                      <div className="w-3 h-3 mr-2 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
+                      </div>
+                      Vino
+                    </Link>
+                  </div>
+                )}
+              </div>
+              <Link to="/chisiamo" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
                 <User className="w-4 h-4 mr-2" />
                 Chi siamo
               </Link>
-              <Link to="/contact" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
+              <Link to="/contatti" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
                 <SearchIcon className="w-4 h-4 mr-2" />
                 Contatti
               </Link>
-              <Link to="/faq" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
+              <Link to="/faq" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
                 <div className="w-4 h-4 mr-2 flex items-center justify-center">
                   <div className="text-xs font-bold">?</div>
                 </div>
                 FAQ
               </Link>
-              <Link to="/cart" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2" onClick={() => setIsMenuOpen(false)}>
+              <Link to="/cart" className="flex items-center text-gray-700 hover:text-gray-900 transition-colors py-2">
                 <ShoppingBag className="w-4 h-4 mr-2" />
                 Carrello ({itemCount})
               </Link>
+              {!authState.isAuthenticated ? (
+                <Link to="/login" className="flex items-center text-blue-600 hover:text-blue-800 transition-colors py-2">
+                  <User className="w-4 h-4 mr-2" />
+                  Accedi
+                </Link>
+              ) : (
+                <Link to="/account" className="flex items-center text-green-600 hover:text-green-800 transition-colors py-2">
+                  <User className="w-4 h-4 mr-2" />
+                  Il mio account
+                </Link>
+              )}
             </nav>
           </div>
         )}
       </div>
 
       {/* Bottom Navigation for Mobile */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50">
         <div className="flex justify-around">
           <Link to="/" className="flex flex-col items-center py-2 px-3 text-gray-600">
             <Home className="w-6 h-6" />
             <span className="text-xs mt-1">Home</span>
           </Link>
-          <Link to="/products" className="flex flex-col items-center py-2 px-3 text-gray-600">
+          <Link to="/prodotti" className="flex flex-col items-center py-2 px-3 text-gray-600">
             <div className="w-6 h-6 flex items-center justify-center">
               <div className="grid grid-cols-2 gap-0.5">
                 <div className="w-2 h-2 bg-current rounded-sm"></div>
@@ -434,7 +530,7 @@ const Header = () => {
             </div>
             <span className="text-xs mt-1">Categorie</span>
           </Link>
-          <Link to="/products?search=focus" className="flex flex-col items-center py-2 px-3 text-blue-600 bg-blue-50 rounded-lg mx-1">
+          <Link to="/prodotti?search=focus" className="flex flex-col items-center py-2 px-3 text-blue-600 bg-blue-50 rounded-lg mx-1">
             <SearchIcon className="w-6 h-6" />
             <span className="text-xs mt-1 font-medium">Cerca</span>
           </Link>

@@ -1,46 +1,54 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
+import DeliveryZoneMap from '@/components/DeliveryZoneMap';
+import ImageCarousel from '@/components/ImageCarousel';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Truck, Clock, MapPin, RotateCcw } from 'lucide-react'; // ✅ Aggiunta RotateCcw
+import { ArrowRight, Truck, Clock, MapPin, RotateCcw, Phone, MessageCircle } from 'lucide-react'; // ✅ Aggiunta RotateCcw, Phone e MessageCircle
+
 import { useWooCommerceSaleProducts, useWooCommerceCustomerOrders, useWooCommerceProducts } from '@/hooks/useWooCommerce';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { toast } from 'sonner';
 import { wooCommerceService } from '@/services/woocommerce';
 
+// Import delle immagini del carousel - da sostituire con le tue immagini
+// import waterDeliveryImg from '@/assets/carousel-images/water-delivery.svg';
+// import qualityProductsImg from '@/assets/carousel-images/quality-products.svg';
+// import fastDeliveryImg from '@/assets/carousel-images/fast-delivery.svg';
+
+
 const Index = () => {
+  const [isZoneCovered, setIsZoneCovered] = useState(false);
+  const [hasZoneError, setHasZoneError] = useState(false);
   const { authState } = useAuth();
   const { dispatch } = useCart();
+  const [shuffledImages, setShuffledImages] = useState<any[]>([]);
 
   // ✅ PRECARICAMENTO PRODOTTI - Carica tutti i prodotti in background
   // Questo renderà la navigazione verso lo shop molto più veloce
   const { data: allProductsPage1 } = useWooCommerceProducts({
     per_page: 100,
-    page: 1,
-    status: 'publish'
+    page: 1
   });
   
   const { data: allProductsPage2 } = useWooCommerceProducts({
     per_page: 100,
-    page: 2,
-    status: 'publish'
+    page: 2
   });
 
   // Hook per ottenere i prodotti più venduti
   const { data: bestSellingProducts = [], isLoading: bestSellingLoading } = useWooCommerceProducts({
     orderby: 'popularity',
-    per_page: 20,
-    status: 'publish'
+    per_page: 20
   });
 
   // Hook per ottenere i prodotti in offerta
   const { data: saleProducts = [], isLoading: saleLoading } = useWooCommerceSaleProducts({
-    per_page: 10,
-    status: 'publish'
+    per_page: 10
   });
 
   // Hook per ottenere l'ultimo ordine del cliente
@@ -148,12 +156,158 @@ const Index = () => {
       stock_status: product.stock_status,
       inStock: product.stock_status === 'instock',
       category: getMainCategory(product),
-      description: product.description || product.short_description || '' // Aggiunta descrizione
+      description: product.description || product.short_description || '', // Aggiunta descrizione
+      slug: product.slug
     };
   };
 
   const transformedBestSellingProducts = bestSellingProducts.map(transformWooCommerceProduct);
   const transformedSaleProducts = saleProducts.map(transformWooCommerceProduct);
+
+  // Funzione per mescolare l'array
+  const shuffleArray = (array: any[]) => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Immagini del carousel di Imperatore Bevande - Tutte le immagini Instagram disponibili (21 immagini)
+  const carouselImages = [
+    {
+      id: 1,
+      src: '/carousel-images/imperatorebevande_1406013033_770015590557564890_27333214.jpg',
+      alt: 'Imperatore Bevande',
+      title: 'La Nostra Storia'
+    },
+    {
+      id: 2,
+      src: '/carousel-images/imperatorebevande_1415254167_847535841268088354_27333214.jpg',
+      alt: 'Prodotti di qualità',
+      title: 'Qualità Garantita'
+    },
+    {
+      id: 3,
+      src: '/carousel-images/imperatorebevande_1420786128_893941295590030957_27333214.jpg',
+      alt: 'Servizio professionale',
+      title: 'Professionalità'
+    },
+    {
+      id: 4,
+      src: '/carousel-images/imperatorebevande_1427868980_953356566603644688_27333214.jpg',
+      alt: 'Distribuzione bevande',
+      title: 'Distribuzione Capillare'
+    },
+    {
+      id: 5,
+      src: '/carousel-images/imperatorebevande_1430994432_979574760192229163_27333214.jpg',
+      alt: 'Magazzino organizzato',
+      title: 'Organizzazione Perfetta'
+    },
+    {
+      id: 6,
+      src: '/carousel-images/imperatorebevande_1436773285_1028051290786250374_27333214.jpg',
+      alt: 'Magazzino con prodotti',
+      title: 'Il Nostro Magazzino'
+    },
+    {
+      id: 7,
+      src: '/carousel-images/imperatorebevande_1462610040_1244785698678127791_27333214.jpg',
+      alt: 'Prodotti Imperatore Bevande',
+      title: 'Qualità Premium'
+    },
+    {
+      id: 8,
+      src: '/carousel-images/imperatorebevande_1469861951_1305619140468141396_27333214.jpg',
+      alt: 'Servizio professionale',
+      title: 'Servizio Professionale'
+    },
+    {
+      id: 9,
+      src: '/carousel-images/imperatorebevande_1470832134_1313757621509718696_27333214.jpg',
+      alt: 'Consegna a domicilio',
+      title: 'Consegna Rapida'
+    },
+    {
+      id: 10,
+      src: '/carousel-images/imperatorebevande_1471535446_1319657432016699014_27333214.jpg',
+      alt: 'Bevande di qualità',
+      title: 'Bevande Premium'
+    },
+    {
+      id: 11,
+      src: '/carousel-images/imperatorebevande_1475584080_1353619831467755871_27333214.jpg',
+      alt: 'Magazzino organizzato',
+      title: 'Organizzazione Perfetta'
+    },
+    {
+      id: 12,
+      src: '/carousel-images/imperatorebevande_1484982060_1432455805236264366_27333214.jpg',
+      alt: 'Prodotti di qualità',
+      title: 'Prodotti di Qualità'
+    },
+    {
+      id: 13,
+      src: '/carousel-images/imperatorebevande_1493272787_1502003463822068439_27333214.jpg',
+      alt: 'Varietà di prodotti',
+      title: 'Ampia Selezione'
+    },
+    {
+      id: 14,
+      src: '/carousel-images/imperatorebevande_1498539709_1546185606336767335_27333214.jpg',
+      alt: 'Servizio clienti',
+      title: 'Servizio Clienti'
+    },
+    {
+      id: 15,
+      src: '/carousel-images/imperatorebevande_1504674454_1597647577716095324_27333214.jpg',
+      alt: 'Cassette di bevande',
+      title: 'Prodotti di Qualità'
+    },
+    {
+      id: 16,
+      src: '/carousel-images/imperatorebevande_1523090230_1752130307959341920_27333214.jpg',
+      alt: 'Distribuzione bevande',
+      title: 'Distribuzione Capillare'
+    },
+    {
+      id: 17,
+      src: '/carousel-images/imperatorebevande_1528988443_1801608102854596101_27333214.jpg',
+      alt: 'Furgone di consegna',
+      title: 'Consegna a Domicilio'
+    },
+    {
+      id: 18,
+      src: '/carousel-images/imperatorebevande_1529932954_1809531234194122092_27333214.jpg',
+      alt: 'Scaffali del magazzino',
+      title: 'Organizzazione Professionale'
+    },
+    {
+      id: 19,
+      src: '/carousel-images/imperatorebevande_1532095117_1827668769969578855_27333214.jpg',
+      alt: 'Bevande nel furgone',
+      title: 'Trasporto Sicuro'
+    },
+    {
+      id: 20,
+      src: '/carousel-images/imperatorebevande_1533364881_1838320323458280186_27333214.jpg',
+      alt: 'Team Imperatore Bevande',
+      title: 'Il Nostro Team'
+    },
+    {
+      id: 21,
+      src: '/carousel-images/imperatorebevande_1542089258_1911505700475958487_27333214.jpg',
+      alt: 'Esperienza e tradizione',
+      title: 'Esperienza e Tradizione'
+    }
+  ];
+
+  // Mescola le immagini al caricamento del componente
+  useEffect(() => {
+    setShuffledImages(shuffleArray(carouselImages));
+  }, []);
 
   // Categorie principali
   const categories = [
@@ -162,33 +316,33 @@ const Index = () => {
       bgColor: 'bg-gradient-to-br from-blue-100 to-blue-200',
       textColor: 'text-blue-800',
       icon: '💧',
-      link: '/products?category=acqua'
+      link: '/prodotti?category=acqua'
     },
     {
       name: 'Birra',
       bgColor: 'bg-gradient-to-br from-amber-100 to-amber-200',
       textColor: 'text-amber-800',
       icon: '🍺',
-      link: '/products?category=birra'
+      link: '/prodotti?category=birra'
     },
     {
       name: 'Vino',
       bgColor: 'bg-gradient-to-br from-purple-100 to-purple-200',
       textColor: 'text-purple-800',
       icon: '🍷',
-      link: '/products?category=vino'
+      link: '/prodotti?category=vino'
     },
     {
       name: 'Bevande',
       bgColor: 'bg-gradient-to-br from-green-100 to-green-200',
       textColor: 'text-green-800',
       icon: '🥤',
-      link: '/products?category=bevande'
+      link: '/prodotti?category=bevande'
     }
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Header />
       
       {/* Hero Section */}
@@ -206,7 +360,7 @@ const Index = () => {
             <span className="px-2">Servizio di consegna a domicilio su Bari e dintorni</span>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
-            <Link to="/products">
+            <Link to="/prodotti">
               <Button size="lg" className="bg-white text-[#1B5AAB] hover:bg-gray-100 font-semibold px-8 py-3">
                 Scopri i Prodotti
                 <ArrowRight className="ml-2 w-5 h-5" />
@@ -358,7 +512,7 @@ const Index = () => {
           )}
           
           <div className="text-center">
-            <Link to="/products">
+            <Link to="/prodotti">
               <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white">
                 Vedi Tutti i Prodotti
                 <ArrowRight className="ml-2 w-5 h-5" />
@@ -368,56 +522,57 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Modern Features Section - Compact and always horizontal */}
-      <section className="py-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 relative overflow-hidden">
-        {/* Background decorative elements */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-5 left-5 w-20 h-20 bg-blue-400/20 rounded-full blur-2xl animate-pulse"></div>
-          <div className="absolute bottom-5 right-5 w-16 h-16 bg-purple-400/20 rounded-full blur-xl animate-pulse delay-1000"></div>
-        </div>
+      {/* Image Carousel Section */}
+      <section className="py-20 bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 relative overflow-hidden">
+        {/* Background decorativo */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.05),transparent_50%)] pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(147,197,253,0.08),transparent_50%)] pointer-events-none" />
         
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-2 gap-3 max-w-2xl mx-auto">
-            {/* Consegna Veloce - Compact */}
-            <div className="group">
-              <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-4 h-full border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                <div className="text-center">
-                  <div className="relative mb-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
-                      <Truck className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <h3 className="text-sm font-bold mb-2 text-gray-800 group-hover:text-blue-600 transition-colors duration-300">
-                    <span className="text-transparent bg-gradient-to-r from-blue-500 to-blue-700 bg-clip-text">
-                      Consegna Veloce
-                    </span>
-                  </h3>
-                  <p className="text-gray-600 text-xs leading-relaxed">
-                    Consegna gratuita su Bari per ordini superiori a 5€                 </p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Orari Flessibili - Compact */}
-            <div className="group">
-              <div className="bg-white/90 backdrop-blur-lg rounded-2xl p-4 h-full border border-white/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                <div className="text-center">
-                  <div className="relative mb-3">
-                    <div className="w-12 h-12 mx-auto bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md group-hover:shadow-lg transition-all duration-300">
-                      <Clock className="w-6 h-6 text-white" />
-                    </div>
-                  </div>
-                  <h3 className="text-sm font-bold mb-2 text-gray-800 group-hover:text-purple-600 transition-colors duration-300">
-                    <span className="text-transparent bg-gradient-to-r from-purple-500 to-indigo-600 bg-clip-text">
-                      Orari Flessibili
-                    </span>
-                  </h3>
-                  <p className="text-gray-600 text-xs leading-relaxed">
-                    Consegne dal lunedì al sabato negli orari che preferisci
-                  </p>
-                </div>
-              </div>
-            </div>
+        <div className="container mx-auto px-4 relative">
+          {/* Titolo con icona Instagram cliccabile */}
+          <div className="text-center mb-12">
+            <a 
+              href="https://www.instagram.com/imperatorebevande/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-block group cursor-pointer transition-all duration-300 hover:scale-105"
+            >
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 bg-clip-text text-transparent flex items-center justify-center gap-3 group-hover:from-pink-600 group-hover:via-purple-600 group-hover:to-blue-600 transition-all duration-300">
+                <svg className="w-8 h-8 md:w-10 md:h-10 text-pink-500 group-hover:text-pink-600 transition-colors duration-300 group-hover:rotate-12" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
+                #imperatorebevande
+              </h2>
+            </a>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Clicca per visitare il nostro profilo Instagram e scoprire tutte le novità
+            </p>
+          </div>
+          
+          <ImageCarousel 
+            images={shuffledImages}
+            className="max-w-7xl mx-auto"
+          />
+        </div>
+      </section>
+
+      {/* Zone di Consegna */}
+      <section className="py-16 bg-gradient-to-r from-blue-50 to-blue-100">
+        <div className="container mx-auto px-4">
+          <DeliveryZoneMap 
+            onZoneDetected={(zone) => setIsZoneCovered(!!zone)} 
+            onZoneError={(error) => setHasZoneError(!!error)}
+          />
+          
+          {/* Call to Action Button */}
+          <div className="text-center mt-8">
+            {isZoneCovered && !hasZoneError && (
+              <Link to="/prodotti">
+                <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 py-4 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                   Ordina Ora - Scopri i Nostri Prodotti
+                 </Button>
+              </Link>
+            )}
           </div>
         </div>
       </section>
@@ -452,7 +607,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-12">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-8">
+          <div className="grid md:grid-cols-3 gap-8">
             <div>
               <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Imperatore Bevande</h3>
               <p className="text-gray-400">
@@ -464,35 +619,50 @@ const Index = () => {
               <h4 className="font-semibold mb-4">Link Utili</h4>
               <ul className="space-y-2 text-gray-400">
                 <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
-                <li><Link to="/products" className="hover:text-white transition-colors">Prodotti</Link></li>
-                <li><a href="#" className="hover:text-white transition-colors">Chi Siamo</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contatti</a></li>
+                <li><Link to="/prodotti" className="hover:text-white transition-colors">Prodotti</Link></li>
+                <li><Link to="/chisiamo" className="hover:text-white transition-colors">Chi Siamo</Link></li>
+                <li><Link to="/contatti" className="hover:text-white transition-colors">Contatti</Link></li>
               </ul>
             </div>
             
-            <div>
-              <h4 className="font-semibold mb-4">Servizi</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Consegna a Domicilio</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Zona di Consegna</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Orari di Consegna</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Modalità di Pagamento</a></li>
-              </ul>
-            </div>
-            
-            <div>
+            <div className="md:col-span-1">
               <h4 className="font-semibold mb-4">Contatti</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li>📞 Tel: +39 XXX XXX XXXX</li>
-                <li>📧 Email: info@imperatorebevande.it</li>
-                <li>📍 Bari, Puglia</li>
-                <li>🕒 Lun-Sab: 8:00-18:00</li>
-              </ul>
+              <div className="space-y-3 text-gray-400">
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">📞</span>
+                  <div>
+                    <p className="font-medium text-white">Telefono</p>
+                    <a href="tel:+393402486783" className="hover:text-blue-400 transition-colors">+39 340 2486783</a>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">📧</span>
+                  <div>
+                    <p className="font-medium text-white">Email</p>
+                    <p>info@imperatorebevande.it</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">📍</span>
+                  <div>
+                    <p className="font-medium text-white">Ubicazione</p>
+                    <p>Bari, Puglia</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="text-xl">🕒</span>
+                  <div>
+                    <p className="font-medium text-white">Orari</p>
+                    <p>Lun-Ven: 07:00-16:00</p>
+                    <p>Sab: 07:00-14:00</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
           
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Imperatore Bevande. Tutti i diritti riservati.</p>
+            <p>&copy; 2025 Imperatore Bevande. Tutti i diritti riservati.</p>
           </div>
         </div>
       </footer>

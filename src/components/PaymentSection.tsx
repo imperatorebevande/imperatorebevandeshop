@@ -2,6 +2,7 @@ import React from 'react';
 import { CreditCard, Loader2 } from 'lucide-react';
 import PayPalNativeCheckout from './PayPalNativeCheckout';
 import StripeCheckout from './StripeCheckout';
+import SatispayCheckout from './SatispayCheckout';
 
 interface PaymentSectionProps {
   paymentGatewaysLoading: boolean;
@@ -15,6 +16,8 @@ interface PaymentSectionProps {
   onPayPalError?: (error: any) => void;
   onStripeSuccess?: (paymentIntent: any) => void;
   onStripeError?: (error: any) => void;
+  onSatispaySuccess?: (details: any) => void;
+  onSatispayError?: (error: any) => void;
 }
 
 // Funzioni helper per le descrizioni
@@ -43,6 +46,10 @@ const getFullDescription = (gateway: any) => {
       return 'Paga in modo sicuro con la tua carta di credito. I tuoi dati sono protetti con crittografia SSL.';
     case 'paypal':
       return 'Paga facilmente e in sicurezza con il tuo account PayPal.';
+    case 'satispay':
+      return 'Paga velocemente e in sicurezza con Satispay direttamente dal tuo smartphone. IMPORTANTE: L\'ordine verrà creato solo dopo la conferma del pagamento tramite Satispay.';
+    case 'bacs':
+      return 'Effettua un bonifico bancario. Riceverai le coordinate bancarie dopo aver confermato l\'ordine.';
     default:
       return gateway.description;
   }
@@ -77,7 +84,9 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
   onPayPalSuccess,
   onPayPalError,
   onStripeSuccess,
-  onStripeError
+  onStripeError,
+  onSatispaySuccess,
+  onSatispayError
 }) => {
   if (paymentGatewaysLoading) {
     return (
@@ -183,8 +192,23 @@ const PaymentSection: React.FC<PaymentSectionProps> = ({
                 </div>
               )}
 
+              {/* Sezione espansa per Satispay */}
+              {isSelected && gateway.id === 'satispay' && onSatispaySuccess && onSatispayError && (
+                <div className="ml-9 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-600 mb-3">
+                    {getFullDescription(gateway)}
+                  </p>
+                  <SatispayCheckout
+                    amount={orderTotal}
+                    currency="EUR"
+                    onSuccess={onSatispaySuccess}
+                    onError={onSatispayError}
+                  />
+                </div>
+              )}
+
               {/* Sezione espansa per altri metodi */}
-              {isSelected && gateway.id !== 'paypal' && gateway.id !== 'stripe' && (
+              {isSelected && gateway.id !== 'paypal' && gateway.id !== 'stripe' && gateway.id !== 'satispay' && (
                 <div className="ml-9 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <p className="text-sm text-gray-600">
                     {getFullDescription(gateway)}

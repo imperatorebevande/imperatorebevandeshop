@@ -121,15 +121,13 @@ const Products = () => {
   // Carica la prima pagina di prodotti (100 prodotti)
   const { data: firstPageProducts = [], error: firstPageError, isLoading: isLoadingFirstPage } = useWooCommerceProducts({
     per_page: 100,
-    page: 1,
-    status: 'publish'
+    page: 1
   });
   
   // Carica la seconda pagina di prodotti (i rimanenti)
   const { data: secondPageProducts = [], error: secondPageError, isLoading: isLoadingSecondPage } = useWooCommerceProducts({
     per_page: 100,
-    page: 2,
-    status: 'publish'
+    page: 2
   });
   
   // Definisci la variabile error combinando gli errori di entrambe le pagine
@@ -309,7 +307,8 @@ const Products = () => {
         description: (product.description || product.short_description || '').replace(/<[^>]*>/g, '').trim(),
         inStock: product.stock_status === 'instock',
         category: category,
-        categories: product.categories
+        categories: product.categories,
+        slug: product.slug
       };
     })
     .filter(product => {
@@ -339,7 +338,7 @@ const Products = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
         <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center py-16">
@@ -363,7 +362,7 @@ const Products = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Header />
       
       {/* Pulsante Riordina Ultimo Acquisto - Fisso sotto l'header */}
@@ -536,12 +535,12 @@ const Products = () => {
                     <ProductCard
                       key={product.id}
                       product={product}
-                      viewMode={viewMode}
                     />
                   ))}
                 </div>
               </div>
             ))}
+
           </div>
         )}
 

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar } from '@/components/ui/calendar';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { wooCommerceService } from '@/services/woocommerce';
 import { toast } from 'sonner';
 import { it } from 'date-fns/locale'; // AGGIUNTO: Locale italiano
+import { DeliveryZone, getRecommendedTimeSlotsForZone, getExcludedTimeSlotsForZone } from '@/config/deliveryZones';
 
 // Interfacce basate sulla risposta API reale
 interface ApiSlot {
@@ -25,9 +26,10 @@ interface DeliveryCalendarProps {
     deliveryTimeSlot: string;
   };
   onDateTimeChange: (date: string, timeSlot: string) => void;
+  deliveryZone?: DeliveryZone | null;
 }
 
-const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTimeChange }) => {
+const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTimeChange, deliveryZone }) => {
   const [apiData, setApiData] = useState<ApiSlot[]>([]);
   const [availableDates, setAvailableDates] = useState<Date[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(
@@ -37,6 +39,19 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState<boolean>(false); // NUOVO
   const [error, setError] = useState<string | null>(null);
+
+  // Log della zona di consegna quando cambia
+  useEffect(() => {
+    if (deliveryZone) {
+      console.log('🎯 Zona di consegna ricevuta nel calendario:', {
+        id: deliveryZone.id,
+        name: deliveryZone.name,
+        description: deliveryZone.description
+      });
+    } else {
+      console.log('⚠️ Nessuna zona di consegna specificata nel calendario');
+    }
+  }, [deliveryZone]);
 
   // Fasce orarie standard sempre visibili
   const standardTimeSlots = [
@@ -126,8 +141,41 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
       const timeSlots = await wooCommerceService.getDeliveryTimeSlotsForDate(dateString);
       
       if (timeSlots && Array.isArray(timeSlots) && timeSlots.length > 0) {
-        const availableSlots = timeSlots.map(slot => slot.time_slot).filter(Boolean);
-        console.log('✅ Time slots dinamici disponibili:', availableSlots);
+        let availableSlots = timeSlots.map(slot => slot.time_slot).filter(Boolean);
+        
+        // Filtra le fasce orarie in base alla zona di consegna
+        if (deliveryZone) {
+          console.log(`🔍 Filtraggio time slots per zona ${deliveryZone.name} (ID: ${deliveryZone.id})`);
+          console.log('📋 Time slots originali dall\'API:', availableSlots);
+          
+          const excludedSlots = getExcludedTimeSlotsForZone(deliveryZone.id);
+          const recommendedSlots = getRecommendedTimeSlotsForZone(deliveryZone.id);
+          
+          console.log('❌ Fasce orarie escluse:', excludedSlots);
+          console.log('⭐ Fasce orarie raccomandate:', recommendedSlots);
+          
+          // Rimuovi le fasce orarie escluse
+          const slotsBeforeExclusion = [...availableSlots];
+          availableSlots = availableSlots.filter(slot => !excludedSlots.includes(slot));
+          
+          if (excludedSlots.length > 0) {
+            console.log('🚫 Time slots dopo rimozione esclusi:', availableSlots);
+            console.log('🗑️ Time slots rimossi:', slotsBeforeExclusion.filter(slot => !availableSlots.includes(slot)));
+          }
+          
+          // Se ci sono fasce raccomandate, ordinale per prime
+          if (recommendedSlots.length > 0) {
+            const recommended = availableSlots.filter(slot => recommendedSlots.includes(slot));
+            const others = availableSlots.filter(slot => !recommendedSlots.includes(slot));
+            availableSlots = [...recommended, ...others];
+            console.log('📊 Time slots riordinati (raccomandati primi):', availableSlots);
+          }
+          
+          console.log(`✅ Time slots finali per zona ${deliveryZone.name}:`, availableSlots);
+        } else {
+          console.log('✅ Time slots dinamici disponibili (nessuna zona):', availableSlots);
+        }
+        
         setAvailableTimeSlots(availableSlots);
       } else {
         console.log('❌ Nessun time slot disponibile per questa data');
@@ -142,15 +190,16 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     }
   }, []); // Rimuovi apiData dalle dipendenze
 
-  // Effetto per caricare gli slot quando cambia la data selezionata
+  // Effetto per caricare gli slot quando cambia la data selezionata o la zona
   useEffect(() => {
     if (selectedDate) {
       console.log('📅 Data selezionata cambiata:', formatDateLocal(selectedDate));
+      console.log('🎯 Zona corrente:', deliveryZone ? `${deliveryZone.name} (${deliveryZone.id})` : 'Nessuna zona');
       loadTimeSlotsForDate(selectedDate);
     } else {
       setAvailableTimeSlots([]);
     }
-  }, [selectedDate, loadTimeSlotsForDate]);
+  }, [selectedDate, loadTimeSlotsForDate, deliveryZone]);
 
   // Auto-selezione della prima data disponibile
   useEffect(() => {
@@ -183,6 +232,17 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     if (date) {
       const dateString = formatDateLocal(date);
       onDateTimeChange(dateString, ''); // Reset time slot
+      
+      // Scroll automatico alla sezione degli orari
+      setTimeout(() => {
+        const timeSlotsSection = document.getElementById('time-slots-section');
+        if (timeSlotsSection) {
+          timeSlotsSection.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+          });
+        }
+      }, 100); // Piccolo delay per assicurarsi che la sezione sia renderizzata
     } else {
       onDateTimeChange('', '');
       setAvailableTimeSlots([]);
@@ -274,6 +334,70 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     }
   }, [availableDates, selectedDate, onDateTimeChange]);
 
+  // Funzione per ottenere il nome del mese in italiano
+  const getMonthName = (date: Date) => {
+    const months = [
+      'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+      'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+    ];
+    return months[date.getMonth()];
+  };
+
+  // Funzione per ottenere i giorni della settimana
+  const getDaysOfWeek = () => {
+    return ['Lu', 'Ma', 'Me', 'Gi', 'Ve', 'Sa', 'Do'];
+  };
+
+  // Funzione per generare il calendario del mese
+  const generateCalendarDays = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    
+    // Trova il lunedì della settimana che contiene il primo giorno
+    const dayOfWeek = firstDay.getDay();
+    const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    startDate.setDate(firstDay.getDate() - daysToSubtract);
+    
+    const days = [];
+    const currentDate = new Date(startDate);
+    
+    // Genera 42 giorni (6 settimane)
+    for (let i = 0; i < 42; i++) {
+      days.push(new Date(currentDate));
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return days;
+  };
+
+  // Stato per il mese corrente visualizzato
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  // Funzione per verificare se una data ha slot disponibili
+  const hasAvailableSlots = (date: Date) => {
+    const dateString = formatDateLocal(date);
+    return availableDates.some(availableDate => 
+      formatDateLocal(availableDate) === dateString
+    );
+  };
+
+  // Funzione per ottenere il colore dell'indicatore
+  const getDateIndicatorColor = (date: Date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPast = date < today;
+    const isSunday = date.getDay() === 0;
+    const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+    
+    if (!isCurrentMonth || isPast) return null;
+    if (isSunday) return 'bg-red-800'; // Rosso scuro per domenica (chiuso)
+    if (hasAvailableSlots(date)) return 'bg-green-800'; // Verde scuro per disponibile
+    return null;
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
@@ -309,32 +433,119 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
     );
   }
 
+  const calendarDays = generateCalendarDays(currentMonth);
+
   return (
     <div className="space-y-6">
-      
       <div>
-        <Label className="text-base font-medium mb-3 block text-center text-blue-800">Seleziona la data in cui vorresti la consegna</Label>
-        <div className="flex justify-center">
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={handleDateSelect}
-            disabled={isDateDisabled}
-            locale={it} // AGGIUNTO: Locale italiano
-            weekStartsOn={1} // AGGIUNTO: Inizia da lunedì (1 = lunedì, 0 = domenica)
-            className="rounded-md border"
-            components={{
-              DayContent: ({ date }) => customDayContent(date) // AGGIUNTO: Rendering personalizzato
-            }}
-          />
+        <Label className="text-base font-medium mb-3 block text-center text-blue-800">
+          Seleziona la data in cui vorresti la consegna
+        </Label>
+        
+        {/* Calendario personalizzato */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 max-w-md mx-auto">
+          {/* Header con navigazione */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              onClick={() => {
+                const newMonth = new Date(currentMonth);
+                newMonth.setMonth(currentMonth.getMonth() - 1);
+                setCurrentMonth(newMonth);
+              }}
+              className="p-2 rounded-xl border-2 border-blue-200 hover:bg-blue-50 transition-colors"
+            >
+              <ChevronLeft className="h-5 w-5 text-blue-600" />
+            </button>
+            
+            <h2 className="text-2xl font-bold text-blue-800">
+              {getMonthName(currentMonth)} {currentMonth.getFullYear()}
+            </h2>
+            
+            <button
+              onClick={() => {
+                const newMonth = new Date(currentMonth);
+                newMonth.setMonth(currentMonth.getMonth() + 1);
+                setCurrentMonth(newMonth);
+              }}
+              className="p-2 rounded-xl border-2 border-blue-200 hover:bg-blue-50 transition-colors"
+            >
+              <ChevronRight className="h-5 w-5 text-blue-600" />
+            </button>
+          </div>
+          
+          {/* Giorni della settimana */}
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {getDaysOfWeek().map((day) => (
+              <div key={day} className="text-center text-sm font-medium text-gray-600 py-2">
+                {day}
+              </div>
+            ))}
+          </div>
+          
+          {/* Griglia del calendario */}
+          <div className="grid grid-cols-7 gap-1">
+            {calendarDays.map((date, index) => {
+              const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+              const isSelected = selectedDate && formatDateLocal(selectedDate) === formatDateLocal(date);
+              const isDisabled = isDateDisabled(date);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const isToday = date.getTime() === today.getTime();
+              const isSunday = date.getDay() === 0;
+              const indicatorColor = getDateIndicatorColor(date);
+              
+              return (
+                <button
+                  key={index}
+                  onClick={() => {
+                    if (!isDisabled && isCurrentMonth) {
+                      handleDateSelect(date);
+                    }
+                  }}
+                  disabled={isDisabled || !isCurrentMonth}
+                  className={`
+                    relative h-12 w-12 rounded-xl text-sm font-medium transition-all duration-200
+                    ${
+                      !isCurrentMonth
+                        ? 'text-gray-300 cursor-default'
+                        : isSelected
+                        ? 'bg-green-600 text-white shadow-lg transform scale-105' // Verde per selezionato
+                        : isDisabled
+                        ? 'text-gray-400 cursor-not-allowed'
+                        : 'text-blue-800 hover:bg-gray-100 cursor-pointer' // Blu per le date normali
+                    }
+                    ${
+                      isToday && !isSelected
+                        ? 'bg-gray-200 font-bold'
+                        : ''
+                    }
+                  `}
+                >
+                  <span className="relative z-10">{date.getDate()}</span>
+                  
+                  {/* Indicatore colorato */}
+                  {indicatorColor && (
+                    <div className={`absolute bottom-1 left-1/2 transform -translate-x-1/2 w-6 h-1 rounded-full ${indicatorColor}`} />
+                  )}
+                  
+                  {/* X per date al completo */}
+                  {isDisabled && !isSunday && isCurrentMonth && (
+                    <span className="absolute inset-0 flex items-center justify-center text-red-500 font-bold text-lg z-20">×</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
+      {/* Sezione fasce orarie rimane invariata */}
       {selectedDate && (
-        <div>
-          <Label className="text-base font-medium mb-3 block text-center text-blue-800">Seleziona la Fascia Oraria</Label>
+        <div id="time-slots-section">
+          <Label className="text-base font-medium mb-3 block text-center text-blue-800">
+            Seleziona la Fascia Oraria
+          </Label>
           
-          {/* NUOVO: Mostra loading durante il caricamento */}
           {isLoadingTimeSlots ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin" />
@@ -344,11 +555,10 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ formData, onDateTim
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {standardTimeSlots
                 .filter(timeSlot => {
-                  // Se è sabato, nascondi gli slot 14:00-15:00 e 15:00-16:00
-                  if (selectedDate && selectedDate.getDay() === 6) { // 6 = sabato
+                  if (selectedDate && selectedDate.getDay() === 6) {
                     return timeSlot !== "14:00 - 15:00" && timeSlot !== "15:00 - 16:00";
                   }
-                  return true; // Mostra tutti gli slot per gli altri giorni
+                  return true;
                 })
                 .map((timeSlot, index) => {
                 const isAvailable = availableTimeSlots.includes(timeSlot);

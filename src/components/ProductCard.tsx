@@ -21,6 +21,7 @@ interface Product {
   description?: string;
   short_description?: string;
   bottleQuantity?: number;
+  slug?: string;
 }
 
 interface ProductCardProps {
@@ -190,7 +191,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       )}
 
       <div className="relative h-40 sm:h-48 md:h-56 overflow-hidden bg-gray-50">
-        <Link to={`/product/${product.id}`}>
+        <Link to={`/prodotti/${product.slug || product.id}`}>
           <img
             src={product.image}
             alt={product.name}
@@ -252,7 +253,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       </div>
 
       <div className="p-2">
-        <Link to={`/product/${product.id}`}>
+        <Link to={`/prodotti/${product.slug || product.id}`}>
           <h3 className="font-bold mb-1 text-xs sm:text-sm line-clamp-2 hover:opacity-80 transition-colors" style={{color: '#1B5AAB'}}>
             {product.name}
           </h3>

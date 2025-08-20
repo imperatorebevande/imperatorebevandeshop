@@ -10,7 +10,24 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Separare le librerie principali in chunk dedicati
+          'react-vendor': ['react', 'react-dom'],
+          'router-vendor': ['react-router-dom'],
+          'ui-vendor': ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-toast'],
+          'query-vendor': ['@tanstack/react-query'],
+          'payment-vendor': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
+          'animation-vendor': ['lottie-react'],
+          'form-vendor': ['react-hook-form', '@hookform/resolvers'],
+          'chart-vendor': ['recharts'],
+          'utils-vendor': ['axios', 'date-fns', 'zod']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
   },
   server: {
     port: 8080,
