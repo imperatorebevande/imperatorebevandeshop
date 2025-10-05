@@ -1,81 +1,125 @@
-import React from 'react';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
-import { toast } from 'sonner';
+import React, { useState } from 'react';
+import { PayPalButtons, PayPalScriptProvider } from '@paypal/react-paypal-js';
+import { toast } from '@/hooks/use-toast';
+import { configService } from '@/services/configService';
+import { Loader2 } from 'lucide-react';
 
 interface PayPalNativeCheckoutProps {
-  amount: string;
-  currency?: string;
+  amount: number;
+  currency: string;
+  billingAddress?: {
+    firstName: string;
+    lastName: string;
+    address: string;
+    city: string;
+    province: string;
+    postalCode: string;
+    country: string;
+    email: string;
+    phone: string;
+  };
+  env?: string;
   onSuccess: (details: any) => void;
-  onError: (error: any) => void;
+  onError?: (error: any) => void;
   onCancel?: () => void;
+  showCardOnly?: boolean;
 }
 
-const PayPalNativeCheckout: React.FC<PayPalNativeCheckoutProps> = ({
-  amount,
-  currency = 'EUR',
-  onSuccess,
-  onError,
-  onCancel
+const PayPalNativeCheckout: React.FC<PayPalNativeCheckoutProps> = ({ 
+  amount, 
+  currency, 
+  billingAddress, 
+  env = 'production',
+  onSuccess, 
+  onError, 
+  onCancel, 
+  showCardOnly = false 
 }) => {
-  const paypalClientId = import.meta.env.VITE_PAYPAL_CLIENT_ID;
+  const config = configService.getPayPalConfig();
+  const [isProcessing, setIsProcessing] = useState(false);
 
+  // Configurazione PayPal con disabilitazione delle carte di credito/debito
   const initialOptions = {
-    'client-id': paypalClientId,
+    clientId: config.clientId,
     currency: currency,
     intent: 'capture',
-    // Aggiungi opzioni per migliorare la gestione del modal
-    'disable-funding': 'credit,card,mybank',
-    'data-page-type': 'checkout'
-  };
-
-  const createOrder = (data: any, actions: any) => {
-    return actions.order.create({
-      purchase_units: [
-        {
-          amount: {
-            currency_code: currency,
-            value: amount,
-          },
-        },
-      ],
-    });
-  };
-
-  const onApprove = (data: any, actions: any) => {
-    return actions.order.capture().then((details: any) => {
-      toast.success('Pagamento completato con successo!');
-      onSuccess(details);
-    });
-  };
-
-  const onErrorHandler = (err: any) => {
-    console.error('PayPal Checkout onError', err);
-    toast.error('Errore durante il pagamento PayPal');
-    onError(err);
-  };
-
-  const onCancelHandler = () => {
-    toast.info('Pagamento PayPal annullato');
-    if (onCancel) onCancel();
+    'disable-funding': 'card,credit,paylater,bancontact,blik,eps,giropay,ideal,mercadopago,mybank,p24,sepa,sofort,venmo'
   };
 
   return (
     <PayPalScriptProvider options={initialOptions}>
-      <div className="paypal-container relative z-10">
+      <div className="paypal-container relative">
+        {isProcessing && (
+          <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              <span className="text-sm text-gray-700">Reindirizzamento a PayPal...</span>
+            </div>
+          </div>
+        )}
         <PayPalButtons
           style={{
             layout: 'vertical',
             color: 'blue',
             shape: 'rect',
-            label: 'paypal',
-            height: 40
+            label: 'paypal'
           }}
-          createOrder={createOrder}
-          onApprove={onApprove}
-          onError={onErrorHandler}
-          onCancel={onCancelHandler}
-          // Aggiungi questa opzione per migliorare la gestione del modal
-          forceReRender={[amount, currency]}
+          createOrder={(data, actions) => {
+            setIsProcessing(true);
+            return actions.order.create({
+              intent: 'CAPTURE',
+              purchase_units: [
+                {
+                  amount: {
+                    value: amount.toFixed(2),
+                    currency_code: currency
+                  }
+                }
+              ]
+            });
+          }}
+          onApprove={async (data, actions) => {
+            try {
+              if (actions.order) {
+                const details = await actions.order.capture();
+                toast({
+                  title: "Pagamento completato",
+                  description: "Pagamento completato con successo!",
+                  variant: "default"
+                });
+                onSuccess(details);
+              }
+            } catch (error) {
+              console.error('Errore durante l\'approvazione:', error);
+              toast({
+                title: "Errore pagamento",
+                description: "Errore durante il completamento del pagamento",
+                variant: "destructive"
+              });
+              if (onError) onError(error);
+            } finally {
+              setIsProcessing(false);
+            }
+          }}
+          onError={(err: any) => {
+            console.error('Errore PayPal:', err);
+            toast({
+              title: "Errore PayPal",
+              description: "Errore durante il pagamento PayPal",
+              variant: "destructive"
+            });
+            setIsProcessing(false);
+            if (onError) onError(err);
+          }}
+          onCancel={() => {
+            toast({
+              title: "Pagamento annullato",
+              description: "Pagamento PayPal annullato",
+              variant: "default"
+            });
+            setIsProcessing(false);
+            if (onCancel) onCancel();
+          }}
         />
       </div>
     </PayPalScriptProvider>

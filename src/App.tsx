@@ -8,7 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 
-// Lazy loading delle pagine per code-splitting
+// Lazy load components
 const Index = React.lazy(() => import("./pages/Index"));
 const Products = React.lazy(() => import("./pages/Products"));
 const ProductDetail = React.lazy(() => import("./pages/ProductDetail"));
@@ -26,8 +26,11 @@ const Contatti = React.lazy(() => import("./pages/Contatti"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const AutoLogin = React.lazy(() => import("./components/AutoLogin"));
 const AdminZoneManager = React.lazy(() => import("./pages/AdminZoneManager"));
+const AdminConfig = React.lazy(() => import("./pages/AdminConfig"));
+const Admin = React.lazy(() => import("./pages/Admin"));
 
-// Componente di loading
+
+
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -48,10 +51,13 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/prodotti" element={<Products />} />
+        <Route path="/prodotti/categoria/:category" element={<Products />} />
+        <Route path="/prodotti/categoria/:category/sottocategoria/:subcategory" element={<Products />} />
                 <Route path="/prodotti/:slug" element={<ProductDetail />} />
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/order-success" element={<OrderSuccess />} />
+
                 <Route path="/account" element={<Account />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
@@ -61,7 +67,10 @@ const App = () => (
                 <Route path="/contatti" element={<Contatti />} />
         
                 <Route path="/auto-login/:userId" element={<AutoLogin />} />
+                <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/zones" element={<AdminZoneManager />} />
+                <Route path="/admin/config" element={<AdminConfig />} />
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

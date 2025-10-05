@@ -120,7 +120,6 @@ const FAQ = () => {
                 <li>🌐 Con la tua <strong>carta di credito / Bancomat</strong> direttamente dal nostro sito internet</li>
                 <li>🅿️ Con il tuo account <strong>PayPal</strong></li>
                 <li>🏦 Pagare direttamente effettuando un <strong>bonifico bancario</strong>. Le coordinate bancarie vi verranno inviate automaticamente scegliendolo come metodo di pagamento 📧</li>
-                <li>📱 Utilizzare il più moderno e comodo <strong>Satispay</strong> tramite il tuo smartphone ⚡</li>
               </ul>
               <p className="text-blue-600">🤔 Ci sono altri metodo di pagamento 🤔🤔?? Non credo 🤣😂</p>
             </div>

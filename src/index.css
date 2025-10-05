@@ -21,6 +21,112 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Fix per PayPal touch su mobile - Versione Aggressiva */
+.paypal-buttons-container,
+.paypal-integrated-checkout,
+[data-funding-source],
+[data-paypal-button],
+.paypal-button,
+.paypal-button-container {
+  touch-action: manipulation !important;
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  z-index: 999 !important;
+  cursor: pointer !important;
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
+}
+
+/* Assicura che i pulsanti PayPal siano cliccabili su mobile */
+.paypal-buttons-container iframe,
+.paypal-integrated-checkout iframe,
+.paypal-buttons-container *,
+.paypal-integrated-checkout * {
+  pointer-events: auto !important;
+  touch-action: manipulation !important;
+  -webkit-touch-callout: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+  cursor: pointer !important;
+}
+
+/* Fix per overlay che potrebbero bloccare il touch */
+.paypal-buttons-container::before,
+.paypal-integrated-checkout::before,
+.paypal-buttons-container::after,
+.paypal-integrated-checkout::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Rimuovi qualsiasi overlay o elemento che potrebbe interferire */
+.paypal-buttons-container > *,
+.paypal-integrated-checkout > * {
+  position: relative !important;
+  z-index: 1000 !important;
+}
+
+/* Migliora la responsività dei pulsanti PayPal */
+@media (max-width: 768px) {
+  .paypal-buttons-container,
+  .paypal-integrated-checkout {
+    min-height: 60px !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+  }
+  
+  .paypal-buttons-container iframe,
+  .paypal-integrated-checkout iframe {
+    min-height: 60px !important;
+    width: 100% !important;
+    border: none !important;
+    outline: none !important;
+  }
+  
+  /* Forza la visibilità e interattività su mobile */
+  .paypal-buttons-container,
+  .paypal-integrated-checkout,
+  .paypal-buttons-container *,
+  .paypal-integrated-checkout * {
+    -webkit-transform: translateZ(0) !important;
+    transform: translateZ(0) !important;
+    backface-visibility: hidden !important;
+  }
+  
+  /* Ottimizzazioni specifiche per PWA */
+  .paypal-buttons-container.pwa-optimized {
+    position: relative !important;
+    z-index: 9999 !important;
+    isolation: isolate !important;
+  }
+  
+  .paypal-buttons-container.pwa-optimized iframe {
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-backface-visibility: hidden !important;
+  }
+}
+
+/* Fix specifico per iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  .paypal-buttons-container,
+  .paypal-integrated-checkout {
+    -webkit-transform: translate3d(0, 0, 0) !important;
+    transform: translate3d(0, 0, 0) !important;
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -343,4 +449,18 @@
   background: rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Animazione pulse più lenta */
+.animate-pulse-slow {
+  animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }

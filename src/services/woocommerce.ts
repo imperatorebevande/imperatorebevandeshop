@@ -238,16 +238,22 @@ class WooCommerceService {
   private isConfigured = false;
 
   constructor() {
-    // Configurazione automatica con le tue credenziali
+    // Configurazione con variabili d'ambiente
+    const baseURL = import.meta.env.VITE_WOOCOMMERCE_URL || 'https://www.imperatorebevande.it';
+    const consumerKey = import.meta.env.VITE_WOOCOMMERCE_CONSUMER_KEY || 'ck_130da21fbbeddc098a110b2d43a56de1d5e43904';
+    const consumerSecret = import.meta.env.VITE_WOOCOMMERCE_CONSUMER_SECRET || 'cs_a8b506ead451a64501a90e870c6e006de3359262';
+    
     this.api = axios.create({
-      baseURL: 'https://imperatorebevande.it/wp-json/wc/v3',
+      baseURL: `${baseURL}/wp-json/wc/v3`,
       auth: {
-        username: 'ck_130da21fbbeddc098a110b2d43a56de1d5e43904',
-        password: 'cs_a8b506ead451a64501a90e870c6e006de3359262'
+        username: consumerKey,
+        password: consumerSecret
       },
       timeout: 10000,
     });
-    this.isConfigured = true;
+    
+    // Verifica se le credenziali sono configurate
+    this.isConfigured = !!(consumerKey && consumerSecret && baseURL);
   
     // Interceptor per gestire errori
     this.api.interceptors.response.use(
@@ -811,6 +817,22 @@ class WooCommerceService {
     }
   }
 
+  // METODO PER AGGIORNARE LO STATUS DELL'ORDINE
+  async updateOrderStatus(orderId: string | number, status: string): Promise<WooCommerceOrder> {
+    if (!this.isConfigured) {
+      throw new Error('WooCommerce non è configurato');
+    }
+
+    try {
+      const response = await this.api.put(`/orders/${orderId}`, { status });
+      console.log('WooCommerce order status updated:', response.data.number, 'to', status);
+      return response.data;
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento dello status dell\'ordine:', error);
+      throw error;
+    }
+  }
+
   // METODO PER AGGIORNARE LO STOCK DEI PRODOTTI
   async updateProductStock(productId: number, stockQuantity: number): Promise<WooCommerceProduct> {
     if (!this.isConfigured) {
@@ -1021,26 +1043,77 @@ class WooCommerceService {
     }
   }
 
-  // Aggiungi questo nuovo metodo nella classe WooCommerceService
-  async getDeliveryTimeSlotsForDate(date: string): Promise<any[]> {
+  // Nuovo metodo per caricare gli slot orari per una data specifica
+  async getDeliveryTimeSlotsForDate(date: string, deliveryZone?: string): Promise<string[]> {
     try {
-      const apiUrl = `https://imperatorebevande.it/wp-json/orddd/v1/delivery_schedule/0?date=${date}`;
+      console.log(`Caricamento slot orari per data ${date} e zona ${deliveryZone || 'tutte'}`);
       
-      console.log('Chiamata API fasce orarie per data:', apiUrl);
+      // Seconda fase: ottieni gli slot orari per la data specifica
+      const slotsApiUrl = `https://www.imperatorebevande.it/wp-json/orddd/v1/delivery_schedule/0?date=${date}`;
+      const slotsResponse = await fetch(slotsApiUrl);
       
-      const response = await axios.get(apiUrl, {
-        timeout: 10000,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+      if (!slotsResponse.ok) {
+        throw new Error(`Errore API slot orari: ${slotsResponse.status}`);
+      }
+      
+      const timeSlots = await slotsResponse.json();
+      console.log(`Slot orari ricevuti per ${date}:`, timeSlots);
+      
+      // Estrai le fasce orarie disponibili
+      let availableSlots = timeSlots
+        .filter((slot: any) => slot.time_slot && slot.time_slot.trim() !== '')
+        .map((slot: any) => slot.time_slot);
+      
+      // Applica filtro per zona di consegna se specificata
+      if (deliveryZone) {
+        console.log(`Applicazione filtro per zona ${deliveryZone}`);
+        
+        // Importa le funzioni di filtro per zona
+        const { getExcludedTimeSlotsForZone, getRecommendedTimeSlotsForZone } = await import('@/config/deliveryZones');
+        
+        const excludedSlots = getExcludedTimeSlotsForZone(deliveryZone);
+        const recommendedSlots = getRecommendedTimeSlotsForZone(deliveryZone);
+        
+        console.log(`Fasce orarie escluse per zona ${deliveryZone}:`, excludedSlots);
+        console.log(`Fasce orarie raccomandate per zona ${deliveryZone}:`, recommendedSlots);
+        
+        // Rimuovi le fasce orarie escluse per questa zona
+        const slotsBeforeFiltering = [...availableSlots];
+        availableSlots = availableSlots.filter(slot => !excludedSlots.includes(slot));
+        
+        if (excludedSlots.length > 0) {
+          console.log(`Slot rimossi per zona ${deliveryZone}:`, slotsBeforeFiltering.filter(slot => !availableSlots.includes(slot)));
         }
-      });
+        
+        // Riordina mettendo prima le fasce raccomandate
+        if (recommendedSlots.length > 0) {
+          const recommended = availableSlots.filter(slot => recommendedSlots.includes(slot));
+          const others = availableSlots.filter(slot => !recommendedSlots.includes(slot));
+          availableSlots = [...recommended, ...others];
+          console.log(`Slot riordinati per zona ${deliveryZone} (raccomandati primi):`, availableSlots);
+        }
+      }
       
-      console.log('Fasce orarie recuperate per', date, ':', response.data);
-      return response.data;
+      console.log(`Slot orari finali per ${date}:`, availableSlots);
+      return availableSlots;
     } catch (error) {
-      console.error('Errore nel recupero delle fasce orarie per la data', date, ':', error);
-      throw error;
+      console.error(`Errore nel caricamento slot orari per ${date}:`, error);
+      
+      // Fallback: restituisci slot standard
+      const dateObj = new Date(date);
+      const fallbackSlots = dateObj.getDay() === 6 ? [
+        '09:00 - 10:00',
+        '10:00 - 11:00'
+      ] : [
+        '09:00 - 10:00',
+        '10:00 - 11:00',
+        '11:00 - 12:00',
+        '15:00 - 16:00',
+        '16:00 - 17:00',
+        '17:00 - 18:00'
+      ];
+      
+      return fallbackSlots;
     }
   }
 
@@ -1091,26 +1164,74 @@ class WooCommerceService {
   // Metodo per recuperare date e fasce orarie di consegna
   async getDeliveryCalendar(): Promise<CalendarData> {
     try {
-      // Usa il proxy in sviluppo, URL diretto in produzione
-      const apiUrl = import.meta.env.DEV 
-        ? '/api/calendar' 
-        : 'https://www.imperatorebevande.it/oraricalendarioreact.php';
+      console.log('Caricamento date disponibili da API WooCommerce...');
       
-      console.log('Chiamata API calendario:', apiUrl);
+      // Prima fase: ottieni le date disponibili dall'API
+      const datesApiUrl = 'https://imperatorebevande.it/wp-json/orddd/v1/delivery_schedule/0?number_of_dates=30';
+      const datesResponse = await fetch(datesApiUrl);
       
-      const response = await axios.get(apiUrl, {
-        timeout: 10000,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      if (!datesResponse.ok) {
+        throw new Error(`Errore API date disponibili: ${datesResponse.status}`);
+      }
       
-      console.log('Calendario consegne recuperato:', response.data);
-      return response.data;
+      const availableDatesData = await datesResponse.json();
+      console.log('Date disponibili ricevute:', availableDatesData);
+      
+      // Estrai le date disponibili (escludendo 'select')
+      const availableDates: DeliveryTimeSlot[] = [];
+      
+      for (const [dateKey, dayLabel] of Object.entries(availableDatesData)) {
+        if (dateKey === 'select') continue; // Salta l'elemento 'select'
+        
+        // Converti il formato data da 'dd-mm-yyyy' a 'yyyy-mm-dd'
+        const [day, month, year] = dateKey.split('-');
+        const isoDateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        
+        availableDates.push({
+          date: isoDateString,
+          day: dayLabel as string,
+          slots: [], // Gli slot verranno caricati dinamicamente quando la data viene selezionata
+          available: true
+        });
+      }
+      
+      const calendarData: CalendarData = {
+        success: true,
+        data: availableDates,
+        message: 'Date disponibili caricate da API WooCommerce'
+      };
+      
+      console.log('Calendario date disponibili generato:', calendarData);
+      return calendarData;
     } catch (error) {
-      console.error('Errore nel recupero del calendario consegne:', error);
-      throw error;
+      console.error('Errore nel caricamento delle date disponibili:', error);
+      
+      // Fallback: genera calendario base
+      const availableDates: DeliveryTimeSlot[] = [];
+      const today = new Date();
+      
+      for (let i = 1; i <= 30; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        
+        if (date.getDay() === 0) continue; // Salta le domeniche
+        
+        const dateString = date.toISOString().split('T')[0];
+        const dayName = date.toLocaleDateString('it-IT', { weekday: 'long' });
+        
+        availableDates.push({
+          date: dateString,
+          day: dayName.charAt(0).toUpperCase() + dayName.slice(1),
+          slots: [],
+          available: true
+        });
+      }
+      
+      return {
+        success: true,
+        data: availableDates,
+        message: 'Calendario fallback generato'
+      };
     }
   }
 
@@ -1313,6 +1434,7 @@ export const wooCommerceService = new WooCommerceService();
 // Spostare le interfacce prima della classe (all'inizio del file, dopo gli altri import)
 export interface DeliveryTimeSlot {
   date: string;
+  day: string; // Nome del giorno (es. "Lunedì", "Martedì")
   slots: string[]; // CAMBIATO da timeSlots a slots
   available: boolean;
 }

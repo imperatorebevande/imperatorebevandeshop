@@ -1,13 +1,15 @@
 
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
 import DeliveryZoneMap from '@/components/DeliveryZoneMap';
 import ImageCarousel from '@/components/ImageCarousel';
+import ReorderModal from '@/components/ReorderModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowRight, Truck, Clock, MapPin, RotateCcw, Phone, MessageCircle } from 'lucide-react'; // ✅ Aggiunta RotateCcw, Phone e MessageCircle
+
 
 import { useWooCommerceSaleProducts, useWooCommerceCustomerOrders, useWooCommerceProducts } from '@/hooks/useWooCommerce';
 import { useAuth } from '@/context/AuthContext';
@@ -22,11 +24,51 @@ import { wooCommerceService } from '@/services/woocommerce';
 
 
 const Index = () => {
+  const navigate = useNavigate();
   const [isZoneCovered, setIsZoneCovered] = useState(false);
   const [hasZoneError, setHasZoneError] = useState(false);
+  const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
   const { authState } = useAuth();
   const { dispatch } = useCart();
   const [shuffledImages, setShuffledImages] = useState<any[]>([]);
+  const heroSectionRef = useRef<HTMLElement>(null);
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
+
+  // Categorie principali
+  const categories = [
+    {
+      name: 'Acqua',
+      bgColor: 'bg-gradient-to-br from-blue-100 to-blue-200',
+      textColor: 'text-blue-800',
+      icon: '💧',
+      link: '/prodotti/categoria/acqua',
+      description: 'Scopri la nostra selezione di acqua'
+    },
+    {
+      name: 'Birra',
+      bgColor: 'bg-gradient-to-br from-amber-100 to-amber-200',
+      textColor: 'text-amber-800',
+      icon: '🍺',
+      link: '/prodotti/categoria/birra',
+      description: 'Scopri la nostra selezione di birra'
+    },
+    {
+      name: 'Vino',
+      bgColor: 'bg-gradient-to-br from-purple-100 to-purple-200',
+      textColor: 'text-purple-800',
+      icon: '🍷',
+      link: '/prodotti/categoria/vino',
+      description: 'Scopri la nostra selezione di vino'
+    },
+    {
+      name: 'Bevande',
+      bgColor: 'bg-gradient-to-br from-green-100 to-green-200',
+      textColor: 'text-green-800',
+      icon: '🥤',
+      link: '/prodotti/categoria/bevande',
+      description: 'Scopri la nostra selezione di bevande'
+    }
+  ];
 
   // ✅ PRECARICAMENTO PRODOTTI - Carica tutti i prodotti in background
   // Questo renderà la navigazione verso lo shop molto più veloce
@@ -69,65 +111,9 @@ const Index = () => {
     }
   }, [allProductsPage1, allProductsPage2]);
 
-  // Funzione per aggiungere l'ultimo ordine al carrello
-  const addLastOrderToCart = async () => { // ✅ Resa asincrona
-    if (!lastOrder || !lastOrder.line_items) {
-      toast.error('Nessun ordine precedente trovato');
-      return;
-    }
-    
-    let addedItems = 0;
-    
-    // ✅ Usa Promise.all per recuperare tutti i prodotti in parallelo
-    try {
-      const productPromises = lastOrder.line_items.map(async (item: any) => {
-        try {
-          // Recupera il prodotto dall'API per ottenere l'immagine reale
-          const product = await wooCommerceService.getProduct(item.product_id);
-          
-          // Trasforma l'item dell'ordine nel formato del carrello
-          const cartItem = {
-            id: item.product_id,
-            name: item.name,
-            price: parseFloat(item.price),
-            image: product.images && product.images.length > 0 
-              ? product.images[0].src 
-              : '/placeholder.svg', // ✅ Usa l'immagine reale o fallback
-            category: 'altri'
-          };
-          
-          return { cartItem, quantity: item.quantity };
-        } catch (error) {
-          console.error(`Errore nel recupero del prodotto ${item.product_id}:`, error);
-          // ✅ Fallback in caso di errore
-          const cartItem = {
-            id: item.product_id,
-            name: item.name,
-            price: parseFloat(item.price),
-            image: '/placeholder.svg',
-            category: 'altri'
-          };
-          
-          return { cartItem, quantity: item.quantity };
-        }
-      });
-      
-      // ✅ Attendi che tutti i prodotti siano recuperati
-      const products = await Promise.all(productPromises);
-      
-      // ✅ Aggiungi tutti i prodotti al carrello
-      products.forEach(({ cartItem, quantity }) => {
-        for (let i = 0; i < quantity; i++) {
-          dispatch({ type: 'ADD_ITEM', payload: cartItem });
-        }
-        addedItems += quantity;
-      });
-      
-      toast.success(`${addedItems} prodotti dall'ultimo ordine aggiunti al carrello!`);
-    } catch (error) {
-      console.error('Errore nel recupero dei prodotti:', error);
-      toast.error('Errore nel recupero delle informazioni dei prodotti');
-    }
+  // Funzione per aprire la modale di riordino
+  const openReorderModal = () => {
+    setIsReorderModalOpen(true);
   };
   
   // Trasforma i prodotti WooCommerce nel formato atteso da ProductCard includendo stock status
@@ -309,86 +295,144 @@ const Index = () => {
     setShuffledImages(shuffleArray(carouselImages));
   }, []);
 
-  // Categorie principali
-  const categories = [
-    {
-      name: 'Acqua',
-      bgColor: 'bg-gradient-to-br from-blue-100 to-blue-200',
-      textColor: 'text-blue-800',
-      icon: '💧',
-      link: '/prodotti?category=acqua'
-    },
-    {
-      name: 'Birra',
-      bgColor: 'bg-gradient-to-br from-amber-100 to-amber-200',
-      textColor: 'text-amber-800',
-      icon: '🍺',
-      link: '/prodotti?category=birra'
-    },
-    {
-      name: 'Vino',
-      bgColor: 'bg-gradient-to-br from-purple-100 to-purple-200',
-      textColor: 'text-purple-800',
-      icon: '🍷',
-      link: '/prodotti?category=vino'
-    },
-    {
-      name: 'Bevande',
-      bgColor: 'bg-gradient-to-br from-green-100 to-green-200',
-      textColor: 'text-green-800',
-      icon: '🥤',
-      link: '/prodotti?category=bevande'
+  // Funzione per cambiare il background della sezione hero
+  const updateHeroBackground = (index: number) => {
+    if (heroSectionRef.current) {
+      const colors = [
+        'linear-gradient(135deg, #3B82F6, #1E40AF)', // Blu per Acqua
+        'linear-gradient(135deg, #F59E0B, #D97706)',  // Giallo/Ambra per Birra
+        'linear-gradient(135deg, #8B5CF6, #7C3AED)',  // Viola per Vino
+        'linear-gradient(135deg, #10B981, #059669)'   // Verde per Bevande
+      ];
+      
+      heroSectionRef.current.style.background = colors[index];
     }
-  ];
+  };
+
+  // Inizializza il background della sezione hero
+  useEffect(() => {
+    if (categories.length > 0) {
+      updateHeroBackground(0);
+    }
+  }, [categories.length]);
+
+  // Carousel automatico per le categorie
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentCategoryIndex((prevIndex) => {
+        const newIndex = (prevIndex + 1) % categories.length;
+        updateHeroBackground(newIndex);
+        return newIndex;
+      });
+    }, 4000); // Cambia categoria ogni 4 secondi
+
+    return () => clearInterval(interval);
+  }, []);
+
+
 
   return (
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Header />
       
-      {/* Hero Section */}
-      <section className="bg-[#1B5AAB] text-white py-8 sm:py-12 lg:py-20">
-        <div className="container mx-auto px-4 text-center">
+      {/* Hero Section with Category Carousel */}
+      <section 
+        ref={heroSectionRef}
+        className="relative overflow-hidden py-8 sm:py-12 lg:py-20" 
+        style={{
+          background: currentCategoryIndex === 0 ? 'linear-gradient(135deg, #3B82F6, #1E40AF)' : // Blu per Acqua
+                     currentCategoryIndex === 1 ? 'linear-gradient(135deg, #F59E0B, #D97706)' : // Giallo/Ambra per Birra
+                     currentCategoryIndex === 2 ? 'linear-gradient(135deg, #8B5CF6, #7C3AED)' : // Viola per Vino
+                     'linear-gradient(135deg, #10B981, #059669)' // Verde per Bevande
+        }}>
+        <div className="container mx-auto px-4 text-center text-white relative z-10">
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-4 sm:mb-6">
-            Imperatore
-            <span className="block text-blue-200">Bevande</span>
-          </h1>
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-6 sm:mb-8 opacity-90 max-w-3xl mx-auto px-2">
+             Imperatore Bevande
+           </h1>
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl mb-3 sm:mb-4 opacity-90 max-w-3xl mx-auto px-2">
             Consegna di acqua e bevande direttamente a casa tua a Bari
           </p>
-          <div className="flex items-center justify-center gap-2 mb-6 sm:mb-8 text-sm sm:text-base lg:text-lg">
-            <MapPin className="w-4 h-4 sm:w-6 sm:h-6 text-blue-200" />
-            <span className="px-2">Servizio di consegna a domicilio su Bari e dintorni</span>
+          <p className="text-sm sm:text-base md:text-lg mb-6 sm:mb-8 opacity-80 max-w-2xl mx-auto px-2">
+            Servizio di consegna a domicilio su Bari e dintorni
+          </p>
+          
+          {/* Category Carousel */}
+           <div className="mb-6 sm:mb-8">
+             <div className="relative h-32 sm:h-36 md:h-40 flex items-center justify-center">
+               {/* Mostra solo la categoria corrente con animazione */}
+                <div 
+                  key={currentCategoryIndex}
+                  className="absolute inset-0 flex flex-col items-center justify-center animate-in fade-in-0 slide-in-from-bottom-4 duration-700"
+                >
+                  <div className="text-4xl sm:text-5xl md:text-6xl mb-2 drop-shadow-lg">
+                    {categories[currentCategoryIndex]?.icon}
+                  </div>
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-bold mb-1 drop-shadow-lg">
+                    {categories[currentCategoryIndex]?.name}
+                  </h2>
+                  <p className="text-sm sm:text-base opacity-90 mb-3">
+                    {categories[currentCategoryIndex]?.description}
+                  </p>
+                  <Button 
+                    size="sm" 
+                    className="bg-white/20 backdrop-blur-sm text-white border-2 border-white/30 hover:bg-white/30 font-semibold px-4 py-2 text-sm transition-all duration-300"
+                    onClick={() => {
+                      const currentCategory = categories[currentCategoryIndex];
+                      console.log('Button clicked for category:', currentCategory?.name);
+                      console.log('Current category index:', currentCategoryIndex);
+                      console.log('Category object:', currentCategory);
+                      console.log('Navigating to:', currentCategory?.link);
+                      navigate(currentCategory?.link);
+                    }}
+                  >
+                    Esplora {categories[currentCategoryIndex]?.name}
+                    <ArrowRight className="ml-1 w-4 h-4" />
+                  </Button>
+                </div>
+             </div>
+            
+
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center px-4">
-            <Link to="/prodotti">
-              <Button size="lg" className="bg-white text-[#1B5AAB] hover:bg-gray-100 font-semibold px-8 py-3">
-                Scopri i Prodotti
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
-            
-            {/* Nuovo pulsante per l'ultimo ordine - solo se l'utente è loggato */}
-            {authState?.isAuthenticated && lastOrder && (
-              <Button 
-                size="lg" 
-                variant="outline"
-                className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#1B5AAB] font-semibold px-8 py-3"
-                onClick={addLastOrderToCart}
-                disabled={ordersLoading}
-              >
-                {ordersLoading ? (
-                  'Caricamento...'
-                ) : (
-                  <>
-                    <RotateCcw className="mr-2 w-5 h-5" />
-                    Riordina Ultimo Acquisto
-                  </>
-                )}
-              </Button>
-            )}          </div>
-            
+          
+
+          
+
+        </div>
+        
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'radial-gradient(circle at 25% 25%, white 2px, transparent 2px), radial-gradient(circle at 75% 75%, white 2px, transparent 2px)',
+            backgroundSize: '50px 50px'
+          }} />
         </div>
       </section>
+
+      {/* Riordina Ultimo Acquisto Section */}
+      {authState?.isAuthenticated && lastOrder && (
+        <section className="py-8 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="container mx-auto px-4 text-center">
+            <Button 
+              size="lg" 
+              className="text-white font-bold px-12 py-6 text-xl rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-300 transform hover:scale-105 w-full max-w-md mx-auto"
+              style={{backgroundColor: '#A11E26'}}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#8B1A21'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#A11E26'}
+              onClick={openReorderModal}
+              disabled={ordersLoading}
+            >
+              {ordersLoading ? (
+                'Caricamento...'
+              ) : (
+                <>
+                  <RotateCcw className="mr-2 w-5 h-5" />
+                  Riordina Ultimo Acquisto
+                </>
+              )}
+            </Button>
+          </div>
+        </section>
+      )}
 
       {/* How It Works Section - Horizontal scroll on mobile */}
       <section className="py-6 bg-white">
@@ -511,14 +555,7 @@ const Index = () => {
             </>
           )}
           
-          <div className="text-center">
-            <Link to="/prodotti">
-              <Button size="lg" className="bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 text-white">
-                Vedi Tutti i Prodotti
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Button>
-            </Link>
-          </div>
+
         </div>
       </section>
 
@@ -666,6 +703,13 @@ const Index = () => {
           </div>
         </div>
       </footer>
+      
+      {/* Modale per riordinare l'ultimo acquisto */}
+      <ReorderModal 
+        isOpen={isReorderModalOpen}
+        onClose={() => setIsReorderModalOpen(false)}
+        lastOrder={lastOrder}
+      />
     </div>
   );
 };

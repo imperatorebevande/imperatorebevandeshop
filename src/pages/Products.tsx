@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Header from '@/components/Header';
 import ProductCard from '@/components/ProductCard';
+import ReorderModal from '@/components/ReorderModal';
+import LoadingAnimation from '@/components/LoadingAnimation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Grid3X3, List, Loader2, Search, X, RotateCcw } from 'lucide-react'; // ✅ Aggiunta RotateCcw
+import { Grid3X3, List, Search, X, RotateCcw } from 'lucide-react'; // ✅ Aggiunta RotateCcw
 import { useWooCommerceProducts, useWooCommerceCategories, useWooCommerceCustomerOrders } from '@/hooks/useWooCommerce'; // ✅ Aggiunta useWooCommerceCustomerOrders
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { getBorderColor } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext'; // ✅ Aggiunta
 import { useCart } from '@/context/CartContext'; // ✅ Aggiunta
@@ -19,9 +21,13 @@ const Products = () => {
   
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');  
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const { category: urlCategory, subcategory: urlSubcategory } = useParams();
+  const navigate = useNavigate();
+  const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
   
   // ✅ Aggiunta hook per ottenere l'ultimo ordine del cliente
   const customerId = authState?.isAuthenticated && authState?.user?.id ? authState.user.id : null;
@@ -33,71 +39,9 @@ const Products = () => {
   
   const lastOrder = customerOrders[0];
   
-  // ✅ Aggiunta funzione per riordinare l'ultimo acquisto
-  const addLastOrderToCart = async () => {
-    if (!lastOrder || !lastOrder.line_items) {
-      toast.error('Nessun ordine precedente trovato');
-      return;
-    }
-    
-    let addedItems = 0;
-    
-    try {
-      const productPromises = lastOrder.line_items.map(async (item: any) => {
-        try {
-          // Nella funzione addLastOrderToCart, sostituisci il debug esistente con:
-          const product = await wooCommerceService.getProduct(item.product_id);
-          
-          // ✅ Debug più dettagliato
-          console.log('=== DEBUG RIORDINO ===');
-          console.log('Prodotto completo:', JSON.stringify(product, null, 2));
-          console.log('Categories array:', product.categories);
-          console.log('Prima categoria:', product.categories?.[0]);
-          console.log('Slug prima categoria:', product.categories?.[0]?.slug);
-          
-          const category = getProductCategory(product);
-          console.log('Categoria determinata:', category);
-          console.log('=== FINE DEBUG ===');
-          
-          const cartItem = {
-            id: item.product_id,
-            name: item.name,
-            price: parseFloat(item.price),
-            image: product.images && product.images.length > 0 
-              ? product.images[0].src 
-              : '/placeholder.svg',
-            category: category
-          };
-          
-          return { cartItem, quantity: item.quantity };
-        } catch (error) {
-          console.error(`Errore nel recupero del prodotto ${item.product_id}:`, error);
-          const cartItem = {
-            id: item.product_id,
-            name: item.name,
-            price: parseFloat(item.price),
-            image: '/placeholder.svg',
-            category: 'altri'
-          };
-          
-          return { cartItem, quantity: item.quantity };
-        }
-      });
-      
-      const products = await Promise.all(productPromises);
-      
-      products.forEach(({ cartItem, quantity }) => {
-        for (let i = 0; i < quantity; i++) {
-          dispatch({ type: 'ADD_ITEM', payload: cartItem });
-        }
-        addedItems += quantity; // ✅ Spostato dentro il forEach
-      });
-      
-      toast.success(`${addedItems} prodotti dall'ultimo ordine aggiunti al carrello!`);
-    } catch (error) {
-      console.error('Errore nel recupero dei prodotti:', error);
-      toast.error('Errore nel recupero delle informazioni dei prodotti');
-    }
+  // Funzione per aprire la modale di riordino
+  const openReorderModal = () => {
+    setIsReorderModalOpen(true);
   };
   
   // Focus automatico sulla barra di ricerca se si arriva dal pulsante Cerca
@@ -152,13 +96,36 @@ const Products = () => {
     hide_empty: true
   });
 
-  // Modifica l'effetto per gestire il cambio di categoria
+
+
+  // Modifica l'effetto per gestire il cambio di categoria e sottocategoria
   useEffect(() => {
-    const categoryParam = searchParams.get('category');
-    if (categoryParam) {
-      setSelectedCategory(categoryParam);
+    // Prima controlla il parametro URL dalla rotta
+    if (urlCategory && urlCategory !== selectedCategory) {
+      setSelectedCategory(urlCategory);
+    } else if (!urlCategory) {
+      // Poi controlla i search params
+      const categoryParam = searchParams.get('category');
+      if (categoryParam && categoryParam !== selectedCategory) {
+        setSelectedCategory(categoryParam);
+      } else if (!categoryParam && selectedCategory !== 'all') {
+        // Default a 'all' se non ci sono parametri
+        setSelectedCategory('all');
+      }
     }
-  }, [searchParams]);
+
+    // Gestisce la sottocategoria
+    if (urlSubcategory && urlSubcategory !== selectedSubcategory) {
+      setSelectedSubcategory(urlSubcategory);
+    } else if (!urlSubcategory) {
+      const subcategoryParam = searchParams.get('subcategory');
+      if (subcategoryParam && subcategoryParam !== selectedSubcategory) {
+        setSelectedSubcategory(subcategoryParam);
+      } else if (!subcategoryParam && selectedSubcategory !== 'all') {
+        setSelectedSubcategory('all');
+      }
+    }
+  }, [searchParams, urlCategory, urlSubcategory, selectedCategory, selectedSubcategory]);
   
   // Categorie principali (aggiornate con gli slug corretti di WooCommerce)
   const categories = [
@@ -199,20 +166,45 @@ const Products = () => {
     }
   ];
 
-  // Funzione per determinare la categoria di un prodotto
+  // Funzione per determinare la categoria di un prodotto (migliorata)
   const getProductCategory = (product: any): string => {
     if (!product.categories || product.categories.length === 0) return 'altri';
     
-    // Usa lo slug della categoria invece del nome
-    const categorySlug = product.categories[0].slug.toLowerCase();
-    
-    if (categorySlug === 'acqua' || categorySlug.includes('acqua-')) return 'acqua';
-    if (categorySlug === 'birra' || categorySlug.includes('birra-')) return 'birra';
-    if (categorySlug === 'vino' || categorySlug.includes('vino-')) return 'vino';
-    if (categorySlug === 'bevande' || categorySlug.includes('bevande-') || 
-        categorySlug === 'cocacola' || categorySlug === 'fanta' || 
-        categorySlug === 'sanbenedetto' || categorySlug === 'sanpellegrino' || 
-        categorySlug === 'schweppes' || categorySlug.includes('altre-bevande')) return 'bevande';
+    // Controlla tutte le categorie del prodotto, non solo la prima
+    for (const category of product.categories) {
+      const categorySlug = category.slug.toLowerCase();
+      const categoryName = category.name.toLowerCase();
+      
+      // Acqua - controlla sia slug che nome
+      if (categorySlug === 'acqua' || categorySlug.includes('acqua') || 
+          categoryName.includes('acqua') || categoryName.includes('water')) {
+        return 'acqua';
+      }
+      
+      // Birra - controlla sia slug che nome
+      if (categorySlug === 'birra' || categorySlug.includes('birra') || 
+          categoryName.includes('birra') || categoryName.includes('beer')) {
+        return 'birra';
+      }
+      
+      // Vino - controlla sia slug che nome
+      if (categorySlug === 'vino' || categorySlug.includes('vino') || 
+          categoryName.includes('vino') || categoryName.includes('wine')) {
+        return 'vino';
+      }
+      
+      // Bevande - controlla sia slug che nome e marchi specifici
+      if (categorySlug === 'bevande' || categorySlug.includes('bevande') || 
+          categoryName.includes('bevande') || categoryName.includes('drink') ||
+          categorySlug === 'cocacola' || categorySlug === 'fanta' || 
+          categorySlug === 'sanbenedetto' || categorySlug === 'sanpellegrino' || 
+          categorySlug === 'schweppes' || categorySlug.includes('altre-bevande') ||
+          categoryName.includes('coca') || categoryName.includes('fanta') ||
+          categoryName.includes('san benedetto') || categoryName.includes('san pellegrino') ||
+          categoryName.includes('schweppes')) {
+        return 'bevande';
+      }
+    }
     
     return 'altri';
   };
@@ -294,7 +286,7 @@ const Products = () => {
     return grouped;
   };
 
-  // Trasforma e filtra i prodotti (aggiornato con filtro di ricerca)
+  // Trasforma e filtra i prodotti (aggiornato con filtro di ricerca e sottocategoria)
   const transformedProducts = allProducts
     .filter(product => product.stock_status === 'instock')
     .map(product => {
@@ -315,12 +307,21 @@ const Products = () => {
       // Filtro per categoria
       const categoryMatch = selectedCategory === 'all' || product.category === selectedCategory;
       
+      // Filtro per sottocategoria
+      let subcategoryMatch = true;
+      if (selectedSubcategory !== 'all' && product.categories) {
+        subcategoryMatch = product.categories.some((cat: any) => 
+          cat.slug.toLowerCase().replace(/-/g, '-') === selectedSubcategory.toLowerCase().replace(/-/g, '-') ||
+          cat.name.toLowerCase().replace(/\s+/g, '-') === selectedSubcategory.toLowerCase().replace(/-/g, '-')
+        );
+      }
+      
       // Filtro per ricerca (case-insensitive)
       const searchMatch = searchQuery === '' || 
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         product.description.toLowerCase().includes(searchQuery.toLowerCase());
       
-      return categoryMatch && searchMatch;
+      return categoryMatch && subcategoryMatch && searchMatch;
     })
     .sort((a, b) => a.price - b.price);
 
@@ -330,9 +331,9 @@ const Products = () => {
   const handleCategoryChange = (categoryId: string) => {
     setSelectedCategory(categoryId);
     if (categoryId === 'all') {
-      setSearchParams({});
+      navigate('/prodotti');
     } else {
-      setSearchParams({ category: categoryId });
+      navigate(`/prodotti/categoria/${categoryId}`);
     }
   };
 
@@ -371,21 +372,31 @@ const Products = () => {
           <div className="container mx-auto px-4 py-3">
             <div className="w-full max-w-4xl mx-auto">
               <Button
-                onClick={addLastOrderToCart}
-                className="w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 hover:from-emerald-600 hover:via-green-600 hover:to-teal-600 text-white py-3 px-6 rounded-xl font-bold text-base shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] border-0 relative overflow-hidden group"
+                onClick={openReorderModal}
+                className="w-full text-white py-3 px-6 rounded-xl font-bold text-base shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] border-0 relative overflow-hidden group"
+                style={{backgroundColor: '#A11E26'}}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#8B1A21'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#A11E26'}
+                disabled={ordersLoading}
               >
                 {/* Effetto shimmer */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 translate-x-[-100%] group-hover:translate-x-[200%] transition-transform duration-1000 ease-out" />
                 
                 {/* Contenuto del pulsante */}
                 <div className="relative flex items-center justify-center gap-3">
-                  <RotateCcw className="w-5 h-5" />
-                  <div className="flex flex-col items-center sm:flex-row sm:gap-2">
-                    <span className="font-bold">Riordina Ultimo Acquisto</span>
-                    <span className="text-sm font-normal opacity-90 hidden sm:inline">
-                      • {new Date(lastOrder.date_created).toLocaleDateString('it-IT')}
-                    </span>
-                  </div>
+                  {ordersLoading ? (
+                    'Caricamento...'
+                  ) : (
+                    <>
+                      <RotateCcw className="w-5 h-5" />
+                      <div className="flex flex-col items-center sm:flex-row sm:gap-2">
+                        <span className="font-bold">Riordina Ultimo Acquisto</span>
+                        <span className="text-sm font-normal opacity-90 hidden sm:inline">
+                          • {new Date(lastOrder.date_created).toLocaleDateString('it-IT')}
+                        </span>
+                      </div>
+                    </>
+                  )}
                 </div>
                 
                 {/* Indicatore mobile per la data */}
@@ -460,6 +471,36 @@ const Products = () => {
           </div>
         </section>
 
+        {/* Breadcrumb */}
+        {selectedCategory !== 'all' && (
+          <div className="mb-4">
+            <nav className="flex items-center space-x-2 text-sm text-gray-600">
+              <button 
+                onClick={() => navigate('/prodotti')}
+                className="hover:text-blue-600 transition-colors duration-200"
+              >
+                Tutti i Prodotti
+              </button>
+              <span className="text-gray-400">/</span>
+              <button 
+                onClick={() => navigate(`/prodotti/categoria/${selectedCategory}`)}
+                className="hover:text-blue-600 transition-colors duration-200 font-medium" 
+                style={{ color: getBorderColor(selectedCategory) }}
+              >
+                {categories.find(c => c.id === selectedCategory)?.name}
+              </button>
+              {selectedSubcategory !== 'all' && (
+                <>
+                  <span className="text-gray-400">/</span>
+                  <span className="font-medium text-gray-800">
+                    {selectedSubcategory.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </span>
+                </>
+              )}
+            </nav>
+          </div>
+        )}
+
         {/* Header con controlli vista */}
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -494,10 +535,12 @@ const Products = () => {
         {/* Loading state */}
         {isLoading && (
           <div className="flex justify-center items-center py-16">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-purple-600" />
-              <p className="text-gray-600">Caricamento prodotti...</p>
-            </div>
+            <LoadingAnimation 
+              width={150}
+              height={150}
+              text="Caricamento prodotti"
+              className="py-8"
+            />
           </div>
         )}
 
@@ -509,19 +552,32 @@ const Products = () => {
                 {/* Titolo sottocategoria (solo se non è "Tutti i prodotti" e ci sono più sottocategorie) */}
                 {Object.keys(groupedProducts).length > 1 && subcategoryName !== 'Tutti i prodotti' && (
                   <div className="border-b border-gray-200 pb-2">
-                    <h3 className="text-xl font-semibold flex items-center gap-2" style={{ 
-                      color: selectedCategory === 'all' 
-                        ? getCategoryColorFromSubcategoryName(subcategoryName) 
-                        : getBorderColor(selectedCategory) 
-                    }}>
-                      <span className="w-1 h-6 rounded" style={{ 
-                        backgroundColor: selectedCategory === 'all' 
+                    <button 
+                      onClick={() => {
+                        // Determina la categoria principale dalla sottocategoria
+                        const mainCategory = getMainCategoryFromSubcategory(subcategoryName);
+                        const subcategorySlug = subcategoryName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                        if (mainCategory && mainCategory !== 'all') {
+                          navigate(`/prodotti/categoria/${mainCategory}/sottocategoria/${subcategorySlug}`);
+                        }
+                      }}
+                      className="group hover:bg-gray-50 rounded-lg p-2 -m-2 transition-colors duration-200 w-full text-left"
+                    >
+                      <h3 className="text-xl font-semibold flex items-center gap-2 group-hover:scale-[1.02] transition-transform duration-200" style={{ 
+                        color: selectedCategory === 'all' 
                           ? getCategoryColorFromSubcategoryName(subcategoryName) 
                           : getBorderColor(selectedCategory) 
-                      }}></span>
-                      {subcategoryName}
-                      <span className="text-sm font-normal text-gray-500">({subcategoryProducts.length} prodotti)</span>
-                    </h3>
+                      }}>
+                        <span className="w-1 h-6 rounded" style={{ 
+                          backgroundColor: selectedCategory === 'all' 
+                            ? getCategoryColorFromSubcategoryName(subcategoryName) 
+                            : getBorderColor(selectedCategory) 
+                        }}></span>
+                        {subcategoryName}
+                        <span className="text-sm font-normal text-gray-500">({subcategoryProducts.length} prodotti)</span>
+                        <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-auto">Clicca per vedere solo questa sottocategoria</span>
+                      </h3>
+                    </button>
                   </div>
                 )}
                 
@@ -567,12 +623,31 @@ const Products = () => {
           </div>
         )}
       </div>
+      
+      {/* ReorderModal */}
+      <ReorderModal
+        isOpen={isReorderModalOpen}
+        onClose={() => setIsReorderModalOpen(false)}
+        lastOrder={lastOrder}
+      />
     </div>
   );
 };
 
 export default Products;
 
+
+// Funzione per determinare la categoria principale da una sottocategoria
+const getMainCategoryFromSubcategory = (subcategoryName: string): string => {
+  const lowerName = subcategoryName.toLowerCase();
+  
+  if (lowerName.includes('acqua')) return 'acqua';
+  if (lowerName.includes('birra')) return 'birra';
+  if (lowerName.includes('bevande') || lowerName.includes('coca') || lowerName.includes('fanta') || lowerName.includes('schweppes') || lowerName.includes('san')) return 'bevande';
+  if (lowerName.includes('vino')) return 'vino';
+  
+  return 'all'; // default
+};
 
 // Funzione per determinare il colore della categoria basandosi sul nome della sottocategoria
 const getCategoryColorFromSubcategoryName = (subcategoryName: string): string => {

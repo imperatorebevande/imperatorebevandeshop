@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import DeliveryCalendar from '@/components/DeliveryCalendar/DeliveryCalendar';
-import PaymentSection from '@/components/PaymentSection';
+import WooCommercePaymentSection from '@/components/WooCommercePaymentSection';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -10,15 +10,23 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import EditAddress from '@/components/EditAddress';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
+import PayPalNativeCheckout from '@/components/PayPalNativeCheckout';
+import StripeCheckout from '@/components/StripeCheckout';
+import LottieAnimation from '@/components/LottieAnimation';
+import paypalAnimationData from '@/assets/animations/paypal-payment.json';
+import stripeAnimationData from '@/assets/animations/stripe-payment.json';
+import cashAnimationData from '@/assets/animations/cash-payment.json';
+import bankAnimationData from '@/assets/animations/bank.json';
 
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useWooCommerceCustomer, useWooCommercePaymentGateways, useUpdateWooCommerceCustomer, useWooCommerceCustomerByEmail } from '@/hooks/useWooCommerce';
 import { wooCommerceService, CalendarData, DeliveryTimeSlot } from '@/services/woocommerce';
-import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2, ShoppingBag, MapPin, Package, Receipt, CreditCard as PaymentIcon, User, Mail, Phone, Home, Calendar as CalendarIcon, Clock, Edit } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowLeft, CreditCard, Truck, ShieldCheck, Loader2, ShoppingBag, MapPin, Package, Receipt, CreditCard as PaymentIcon, User, Mail, Phone, Home, Calendar as CalendarIcon, Clock, Edit, ChevronDown, ChevronUp } from 'lucide-react';
+import { toast } from '../hooks/use-toast';
 import { useCreateWooCommerceOrder } from '@/hooks/useWooCommerce';
 import { MessageSquare } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -157,12 +165,20 @@ const Checkout = () => {
   // Aggiungi questo stato per il loading
   const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: boolean}>({});
+  // Stato per la modale pagamento
+  const [openPaymentModal, setOpenPaymentModal] = useState<string | null>(null);
   
   // Stato per il loading del pulsante Continua
   const [isNextStepLoading, setIsNextStepLoading] = useState(false);
   
   // Stato per memorizzare la zona dell'indirizzo principale
   const [mainAddressZone, setMainAddressZone] = useState<any>(null);
+  
+  // Stato per controllare se la sezione dati personali è aperta su mobile
+  const [isPersonalDataOpen, setIsPersonalDataOpen] = useState(false);
+  
+  // Stato per tracciare se l'utente sta modificando attivamente i dati personali
+  const [isEditingPersonalData, setIsEditingPersonalData] = useState(false);
   
   // Stati per la validazione degli errori
   const [newAddressErrors, setNewAddressErrors] = useState({
@@ -242,10 +258,18 @@ const Checkout = () => {
   const { data: paymentGateways, isLoading: paymentGatewaysLoading } = useWooCommercePaymentGateways();
   
   // Filtra i metodi di pagamento per mostrare solo quelli desiderati
-  const allowedPaymentMethods = ['cod', 'stripe', 'paypal', 'satispay', 'bacs'];
-  const filteredPaymentGateways = paymentGateways?.filter(gateway => 
+  const allowedPaymentMethods = ['cod', 'bacs', 'paypal', 'stripe', 'satispay'];
+  let filteredPaymentGateways = paymentGateways?.filter(gateway => 
     allowedPaymentMethods.includes(gateway.id)
   ) || [];
+  // Se PayPal non è presente, aggiungilo manualmente
+  if (!filteredPaymentGateways.some(g => g.id === 'paypal')) {
+    filteredPaymentGateways.push({
+      id: 'paypal',
+      title: 'PayPal',
+      description: 'Paga facilmente e in sicurezza con il tuo account PayPal.'
+    });
+  }
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -260,6 +284,32 @@ const Checkout = () => {
     deliveryDate: '',
     deliveryTimeSlot: '',
   });
+
+  // Stato per tracciare i dati originali del cliente
+  const [originalCustomerData, setOriginalCustomerData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+  });
+
+  // Funzione per controllare se tutti i campi dei dati personali sono compilati
+  const arePersonalDataComplete = () => {
+    return formData.firstName.trim() !== '' && 
+           formData.lastName.trim() !== '' && 
+           formData.email.trim() !== '' && 
+           formData.phone.trim() !== '';
+  };
+  
+  // Effetto per gestire l'apertura/chiusura automatica della sezione dati personali
+  useEffect(() => {
+    // Non modificare lo stato se l'utente sta attivamente modificando i dati
+    if (isEditingPersonalData) return;
+    
+    const isComplete = arePersonalDataComplete();
+    // Se i dati sono completi, chiudi la sezione; se non sono completi, aprila
+    setIsPersonalDataOpen(!isComplete);
+  }, [formData.firstName, formData.lastName, formData.email, formData.phone, isEditingPersonalData]);
 
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [paymentMethod, setPaymentMethod] = useState('');
@@ -278,36 +328,76 @@ const Checkout = () => {
   useEffect(() => {
     if (authState.isAuthenticated && customer) {
       // Se l'utente è loggato, precompila con i suoi dati
-      setFormData({
+      const customerData = {
         firstName: customer.first_name || '',
         lastName: customer.last_name || '',
         email: customer.email || '',
         phone: customer.billing.phone || '',
+      };
+      
+      setFormData(prev => ({
+        ...customerData,
         address: customer.shipping.address_1 || customer.billing.address_1 || '',
         city: customer.shipping.city || customer.billing.city || '',
         postalCode: customer.shipping.postcode || customer.billing.postcode || '',
         province: customer.shipping.state || customer.billing.state || '',
-        orderNotes: '',
-        deliveryDate: '',
-        deliveryTimeSlot: '',
-      });
+        orderNotes: prev.orderNotes || '',
+        deliveryDate: prev.deliveryDate || '', // Preserva il valore esistente
+        deliveryTimeSlot: prev.deliveryTimeSlot || '', // Preserva il valore esistente
+      }));
+      
+      // Salva i dati originali per il confronto
+      setOriginalCustomerData(customerData);
     } else if (!authState.isAuthenticated) {
       // Se l'utente non è loggato, lascia i campi vuoti
-      setFormData({
+      const emptyData = {
         firstName: '',
         lastName: '',
         email: '',
         phone: '',
+      };
+      
+      setFormData(prev => ({
+        ...emptyData,
         address: '',
         city: '',
         postalCode: '',
         province: '',
-        orderNotes: '',
-        deliveryDate: '',
-        deliveryTimeSlot: '',
-      });
+        orderNotes: prev.orderNotes || '',
+        deliveryDate: prev.deliveryDate || '', // Preserva il valore esistente
+        deliveryTimeSlot: prev.deliveryTimeSlot || '', // Preserva il valore esistente
+      }));
+      
+      setOriginalCustomerData(emptyData);
     }
   }, [authState.isAuthenticated, customer]);
+
+  // Aggiorna il formData quando cambia l'indirizzo selezionato
+  useEffect(() => {
+    if (selectedAddressId !== 'main') {
+      // Trova l'indirizzo selezionato
+      const selectedAddress = savedAddresses.find(addr => addr.id.toString() === selectedAddressId);
+      if (selectedAddress) {
+        // Aggiorna il formData con i dati dell'indirizzo selezionato
+        setFormData(prev => ({
+          ...prev,
+          address: selectedAddress.address,
+          city: selectedAddress.city,
+          province: selectedAddress.province,
+          postalCode: selectedAddress.postalCode
+        }));
+      }
+    } else if (customer && selectedAddressId === 'main') {
+      // Ripristina l'indirizzo principale quando si seleziona 'main'
+      setFormData(prev => ({
+        ...prev,
+        address: customer.shipping?.address_1 || customer.billing?.address_1 || '',
+        city: customer.shipping?.city || customer.billing?.city || '',
+        province: customer.shipping?.state || customer.billing?.state || '',
+        postalCode: customer.shipping?.postcode || customer.billing?.postcode || ''
+      }));
+    }
+  }, [selectedAddressId, savedAddresses, customer]);
 
   // Funzione per ricaricare i colori delle zone per tutti gli indirizzi
   const reloadZoneColors = async (addresses: any[]) => {
@@ -389,15 +479,16 @@ const Checkout = () => {
     }
   }, [shouldSearchByEmail, isLoadingByEmail]);
 
-  // Imposta il primo metodo di pagamento disponibile come default, solo se non già impostato
-  useEffect(() => {
-    if (!paymentMethod && filteredPaymentGateways && filteredPaymentGateways.length > 0) {
-      const defaultPaymentMethod = filteredPaymentGateways[0].id;
-      if (filteredPaymentGateways.some(gateway => gateway.id === defaultPaymentMethod)) {
-        handleSetPaymentMethod(defaultPaymentMethod); // Usa la versione memoizzata
-      }
-    }
-  }, [filteredPaymentGateways, paymentMethod, handleSetPaymentMethod]); // Aggiungi handleSetPaymentMethod alle dipendenze
+  // Rimosso: Non impostare più automaticamente il primo metodo di pagamento come default
+  // Il cliente deve selezionare manualmente il metodo di pagamento
+  // useEffect(() => {
+  //   if (!paymentMethod && filteredPaymentGateways && filteredPaymentGateways.length > 0) {
+  //     const defaultPaymentMethod = filteredPaymentGateways[0].id;
+  //     if (filteredPaymentGateways.some(gateway => gateway.id === defaultPaymentMethod)) {
+  //       handleSetPaymentMethod(defaultPaymentMethod); // Usa la versione memoizzata
+  //     }
+  //   }
+  // }, [filteredPaymentGateways, paymentMethod, handleSetPaymentMethod]); // Aggiungi handleSetPaymentMethod alle dipendenze
 
   // Salta automaticamente al riepilogo se l'indirizzo è già completo
   /*
@@ -420,11 +511,16 @@ const Checkout = () => {
 
   // Handler per DeliveryCalendar
   const handleDateTimeChange = (date: string, timeSlot: string) => {
-    setFormData(prev => ({
-      ...prev,
-      deliveryDate: date,
-      deliveryTimeSlot: timeSlot,
-    }));
+    console.log('🗓️ handleDateTimeChange chiamato con:', { date, timeSlot });
+    setFormData(prev => {
+      const newFormData = {
+        ...prev,
+        deliveryDate: date,
+        deliveryTimeSlot: timeSlot,
+      };
+      console.log('🗓️ Nuovo formData dopo aggiornamento:', { deliveryDate: newFormData.deliveryDate, deliveryTimeSlot: newFormData.deliveryTimeSlot });
+      return newFormData;
+    });
   };
 
   // Funzione per gestire i cambiamenti nel form nuovo indirizzo
@@ -460,7 +556,11 @@ const Checkout = () => {
   const saveNewAddress = async () => {
     // Valida i campi e mostra errori se necessario
     if (!validateNewAddress()) {
-      toast.error('Compila tutti i campi obbligatori');
+      toast({
+          title: "Errore",
+          description: "Compila tutti i campi obbligatori",
+          variant: "destructive"
+        });
       return;
     }
     
@@ -513,9 +613,17 @@ const Checkout = () => {
     
     // Mostra un messaggio informativo sulla zona assegnata
     if (deliveryZone) {
-      toast.success(`Indirizzo assegnato alla ${deliveryZone.name}`);
+      toast({
+            title: "Successo",
+            description: `Indirizzo assegnato alla ${deliveryZone.name}`,
+            variant: "default"
+          });
     } else {
-      toast.warning('Zona di consegna non determinata automaticamente');
+      toast({
+            title: "Attenzione",
+            description: "Zona di consegna non determinata automaticamente",
+            variant: "default"
+          });
     }
     
     const updatedAddresses = [...savedAddresses, newAddress];
@@ -552,11 +660,19 @@ const Checkout = () => {
         // Aggiorna lo stato locale DOPO il successo della chiamata API
         setSavedAddresses(updatedAddresses);
         setSelectedAddressId(newAddress.id.toString());
-        toast.success('Indirizzo salvato nell\'account!');
+        toast({
+              title: "Successo",
+              description: "Indirizzo salvato nell'account!",
+              variant: "default"
+            });
       } catch (error) {
         console.error('Errore nel salvataggio indirizzo:', error);
         console.error('Dettagli errore:', JSON.stringify(error, null, 2));
-        toast.error('Errore nel salvataggio dell\'indirizzo');
+        toast({
+        title: "Errore",
+        description: "Errore nel salvataggio dell'indirizzo",
+        variant: "destructive"
+      });
         return; // Non aggiornare lo stato locale se c'è un errore
       } finally {
         setIsSavingAddress(false);
@@ -570,7 +686,11 @@ const Checkout = () => {
       // Se non autenticato, aggiorna solo lo stato locale
       setSavedAddresses(updatedAddresses);
       setSelectedAddressId(newAddress.id.toString());
-      toast.success('Indirizzo salvato localmente!');
+      toast({
+          title: "Successo",
+          description: "Indirizzo salvato localmente!",
+          variant: "default"
+        });
     }
     
     setShowAddNewAddress(false);
@@ -619,11 +739,19 @@ const Checkout = () => {
         
         // Aggiorna lo stato locale DOPO il successo della chiamata API
         setSavedAddresses(updatedAddresses);
-        toast.success('Indirizzo eliminato!');
+        toast({
+              title: "Successo",
+              description: "Indirizzo eliminato!",
+              variant: "default"
+            });
       } catch (error) {
         console.error('Errore nell\'eliminazione indirizzo:', error);
         console.error('Dettagli errore (delete):', JSON.stringify(error, null, 2));
-        toast.error('Errore nell\'eliminazione dell\'indirizzo');
+        toast({
+              title: "Errore",
+              description: "Errore nell'eliminazione dell'indirizzo",
+              variant: "destructive"
+            });
         return; // Non aggiornare lo stato locale se c'è un errore
       } finally {
         setIsSavingAddress(false);
@@ -636,7 +764,11 @@ const Checkout = () => {
       console.log('Eliminazione solo locale');
       // Se non autenticato, aggiorna solo lo stato locale
       setSavedAddresses(updatedAddresses);
-      toast.success('Indirizzo eliminato localmente!');
+      toast({
+          title: "Successo",
+          description: "Indirizzo eliminato localmente!",
+          variant: "default"
+        });
     }
   };
 
@@ -675,9 +807,17 @@ const Checkout = () => {
         
         // Mostra un messaggio informativo sulla zona aggiornata
         if (deliveryZone) {
-          toast.success(`Indirizzo aggiornato e assegnato alla ${deliveryZone.name}`);
+          toast({
+              title: "Successo",
+              description: `Indirizzo aggiornato e assegnato alla ${deliveryZone.name}`,
+              variant: "default"
+            });
         } else {
-          toast.warning('Zona di consegna non determinata per l\'indirizzo aggiornato');
+          toast({
+              title: "Attenzione",
+              description: "Zona di consegna non determinata per l'indirizzo aggiornato",
+              variant: "default"
+            });
         }
       }
     }
@@ -705,10 +845,18 @@ const Checkout = () => {
             meta_data: updatedMetaData
           }
         });
-        toast.success('Indirizzo aggiornato!');
+        toast({
+              title: "Successo",
+              description: "Indirizzo aggiornato!",
+              variant: "default"
+            });
       } catch (error) {
         console.error('Errore nell\'aggiornamento indirizzo:', error);
-        toast.error('Errore nell\'aggiornamento dell\'indirizzo');
+        toast({
+              title: "Errore",
+              description: "Errore nell'aggiornamento dell'indirizzo",
+              variant: "destructive"
+            });
       }
     }
   };
@@ -763,10 +911,10 @@ const Checkout = () => {
     switch (currentStep) {
       case 0: // INDIRIZZO
         return (
-          <div className="space-y-6">
+          <div className="space-y-3 md:space-y-4">
             {/* Sezione Selezione Indirizzo */}
             <div>
-              <h3 className="font-semibold mb-4 flex items-center" style={{ color: '#1B5AAB' }}>
+              <h3 className="font-semibold mb-2 md:mb-3 flex items-center" style={{ color: '#1B5AAB' }}>
                 <MapPin className="w-5 h-5 mr-2" />
                 Seleziona Indirizzo di Spedizione
               </h3>
@@ -776,7 +924,7 @@ const Checkout = () => {
                 {/* Indirizzo Principale Account */}
                 {customer && (
                   <div 
-                    className={`relative border-2 p-5 rounded-xl cursor-pointer transition-all hover:shadow-md ${
+                    className={`relative border-2 p-3 md:p-4 rounded-xl cursor-pointer transition-all hover:shadow-md ${
                       selectedAddressId === 'main' 
                         ? 'border-green-500 bg-green-50 shadow-sm' 
                         : 'hover:border-blue-300'
@@ -1061,14 +1209,34 @@ const Checkout = () => {
               </div>
             </div>
             
-            {/* Dati Personali (sempre visibili) */}
+            {/* Dati Personali (collassabile su mobile) */}
             <div>
-              <h3 className="font-semibold mb-4 flex items-center" style={{ color: '#1B5AAB' }}>
-                <User className="w-5 h-5 mr-2" />
-                Dati Personali
-              </h3>
+              {/* Header cliccabile su mobile */}
+              <div 
+                className="md:cursor-default cursor-pointer md:pointer-events-none"
+                onClick={() => setIsPersonalDataOpen(!isPersonalDataOpen)}
+              >
+                <h3 className="font-semibold mb-4 flex items-center justify-between" style={{ color: '#1B5AAB' }}>
+                  <div className="flex items-center">
+                    <User className="w-5 h-5 mr-2" />
+                    Dati Personali
+                    {arePersonalDataComplete() && (
+                      <span className="ml-2 text-green-600 text-sm md:hidden">✓ Completi</span>
+                    )}
+                  </div>
+                  <div className="md:hidden">
+                    {isPersonalDataOpen ? (
+                      <ChevronUp className="w-5 h-5" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5" />
+                    )}
+                  </div>
+                </h3>
+              </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Contenuto collassabile */}
+              <div className={`${isPersonalDataOpen ? 'block' : 'hidden'} md:block`}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="firstName">Nome *</Label>
                   <Input
@@ -1076,6 +1244,8 @@ const Checkout = () => {
                     name="firstName"
                     value={formData.firstName}
                     onChange={handleInputChange}
+                    onFocus={() => setIsEditingPersonalData(true)}
+                    onBlur={() => setIsEditingPersonalData(false)}
                     required
                   />
                 </div>
@@ -1086,6 +1256,8 @@ const Checkout = () => {
                     name="lastName"
                     value={formData.lastName}
                     onChange={handleInputChange}
+                    onFocus={() => setIsEditingPersonalData(true)}
+                    onBlur={() => setIsEditingPersonalData(false)}
                     required
                   />
                 </div>
@@ -1097,6 +1269,8 @@ const Checkout = () => {
                     type="email"
                     value={formData.email}
                     onChange={handleInputChange}
+                    onFocus={() => setIsEditingPersonalData(true)}
+                    onBlur={() => setIsEditingPersonalData(false)}
                     required
                   />
                 </div>
@@ -1107,6 +1281,8 @@ const Checkout = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
+                    onFocus={() => setIsEditingPersonalData(true)}
+                    onBlur={() => setIsEditingPersonalData(false)}
                     required
                   />
                 </div>
@@ -1163,6 +1339,7 @@ const Checkout = () => {
                   </div>
                 </div>
               )}
+              </div>
             </div>
           </div>
         );
@@ -1236,7 +1413,7 @@ const Checkout = () => {
                   <h3 className="font-semibold mb-3 flex items-center justify-between" style={{ color: '#1B5AAB' }}>
                     <div className="flex items-center">
                       <Truck className="w-5 h-5 mr-2" />
-                      Seleziona Indirizzo di Spedizione
+                      Indirizzo di Spedizione
                     </div>
                     <Button
                       variant="outline"
@@ -1244,205 +1421,100 @@ const Checkout = () => {
                       onClick={() => setCurrentStep(0)}
                       className="text-xs px-3 py-1 border-[#1B5AAB] text-[#1B5AAB] hover:bg-[#1B5AAB] hover:text-white"
                     >
-                      <MapPin className="w-3 h-3 mr-1" />
-                      Aggiungi Indirizzo
+                      <Edit className="w-3 h-3 mr-1" />
+                      Cambia Indirizzo
                     </Button>
                   </h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-3">
-                    {/* Indirizzo Principale Account */}
-                    {customer && (
-                      <div
-                        className={`relative p-4 rounded-lg transition hover:shadow-md min-h-[140px] border-2 cursor-pointer ${
-                          selectedAddressId === 'main'
-                            ? 'border-green-500 bg-green-50'
-                            : 'hover:border-blue-300'
-                        }`}
-                        style={{
-                          borderColor: selectedAddressId === 'main' 
-                            ? '#10b981' 
-                            : (() => {
-                              const zone = determineZoneFromAddress({
-                                city: customer.shipping?.city || customer.billing?.city || '',
-                                province: customer.shipping?.state || customer.billing?.state || '',
-                                postalCode: customer.shipping?.postcode || customer.billing?.postcode || ''
-                              });
-                              return zone?.color || '#d1d5db';
-                            })()
-                        }}
-                        onClick={() => setSelectedAddressId('main')}
-                      >
-                        <div className="absolute top-2 right-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setAddressToEdit('main');
-                              setNewAddressForm({
-                                title: 'Indirizzo Principale',
-                                address: customer.shipping?.address_1 || customer.billing?.address_1 || '',
-                                city: customer.shipping?.city || customer.billing?.city || '',
-                                province: customer.shipping?.state || customer.billing?.state || '',
-                                postalCode: customer.shipping?.postcode || customer.billing?.postcode || ''
-                              });
-                              setIsManageAddressesOpen(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-100 transition"
-                            title="Modifica indirizzo"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
+                  {/* Mostra solo l'indirizzo selezionato */}
+                  <div className="bg-green-50 border-2 border-green-500 p-4 rounded-lg">
+                    {selectedAddressId === 'main' && customer ? (
+                      <div>
+                        <h4 className="text-base font-semibold text-blue-800 mb-2 flex items-center">
+                          <Home className="w-4 h-4 mr-2" />
+                          Indirizzo dell'account
+                          <ShieldCheck className="w-4 h-4 ml-2 text-green-600" />
+                        </h4>
+                        <div className="space-y-1 text-sm text-gray-700">
+                          <p><span className="font-medium">Via:</span> {customer.shipping?.address_1 || customer.billing?.address_1}</p>
+                          <p><span className="font-medium">Città:</span> {customer.shipping?.city || customer.billing?.city}, {customer.shipping?.state || customer.billing?.state} {customer.shipping?.postcode || customer.billing?.postcode}</p>
+                          <CheckoutMainAddressZone customer={customer} onZoneDetected={setMainAddressZone} />
                         </div>
-                        <div className="flex items-center">
-                          <input
-                            type="radio"
-                            name="selectedAddressReview"
-                            value="main"
-                            checked={selectedAddressId === 'main'}
-                            onChange={() => setSelectedAddressId('main')}
-                            className="mr-3 text-green-600"
-                          />
-                          <div>
-                            <h4 className="text-base font-semibold text-blue-800 mb-1 flex items-center">
-                              <Home className="w-4 h-4 mr-1" />
-                              Indirizzo dell'account
-                            </h4>
-                            <div className="space-y-1 mt-1 text-sm text-gray-700">
-                              <p><span className="font-medium">Via:</span> {customer.shipping?.address_1 || customer.billing?.address_1}</p>
-                              <p><span className="font-medium">Città:</span> {customer.shipping?.city || customer.billing?.city}, {customer.shipping?.state || customer.billing?.state} {customer.shipping?.postcode || customer.billing?.postcode}</p>
-                              <CheckoutMainAddressZone customer={customer} onZoneDetected={setMainAddressZone} />
-                            </div>
-                          </div>
-                        </div>
-                        {selectedAddressId === 'main' && (
-                          <div className="absolute bottom-2 right-2 text-green-600">
-                            <ShieldCheck className="w-5 h-5" />
-                          </div>
-                        )}
                       </div>
-                    )}
-                    
-                    {/* Indirizzi Salvati */}
-                    {savedAddresses.map((address) => (
-                      <div
-                        key={address.id}
-                        className={`relative p-4 rounded-lg transition hover:shadow-md min-h-[140px] border-2 cursor-pointer ${
-                          selectedAddressId === address.id.toString()
-                            ? 'border-green-500 bg-green-50'
-                            : 'hover:border-blue-300'
-                        }`}
-                        style={{
-                          borderColor: selectedAddressId === address.id.toString() 
-                            ? '#10b981' 
-                            : address.deliveryZone?.color || '#d1d5db'
-                        }}
-                        onClick={() => setSelectedAddressId(address.id.toString())}
-                      >
-                        <div className="absolute top-2 right-2">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setAddressToEdit(address.id);
-                              setNewAddressForm({
-                                title: address.title,
-                                address: address.address,
-                                city: address.city,
-                                province: address.province,
-                                postalCode: address.postalCode,
-                        
-                              });
-                              setIsManageAddressesOpen(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-100 transition"
-                            title="Modifica indirizzo"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                        </div>
-                        <div className="flex items-center">
-                          <input
-                            type="radio"
-                            name="selectedAddressReview"
-                            value={address.id}
-                            checked={selectedAddressId === address.id.toString()}
-                            onChange={() => setSelectedAddressId(address.id.toString())}
-                            className="mr-3 text-green-600"
-                          />
-                          <div>
-                            <h4 className="text-base font-semibold text-blue-800 mb-1 flex items-center">
-                              <MapPin className="w-4 h-4 mr-1" />
-                              {address.title}
-                            </h4>
-                            <div className="space-y-1 mt-1 text-sm text-gray-700">
-                              <p><span className="font-medium">Via:</span> {address.address}</p>
-                              <p><span className="font-medium">Città:</span> {address.city}, {address.province} {address.postalCode}</p>
-
-                              {(() => {
-                                const addressString = `${address.address}, ${address.city}, ${address.province} ${address.postalCode}`;
-                                
-                                // Prima prova con la zona salvata
-                                if (address.deliveryZone) {
-                                  const zone = getZoneById(address.deliveryZone.id);
-                                  if (zone) {
-                                    return (
-                                      <div className="flex items-center mt-2">
-                                        <div 
-                                          className="w-3 h-3 rounded-full mr-2" 
-                                          style={{ backgroundColor: zone.color }}
-                                        ></div>
-                                        <span className="text-xs font-medium" style={{ color: zone.color }}>
-                                          {zone.name}
-                                        </span>
-                                      </div>
-                                    );
+                    ) : (
+                      // Mostra l'indirizzo salvato selezionato
+                      (() => {
+                        const selectedAddress = savedAddresses.find(addr => addr.id.toString() === selectedAddressId);
+                        if (selectedAddress) {
+                          return (
+                            <div>
+                              <h4 className="text-base font-semibold text-blue-800 mb-2 flex items-center">
+                                <MapPin className="w-4 h-4 mr-2" />
+                                {selectedAddress.title}
+                                <ShieldCheck className="w-4 h-4 ml-2 text-green-600" />
+                              </h4>
+                              <div className="space-y-1 text-sm text-gray-700">
+                                <p><span className="font-medium">Via:</span> {selectedAddress.address}</p>
+                                <p><span className="font-medium">Città:</span> {selectedAddress.city}, {selectedAddress.province} {selectedAddress.postalCode}</p>
+                                {(() => {
+                                  // Prima prova con la zona salvata
+                                  if (selectedAddress.deliveryZone) {
+                                    const zone = getZoneById(selectedAddress.deliveryZone.id);
+                                    if (zone) {
+                                      return (
+                                        <div className="flex items-center mt-2">
+                                          <div 
+                                            className="w-3 h-3 rounded-full mr-2" 
+                                            style={{ backgroundColor: zone.color }}
+                                          ></div>
+                                          <span className="text-xs font-medium" style={{ color: zone.color }}>
+                                            {zone.name}
+                                          </span>
+                                        </div>
+                                      );
+                                    }
                                   }
-                                }
-                                
-                                // Fallback: calcola la zona dinamicamente
-                                const dynamicZone = determineZoneFromAddress({
-                                  city: address.city,
-                                  province: address.province,
-                                  postalCode: address.postalCode
-                                });
-                                
-                                return dynamicZone ? (
-                                  <div className="flex items-center mt-2">
-                                    <div 
-                                      className="w-3 h-3 rounded-full mr-2" 
-                                      style={{ backgroundColor: dynamicZone.color }}
-                                    ></div>
-                                    <span className="text-xs font-medium" style={{ color: dynamicZone.color }}>
-                                      {dynamicZone.name}
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center mt-2">
-                                    <div className="w-3 h-3 rounded-full mr-2 bg-gray-400"></div>
-                                    <span className="text-xs font-medium text-gray-500">
-                                      Zona non identificata - Debug: {addressString}
-                                    </span>
-                                  </div>
-                                );
-                              })()}
+                                  
+                                  // Fallback: calcola la zona dinamicamente
+                                  const dynamicZone = determineZoneFromAddress({
+                                    city: selectedAddress.city,
+                                    province: selectedAddress.province,
+                                    postalCode: selectedAddress.postalCode
+                                  });
+                                  
+                                  return dynamicZone ? (
+                                    <div className="flex items-center mt-2">
+                                      <div 
+                                        className="w-3 h-3 rounded-full mr-2" 
+                                        style={{ backgroundColor: dynamicZone.color }}
+                                      ></div>
+                                      <span className="text-xs font-medium" style={{ color: dynamicZone.color }}>
+                                        {dynamicZone.name}
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center mt-2">
+                                      <div className="w-3 h-3 rounded-full mr-2 bg-gray-400"></div>
+                                      <span className="text-xs font-medium text-gray-500">
+                                        Zona non identificata
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
+                              </div>
                             </div>
+                          );
+                        }
+                        
+                        // Fallback se nessun indirizzo è selezionato
+                        return (
+                          <div className="text-center text-red-600">
+                            <MapPin className="w-8 h-8 mx-auto mb-2" />
+                            <p className="font-medium">Nessun indirizzo selezionato</p>
+                            <p className="text-sm">Torna al primo step per selezionare un indirizzo</p>
                           </div>
-                        </div>
-                        {selectedAddressId === address.id.toString() && (
-                          <div className="absolute bottom-2 right-2 text-green-600">
-                            <ShieldCheck className="w-5 h-5" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                    
-                    {/* Messaggio se non ci sono indirizzi */}
-                    {!customer && savedAddresses.length === 0 && (
-                      <div className="border-2 border-red-300 bg-red-50 p-4 rounded-lg text-center">
-                        <div className="text-red-600 mb-2">
-                          <MapPin className="w-8 h-8 mx-auto mb-2" />
-                          <p className="font-medium">Nessun indirizzo disponibile</p>
-                          <p className="text-sm">Torna al primo step per aggiungere un indirizzo</p>
-                        </div>
-                      </div>
+                        );
+                      })()
                     )}
                   </div>
                 </div>
@@ -1464,7 +1536,7 @@ const Checkout = () => {
                       Modifica Data
                     </Button>
                   </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                  <div className="bg-gray-50 p-2 md:p-3 rounded-lg space-y-1 md:space-y-2">
                     {formData.deliveryDate && (
                       <p className="flex items-center">
                         <CalendarIcon className="w-4 h-4 mr-2" style={{ color: '#1B5AAB' }} />
@@ -1482,7 +1554,7 @@ const Checkout = () => {
 
                 {/* Prodotti nel carrello */}
                 <div className="hidden">
-                  <h3 className="font-semibold mb-3 flex items-center" style={{ color: '#1B5AAB' }}>
+                  <h3 className="font-semibold mb-2 flex items-center" style={{ color: '#1B5AAB' }}>
                     <Package className="w-5 h-5 mr-2" />
                     Prodotti Ordinati
                   </h3>
@@ -1517,17 +1589,17 @@ const Checkout = () => {
 
                 {/* Note per l'ordine */}
                 <div>
-                  <h3 className="font-semibold mb-3 flex items-center" style={{ color: '#1B5AAB' }}>
+                  <h3 className="font-semibold mb-2 flex items-center" style={{ color: '#1B5AAB' }}>
                     <MessageSquare className="w-5 h-5 mr-2" />
                     Note per l'ordine
                   </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="bg-gray-50 p-2 md:p-3 rounded-lg">
                     <Textarea
                       name="orderNotes"
                       value={formData.orderNotes}
                       onChange={handleInputChange}
                       placeholder="Inserisci eventuali note per l'ordine ( Cognome sul citofono , piano o istruzioni speciali, ecc.)"
-                      className="min-h-[100px] resize-none border-2"
+                      className="min-h-[80px] resize-none border-2"
                       style={{ borderColor: '#CFA100' }}
                     />
                     <p className="text-sm text-gray-500 mt-2">
@@ -1540,14 +1612,14 @@ const Checkout = () => {
               {/* Colonna Destra - Riepilogo Costi (Sticky) */}
               <div className="lg:col-span-2">
                 <div className="lg:sticky lg:top-6">
-                  <div className="bg-white border-2 border-gray-200 rounded-lg p-6 shadow-lg">
-                    <h3 className="font-semibold mb-4 flex items-center text-lg" style={{ color: '#1B5AAB' }}>
+                  <div className="bg-white border-2 border-gray-200 rounded-lg p-3 md:p-4 shadow-lg">
+                    <h3 className="font-semibold mb-2 md:mb-3 flex items-center text-base md:text-lg" style={{ color: '#1B5AAB' }}>
                       <Receipt className="w-5 h-5 mr-2" />
                       Riepilogo Ordine
                     </h3>
                     
                     {/* Conteggio prodotti con controlli quantità */}
-                    <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <div className="mb-3 p-2 md:p-3 bg-blue-50 rounded-lg">
                       <button
                         onClick={() => setShowProductDetails(!showProductDetails)}
                         className="w-full text-left text-sm text-blue-800 font-medium hover:text-blue-900 transition-colors flex items-center justify-between"
@@ -1628,6 +1700,20 @@ const Checkout = () => {
                         <span>Spedizione:</span>
                         <span className="text-green-600 font-medium">Gratuita</span>
                       </div>
+                      {/* Commissione PayPal */}
+                      {paymentMethod === 'paypal' && calculatePayPalFee() > 0 && (
+                        <div className="flex justify-between text-gray-700">
+                          <span>Commissione PayPal:</span>
+                          <span className="font-medium text-orange-600">+{calculatePayPalFee().toFixed(2)}€</span>
+                        </div>
+                      )}
+                      {/* Commissione Stripe */}
+                      {paymentMethod === 'stripe' && calculateStripeFee() > 0 && (
+                        <div className="flex justify-between text-gray-700">
+                          <span>Commissione Stripe:</span>
+                          <span className="font-medium text-blue-600">+{calculateStripeFee().toFixed(2)}€</span>
+                        </div>
+                      )}
                       <div className="border-t-2 pt-3 flex justify-between font-bold text-xl" style={{ color: '#A40800' }}>
                         <span>Totale:</span>
                         <span>{calculateTotal().toFixed(2)}€</span>
@@ -1658,22 +1744,306 @@ const Checkout = () => {
             </div>
           );
         }
+        // Card stile immagine + modale dettagli
+        const paymentOptions = [
+          {
+            id: 'cod',
+            emoji: '💵',
+            title: 'Pagamento in contanti o POS',
+            description: 'Paga in contanti o con carta alla consegna',
+            animationData: cashAnimationData,
+          },
+          {
+            id: 'stripe',
+            emoji: '💳',
+            title: 'Carta di Credito/Debito',
+            description: 'Paga con Visa, Mastercard, American Express e altre carte',
+            animationData: stripeAnimationData,
+          },
+          {
+            id: 'paypal',
+            emoji: '💙',
+            title: 'PayPal',
+            description: 'Paga in modo sicuro con il tuo account PayPal',
+            animationData: paypalAnimationData,
+          },
+          {
+            id: 'bacs',
+            emoji: '🏦',
+            title: 'Bonifico Bancario',
+            description: 'Effettua un bonifico bancario',
+            animationData: bankAnimationData,
+          },
+        ];
+        
         return (
-          <PaymentSection
-            paymentGatewaysLoading={paymentGatewaysLoading}
-            filteredPaymentGateways={filteredPaymentGateways}
-            paymentMethod={paymentMethod}
-            setPaymentMethod={setPaymentMethod}
-            expandedPaymentDetails={expandedPaymentDetails}
-            setExpandedPaymentDetails={setExpandedPaymentDetails}
-            orderTotal={calculateTotal().toFixed(2)}
-            onPayPalSuccess={handlePayPalSuccess}
-            onPayPalError={handlePayPalError}
-            onStripeSuccess={handleStripeSuccess}
-            onStripeError={handleStripeError}
-            onSatispaySuccess={handleSatispaySuccess}
-            onSatispayError={handleSatispayError}
-          />
+          <div>
+            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2"><span>💳</span> Metodo di Pagamento</h2>
+            <div className="space-y-3">
+              {paymentOptions.map(option => (
+                <div
+                  key={option.id}
+                  className={`flex items-center border rounded-xl px-3 py-3 bg-white shadow-sm cursor-pointer transition-all duration-150 ${paymentMethod === option.id ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-blue-300'}`}
+                  onClick={() => {
+                    setPaymentMethod(option.id);
+                    setOpenPaymentModal(option.id);
+                  }}
+                  style={{ fontSize: '1rem' }}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    checked={paymentMethod === option.id}
+                    onChange={() => {
+                      setPaymentMethod(option.id);
+                      setOpenPaymentModal(option.id);
+                    }}
+                    className="mr-3 w-4 h-4 accent-blue-600"
+                  />
+                  <div className="flex items-center flex-1">
+                    {option.animationData ? (
+                      <div className="mr-3">
+                        <LottieAnimation
+                          animationData={option.animationData}
+                          width={40}
+                          height={40}
+                          loop={true}
+                          autoplay={true}
+                          className="drop-shadow-sm"
+                        />
+                      </div>
+                    ) : (
+                      <span className="text-2xl mr-3">{option.emoji}</span>
+                    )}
+                    <div className="flex flex-col">
+                      <span className="font-bold text-base">{option.title}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Modale dettagli pagamento */}
+            <Dialog open={!!openPaymentModal} onOpenChange={val => !val && setOpenPaymentModal(null)}>
+              <DialogContent className="max-w-sm sm:max-w-lg mx-auto rounded-2xl max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-lg sm:text-xl font-bold">
+                    {(() => {
+                      const currentOption = paymentOptions.find(opt => opt.id === openPaymentModal);
+                      return currentOption?.animationData ? (
+                        <LottieAnimation 
+                          animationData={currentOption.animationData} 
+                          width={32} 
+                          height={32} 
+                          loop={true} 
+                          autoplay={true}
+                        />
+                      ) : (
+                        currentOption?.emoji
+                      );
+                    })()}
+                    {paymentOptions.find(opt => opt.id === openPaymentModal)?.title}
+                  </DialogTitle>
+                  <DialogDescription className="text-sm sm:text-base text-gray-700 mt-2">
+                    {paymentOptions.find(opt => opt.id === openPaymentModal)?.description}
+                  </DialogDescription>
+                </DialogHeader>
+                {/* Sezione carte salvate rimossa per semplificare l'applicazione */}
+                {openPaymentModal === 'saved_card' && (
+                  <div className="mt-4">
+                    <p className="text-gray-600 text-center py-8">
+                      La funzionalità delle carte salvate è stata rimossa per semplificare l'applicazione.
+                      Utilizza i metodi di pagamento disponibili.
+                    </p>
+                  </div>
+                )}
+                {openPaymentModal === 'paypal' && (
+                  <div className="mt-4">
+                    {/* Accordion per commissioni PayPal */}
+                    <div className="mb-4">
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="paypal-commission" className="border border-orange-200 rounded-lg bg-orange-50">
+                          <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-orange-500 text-lg">⚠️</span>
+                              <span className="font-semibold text-orange-800 text-sm">Commissioni PayPal</span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 pb-4">
+                            <p className="text-orange-700 text-xs mb-3">
+                              Utilizzando PayPal verranno applicate delle piccole commissioni che verranno aggiunte al totale dell'ordine.
+                            </p>
+                            
+                            {/* Riepilogo totale con commissione */}
+                            <div className="p-3 bg-white rounded border border-orange-100">
+                              <div className="space-y-1 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Totale ordine:</span>
+                                  <span className="font-medium">€{(calculateSubtotal() + calculateShipping()).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Commissione PayPal:</span>
+                                  <span className="font-medium">€{calculatePayPalFee().toFixed(2)}</span>
+                                </div>
+                                <div className="border-t border-gray-200 pt-1 mt-2">
+                                  <div className="flex justify-between">
+                                    <span className="font-semibold text-orange-800">Totale da pagare:</span>
+                                    <span className="font-bold text-orange-800">€{calculateTotal().toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </div>
+                    <PayPalNativeCheckout
+                      amount={calculateTotal()}
+                      currency="EUR"
+                      env="production"
+                      billingAddress={{
+                        firstName: formData.firstName,
+                        lastName: formData.lastName,
+                        address: formData.address,
+                        city: formData.city,
+                        province: formData.province,
+                        postalCode: formData.postalCode,
+                        country: 'IT',
+                        email: formData.email,
+                        phone: formData.phone
+                      }}
+                      onSuccess={async (details) => {
+                        await createOrderAndNavigate(details);
+                      }}
+                      onError={(err) => {
+                        toast({
+                          title: "Errore PayPal",
+                          description: "Si è verificato un errore con PayPal. Riprova.",
+                          variant: "destructive"
+                        });
+                      }}
+                      onCancel={() => {
+                        toast({
+                          title: "Pagamento annullato",
+                          description: "Hai annullato il pagamento PayPal.",
+                          variant: "default"
+                        });
+                      }}
+                    />
+                  </div>
+                )}
+                {openPaymentModal === 'bacs' && (
+                  <div className="mt-4">
+                    <div className="bg-yellow-50 rounded-lg p-4 mb-3">
+                      <h4 className="font-bold text-lg mb-2" style={{ color: '#8B5C2A' }}>Bonifico Bancario</h4>
+                      <div className="space-y-1 text-base">
+                        <div><span className="font-semibold">Importo totale:</span> €{calculateTotal().toFixed(2)}</div>
+                        <div><span className="font-semibold">Beneficiario:</span> Imperatore Pietro</div>
+                        <div><span className="font-semibold">IBAN:</span> IT53U0306904013100000018868</div>
+                        <div><span className="font-semibold">Banca:</span> Intesa SanPaolo</div>
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-3 mb-4">
+                      <span className="font-semibold text-blue-700">Istruzioni:</span> Effettua il bonifico utilizzando i dati bancari forniti. Inserisci il numero dell'ordine come causale.
+                    </div>
+                    <Button className="w-full text-lg py-3 flex items-center justify-center" onClick={async () => { setIsProcessing(true); await createOrderAndNavigate(); setIsProcessing(false); }} disabled={isProcessing}>
+                      {isProcessing ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
+                      Conferma Ordine con Bonifico
+                    </Button>
+                  </div>
+                )}
+                {openPaymentModal === 'cod' && (
+                  <div className="mt-4">
+                    <div className="bg-green-50 rounded-lg p-3 sm:p-4 mb-3">
+                      <h4 className="font-bold text-base sm:text-lg mb-2" style={{ color: '#256029' }}>Pagamento alla Consegna</h4>
+                      <div className="space-y-1 text-sm sm:text-base">
+                        <div><span className="font-semibold">Importo totale:</span> €{calculateTotal().toFixed(2)}</div>
+                        <div><span className="font-semibold">Modalità:</span> Contanti o POS</div>
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-3 mb-4">
+                      <span className="font-semibold text-blue-700 text-sm sm:text-base">Istruzioni:</span> 
+                      <span className="text-sm sm:text-base"> Paga in contanti o con POS al momento della consegna.</span>
+                    </div>
+                    <Button className="w-full text-sm sm:text-lg py-2 sm:py-3 flex items-center justify-center" onClick={async () => { setIsProcessing(true); await createOrderAndNavigate(); setIsProcessing(false); }} disabled={isProcessing}>
+                      {isProcessing ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" /> : null}
+                      Conferma Ordine con Pagamento alla consegna
+                    </Button>
+                  </div>
+                )}
+                {openPaymentModal === 'stripe' && (
+                  <div className="mt-4">
+                    {/* Accordion per commissioni Stripe */}
+                    <div className="mb-4">
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="stripe-commission" className="border border-blue-200 rounded-lg bg-blue-50">
+                          <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                            <div className="flex items-center space-x-2">
+                              <span className="text-blue-500 text-lg">⚠️</span>
+                              <span className="font-semibold text-blue-800 text-sm">Commissioni Stripe</span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-4 pb-4">
+                            <p className="text-blue-700 text-xs mb-3">
+                              Utilizzando Stripe verranno applicate delle piccole commissioni che verranno aggiunte al totale dell'ordine.
+                            </p>
+                            
+                            {/* Riepilogo totale con commissione */}
+                            <div className="p-3 bg-white rounded border border-blue-100">
+                              <div className="space-y-1 text-xs">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Totale ordine:</span>
+                                  <span className="font-medium">€{(calculateSubtotal() + calculateShipping()).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Commissione Stripe:</span>
+                                  <span className="font-medium">€{calculateStripeFee().toFixed(2)}</span>
+                                </div>
+                                <div className="border-t border-gray-200 pt-1 mt-2">
+                                  <div className="flex justify-between">
+                                    <span className="font-semibold text-blue-800">Totale da pagare:</span>
+                                    <span className="font-bold text-blue-800">€{calculateTotal().toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </div>
+                    <StripeCheckout
+                      amount={calculateTotal()}
+                      currency="EUR"
+                      customerId={effectiveCustomerId?.toString()}
+                      billingAddress={{
+                        firstName: formData.firstName,
+                        lastName: formData.lastName,
+                        address: formData.address,
+                        city: formData.city,
+                        province: formData.province,
+                        postalCode: formData.postalCode,
+                        country: 'IT',
+                        email: formData.email,
+                        phone: formData.phone
+                      }}
+                      onSuccess={async (paymentIntent) => {
+                        await createOrderAndNavigate(paymentIntent);
+                      }}
+                      onError={(error) => {
+                        toast({
+                          title: "Errore Pagamento",
+                          description: "Si è verificato un errore durante il pagamento con carta.",
+                          variant: "destructive"
+                        });
+                      }}
+                      onCancel={() => {
+                        setOpenPaymentModal(null);
+                      }}
+                    />
+                  </div>
+                )}
+              </DialogContent>
+            </Dialog>
+          </div>
         );
 
       default:
@@ -1706,20 +2076,54 @@ const Checkout = () => {
   const calculateTotal = () => {
     const subtotal = calculateSubtotal();
     const shipping = calculateShipping();
+    let fee = 0;
     
-    // Aggiungi commissione PayPal (3.5% + 0.50€) se PayPal è selezionato
-    let paypalFee = 0;
+    // Calcola commissione PayPal se selezionato
     if (paymentMethod === 'paypal') {
-      paypalFee = parseFloat(((subtotal * 0.035) + 0.50).toFixed(2)); // Round fee to 2 decimal places
+      fee = parseFloat(((subtotal * 0.035) + 0.30).toFixed(2));
     }
     
+    // Calcola commissione Stripe se selezionato
+    if (paymentMethod === 'stripe') {
+      fee = parseFloat(((subtotal * 0.035) + 0.30).toFixed(2));
+    }
+       
+    // Debug: log del calcolo finale
+    const finalTotal = parseFloat((subtotal + shipping + fee).toFixed(2));
+    console.log('calculateTotal - Debug finale:', {
+      paymentMethod,
+      subtotal,
+      shipping,
+      fee,
+      finalTotal
+    });
+    
     // Round final total to 2 decimal places
-    return parseFloat((subtotal + shipping + paypalFee).toFixed(2)); 
+    return finalTotal; 
+  };
+
+  // Funzione per calcolare solo la commissione PayPal
+  const calculatePayPalFee = () => {
+    if (paymentMethod === 'paypal') {
+      const subtotal = calculateSubtotal();
+      return parseFloat(((subtotal * 0.035) + 0.30).toFixed(2));
+    }
+    return 0;
+  };
+
+  // Funzione per calcolare solo la commissione Stripe
+  const calculateStripeFee = () => {
+    if (paymentMethod === 'stripe') {
+      const subtotal = calculateSubtotal();
+      return parseFloat(((subtotal * 0.035) + 0.30).toFixed(2));
+    }
+    return 0;
   };
 
   // Funzione per creare l'ordine (estratta per essere usata anche da PayPal)
   const createOrderAndNavigate = async (paymentDetails?: any) => {
     setIsProcessing(true);
+    
     try {
       // Determina quale indirizzo usare per la spedizione
       let shippingAddress;
@@ -1776,13 +2180,29 @@ const Checkout = () => {
         phone: formData.phone
       };
 
+      // Calcola il totale con le commissioni
+      const subtotal = calculateSubtotal();
+      const shipping = calculateShipping();
+      let fee = 0;
+      if (paymentMethod === 'native_paypal') {
+        fee = parseFloat(((subtotal * 0.015) + 0.50).toFixed(2));
+      } else if (paymentMethod === 'native_stripe') {
+        fee = parseFloat(((subtotal * 0.015) + 0.50).toFixed(2));
+      } else if (paymentMethod === 'paypal') {
+        fee = parseFloat(((subtotal * 0.035) + 0.30).toFixed(2));
+      } else if (paymentMethod === 'stripe') {
+        fee = parseFloat(((subtotal * 0.035) + 0.30).toFixed(2));
+      }
+      const totalWithFees = parseFloat((subtotal + shipping + fee).toFixed(2));
+
       const orderData = {
         customer_id: effectiveCustomerId,
         payment_method: paymentMethod,
-        payment_method_title: filteredPaymentGateways.find(g => g.id === paymentMethod)?.title || paymentMethod,
-        set_paid: paymentMethod === 'paypal' && paymentDetails ? true : false,
+        payment_method_title: paymentMethod === 'cod' ? 'Pagamento in contanti o POS' : paymentMethod === 'bacs' ? 'Bonifico Bancario' : (filteredPaymentGateways.find(g => g.id === paymentMethod)?.title || paymentMethod),
+        set_paid: false,
         billing: billingAddress,   // Ora usa l'indirizzo di spedizione
         shipping: shippingAddress, // Usa l'indirizzo di spedizione corretto
+        total: totalWithFees.toFixed(2), // Aggiungi il totale con le commissioni
         line_items: state.items.map(item => ({
           product_id: item.id,
           quantity: item.quantity
@@ -1813,9 +2233,20 @@ const Checkout = () => {
         })
       };
 
+      // DEBUG: Verifica i valori di consegna prima della creazione dell'ordine
+      console.log('=== DEBUG VALORI CONSEGNA ===');
+      console.log('formData.deliveryDate:', formData.deliveryDate);
+      console.log('formData.deliveryTimeSlot:', formData.deliveryTimeSlot);
+      console.log('orderData.meta_data:', JSON.stringify(orderData.meta_data, null, 2));
+      console.log('orderData completo:', JSON.stringify(orderData, null, 2));
+
       const createdOrder = await createOrder(orderData);
       dispatch({ type: 'CLEAR_CART' });
-      toast.success('Ordine creato con successo!');
+      toast({
+          title: "Successo",
+          description: "Ordine creato con successo!",
+          variant: "default"
+        });
       navigate('/order-success', {
         state: {
           orderNumber: createdOrder.number,
@@ -1825,79 +2256,77 @@ const Checkout = () => {
       });
     } catch (error) {
       console.error('Errore nella creazione dell\'ordine:', error);
-      toast.error('Errore nella creazione dell\'ordine. Riprova.');
+      toast({
+          title: "Errore",
+          description: "Errore nella creazione dell'ordine. Riprova.",
+          variant: "destructive"
+        });
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handlePayPalSuccess = (details: any) => {
-    console.log('PayPal Success:', details);
-    // Qui crei l'ordine DOPO che PayPal ha avuto successo
-    // Passa i dettagli del pagamento a createOrderAndNavigate
-    createOrderAndNavigate(details); 
-  };
 
-  const handlePayPalError = (error: any) => {
-    console.error('PayPal Error:', error);
-    toast.error('Pagamento PayPal fallito o annullato.');
-    setIsProcessing(false); // Assicurati di resettare lo stato di processing
-  };
-
-
-  // Aggiungi questi funzioni QUI, all'interno del componente
-  const handleStripeSuccess = (paymentIntent: any) => {
-    console.log('Stripe payment successful:', paymentIntent);
-    // Gestisci il successo del pagamento Stripe
-    // Procedi con la creazione dell'ordine
-    createOrderAndNavigate(paymentIntent);
-  };
-
-  const handleStripeError = (error: any) => {
-    console.error('Stripe payment error:', error);
-    toast.error('Errore nel pagamento con carta di credito');
-    setIsProcessing(false);
-  };
-
-  const handleSatispaySuccess = (details: any) => {
-    console.log('Satispay payment successful:', details);
-    // Gestisci il successo del pagamento Satispay
-    // Procedi con la creazione dell'ordine
-    createOrderAndNavigate(details);
-  };
-
-  const handleSatispayError = (error: any) => {
-    console.error('Satispay payment error:', error);
-    toast.error('Errore nel pagamento con Satispay');
-    setIsProcessing(false);
-  };
-
-
-  // Modifica handleSubmit per gestire PayPal
+  // Modifica handleSubmit per gestire correttamente tutti i metodi di pagamento
   const handleSubmit = async () => {
     if (!validateAllSteps()) {
-      toast.error('Completa tutti i campi obbligatori');
+      toast({
+        title: "Errore",
+        description: "Completa tutti i campi obbligatori",
+        variant: "destructive"
+      });
       return;
     }
 
     if (state.items.length === 0) {
-      toast.error('Il carrello è vuoto');
+      toast({
+        title: "Errore",
+        description: "Il carrello è vuoto",
+        variant: "destructive"
+      });
       return;
     }
 
-    // Gestisci i diversi metodi di pagamento
-    if (paymentMethod === 'paypal') {
-      // Se è PayPal, non fare nulla qui. 
-      // Il pagamento e la creazione dell'ordine sono gestiti da PayPalNativeCheckout e handlePayPalSuccess.
-      toast.info('Procedi con il pagamento tramite PayPal.');
-      // Non chiamare setIsProcessing(true) qui, perché PayPalNativeCheckout gestirà il suo stato di caricamento.
-    } else if (paymentMethod === 'satispay') {
-      // Per Satispay, il pagamento e la creazione dell'ordine sono gestiti da SatispayCheckout e handleSatispaySuccess
-      toast.info('Procedi con il pagamento tramite Satispay.');
+    // Verifica che sia stato selezionato un metodo di pagamento
+    if (!paymentMethod) {
+      toast({
+        title: "Errore",
+        description: "Seleziona un metodo di pagamento",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Per metodi di pagamento che richiedono elaborazione immediata (cod, bacs)
+    if (['cod', 'bacs'].includes(paymentMethod)) {
+      await createOrderAndNavigate();
     } else {
-      // Per tutti gli altri metodi di pagamento (cod, stripe, bacs, etc.)
+      // Fallback per altri metodi
       await createOrderAndNavigate();
     }
+  };
+
+  // Funzione per determinare se mostrare il pulsante "Completa Ordine"
+  const shouldShowCompleteOrderButton = () => {
+    // Nascondi sempre il pulsante "Conferma Ordine (Pagamento alla Consegna)"
+    return false;
+  };
+
+  // Funzione per confrontare i dati personali attuali con quelli originali
+  const hasPersonalDataChanged = () => {
+    const currentData = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      phone: formData.phone
+    };
+    
+    return (
+      currentData.firstName !== originalCustomerData.firstName ||
+      currentData.lastName !== originalCustomerData.lastName ||
+      currentData.email !== originalCustomerData.email ||
+      currentData.phone !== originalCustomerData.phone
+    );
   };
 
   // Funzione per salvare automaticamente i dati personali
@@ -1907,9 +2336,17 @@ const Checkout = () => {
       return;
     }
 
+    // Controlla se i dati sono effettivamente cambiati
+    if (!hasPersonalDataChanged()) {
+      console.log('=== SALVATAGGIO SALTATO ===');
+      console.log('I dati personali non sono cambiati, salto il salvataggio su WooCommerce');
+      return;
+    }
+
     try {
       console.log('=== SALVATAGGIO AUTOMATICO DATI PERSONALI ===');
-      console.log('Dati da salvare:', {
+      console.log('Dati originali:', originalCustomerData);
+      console.log('Dati attuali:', {
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -1937,8 +2374,20 @@ const Checkout = () => {
         }
       });
 
+      // Aggiorna i dati originali dopo il salvataggio riuscito
+      setOriginalCustomerData({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone
+      });
+
       console.log('Dati personali salvati automaticamente con successo');
-      toast.success('Dati personali aggiornati automaticamente!');
+      toast({
+          title: "Successo",
+          description: "Dati personali aggiornati automaticamente!",
+          variant: "default"
+        });
     } catch (error) {
       console.error('Errore nel salvataggio automatico dei dati personali:', error);
       // Non mostrare errore all'utente per non interrompere il flusso
@@ -1992,12 +2441,11 @@ const Checkout = () => {
     <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       <Header />
       
-      {/* Spazio responsive per compensare la barra fissa */}
-      <div className="pt-[114px] md:pt-[120px] lg:pt-[162px]"></div>
+      {/* Contenuto direttamente sotto l'header */}
 
       {/* Titolo rimosso completamente */}
 
-      {/* Tab Navigation - Posizionata sotto la barra di ricerca */}
+      {/* Tab Navigation - Posizionata direttamente sotto l'header */}
       <div className="fixed top-[114px] md:top-[120px] lg:top-[162px] left-0 right-0 bg-white shadow-md z-40">
         <div className="max-w-4xl mx-auto">
           <div className="flex border-b border-gray-200">
@@ -2040,12 +2488,10 @@ const Checkout = () => {
         </div>
       </div>
 
-      {/* Spazio responsive per compensare la barra di navigazione fissa */}
-      <div className="pt-16 md:pt-14 lg:pt-16"></div>
-
+      {/* Contenuto direttamente sotto la barra di navigazione */}
 
       {/* Step Content */}
-      <div className="max-w-4xl mx-auto pb-32 md:pb-16">
+      <div className="max-w-4xl mx-auto pb-32 md:pb-28 lg:pb-32 pt-20 md:pt-18 lg:pt-20">
         <Card className="shadow-lg">
           <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-3">
             <CardTitle className="flex items-center text-base font-bold text-[#1B5AAB]">
@@ -2053,13 +2499,13 @@ const Checkout = () => {
               {steps[currentStep].name}
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-3">
+          <CardContent className="p-2 md:p-3">
             {renderStepContent()}
           </CardContent>
         </Card>
 
         {/* Navigation Buttons - fissi sopra la nav bar mobile */}
-        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-3 z-50">
+        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 md:p-3 z-50">
           <div className="max-w-4xl mx-auto flex justify-between">
             <Button
               variant="outline"
@@ -2095,22 +2541,26 @@ const Checkout = () => {
                 )}
               </Button>
             ) : (
-              <Button
-                onClick={calculateTotal() === 0 ? () => navigate('/prodotti') : handleSubmit}
-                disabled={isProcessing || !validateStep(currentStep)}
-                className="px-6 py-2 text-sm gradient-primary"
-              >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                    Elaborazione...
-                  </>
-                ) : calculateTotal() === 0 ? (
-                  'Nessun Prodotto Selezionato - Vai allo SHOP'
-                ) : (
-                  `Completa Ordine - ${calculateTotal().toFixed(2)}€`
-                )}
-              </Button>
+              shouldShowCompleteOrderButton() && (
+                <Button
+                  onClick={calculateTotal() === 0 ? () => navigate('/prodotti') : handleSubmit}
+                  disabled={isProcessing || !validateStep(currentStep)}
+                  className="px-6 py-2 text-sm gradient-primary"
+                >
+                  {isProcessing ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                      Elaborazione...
+                    </>
+                  ) : calculateTotal() === 0 ? (
+                    'Nessun Prodotto Selezionato - Vai allo SHOP'
+                  ) : (
+                    paymentMethod === 'cod' ? `Conferma Ordine (Pagamento alla Consegna) - ${calculateTotal().toFixed(2)}€` :
+                    paymentMethod === 'bacs' ? `Conferma Ordine (Bonifico Bancario) - ${calculateTotal().toFixed(2)}€` :
+                    `Conferma Ordine - ${calculateTotal().toFixed(2)}€`
+                  )}
+                </Button>
+              )
             )}
           </div>
         </div>
@@ -2139,7 +2589,7 @@ const Checkout = () => {
 
       {/* MODALE PER MODIFICA INDIRIZZI */}
       <Dialog open={isManageAddressesOpen} onOpenChange={setIsManageAddressesOpen}>
-        <DialogContent className="max-w-sm mx-2 sm:mx-4 rounded-xl shadow-2xl border-0 max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-lg mx-auto rounded-2xl shadow-2xl border-0 max-h-[85vh] overflow-y-auto">
           <DialogHeader className="space-y-1 pb-2">
             <DialogTitle className="flex items-center text-lg sm:text-xl font-bold text-gray-800">
               <MapPin className="w-5 h-5 sm:w-6 sm:h-6 mr-2" style={{ color: '#1B5AAB' }} />
@@ -2264,7 +2714,11 @@ const Checkout = () => {
                   
                   if (Object.keys(errors).length > 0) {
                     setFieldErrors(errors);
-                    toast.error('Compila tutti i campi obbligatori evidenziati in rosso');
+                    toast({
+        title: "Errore",
+        description: "Compila tutti i campi obbligatori evidenziati in rosso",
+        variant: "destructive"
+      });
                     return;
                   }
                   
@@ -2303,7 +2757,11 @@ const Checkout = () => {
                             }
                           }
                         });
-                        toast.success('Indirizzo principale aggiornato!');
+                        toast({
+          title: "Successo",
+          description: "Indirizzo principale aggiornato!",
+          variant: "default"
+        });
                       } else {
                         // Modifica indirizzo salvato esistente
                         const updatedData = {
@@ -2327,7 +2785,11 @@ const Checkout = () => {
                     setNewAddressForm({ title: '', address: '', city: '', province: '', postalCode: '' });
                   } catch (error) {
                     console.error('Errore nel salvataggio:', error);
-                    toast.error('Errore nel salvataggio dell\'indirizzo');
+                    toast({
+              title: "Errore",
+              description: "Errore nel salvataggio dell'indirizzo",
+              variant: "destructive"
+            });
                   } finally {
                     setIsSavingAddress(false);
                   }
@@ -2360,15 +2822,11 @@ const Checkout = () => {
 const getMainDescription = (gateway: any) => {
   switch (gateway.id) {
     case 'cod':
-      return 'Pagamento in CONTANTI o con CARTA DI CREDITO al momento della consegna.';
-    case 'stripe':
-      return 'Pagamento sicuro con carta di credito online.';
-    case 'paypal':
-      return 'Paga con PayPal.';
-    case 'satispay':
-      return 'Pagamento veloce con Satispay.';
+      return 'Pagamento in contanti o POS.';
     case 'bacs':
       return 'Bonifico bancario.';
+    case 'paypal':
+      return 'Paga facilmente e in sicurezza con il tuo account PayPal.';
     default:
       return gateway.title;
   }

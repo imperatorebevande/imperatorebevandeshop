@@ -31,6 +31,7 @@ interface ProductCardProps {
 const ProductCard = ({ product }: ProductCardProps) => {
   const { state, dispatch } = useCart();
   const [isHovered, setIsHovered] = React.useState(false);
+  const [isTouched, setIsTouched] = React.useState(false);
   
   const isAvailable = product.stock_status === 'instock' || product.inStock !== false;
   
@@ -73,6 +74,18 @@ const ProductCard = ({ product }: ProductCardProps) => {
         border: `2px solid ${getBorderColor(product.category)}`,
       }
     });
+  };
+
+  const handleCardTouch = () => {
+    // Su mobile, al primo tocco mostra i controlli invece di aggiungere al carrello
+    if (!isTouched && !isInCart) {
+      setIsTouched(true);
+      return;
+    }
+    // Se già toccato o già nel carrello, comportamento normale
+    if (!isInCart) {
+      handleAddToCart();
+    }
   };
 
   const handleIncrement = () => {
@@ -164,6 +177,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       style={{ borderColor: getBorderColor(product.category) }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onTouchStart={() => setIsTouched(true)}
     >
       {/* Badge sconto */}
       {discountPercentage > 0 && (
@@ -183,7 +197,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       )}
       
       {/* Badge per prodotto nel carrello */}
-      {isInCart && !isHovered && (
+      {isInCart && !isHovered && !isTouched && (
         <div className="absolute bottom-12 sm:bottom-20 left-1/2 -translate-x-1/2 text-white px-1.5 py-0.5 rounded text-xs font-bold z-10 flex items-center gap-1 whitespace-nowrap" style={{ backgroundColor: '#A40800' }}>
           <Check className="w-3 h-3" />
           Nel carrello ({quantityInCart})
@@ -205,49 +219,51 @@ const ProductCard = ({ product }: ProductCardProps) => {
         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex flex-col items-center justify-center gap-3 sm:gap-2">
           {!isInCart ? (
             <Button
-              onClick={handleAddToCart}
+              onClick={handleCardTouch}
               disabled={!isAvailable}
-              className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 text-white px-2 py-1 text-xs bg-gray-800 hover:bg-gray-900"
+              className={`${(isHovered || isTouched) ? 'opacity-100' : 'opacity-0'} transition-all duration-300 transform ${(isHovered || isTouched) ? 'translate-y-0' : 'translate-y-4'} text-white px-2 py-1 text-xs bg-gray-800 hover:bg-gray-900`}
             >
               <ShoppingBag className="w-3 h-3 mr-1" />
               {isAvailable ? 'Aggiungi' : 'Non Disponibile'}
             </Button>
           ) : (
-            <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 flex items-center gap-2">
+            <div className={`${(isHovered || isTouched) ? 'opacity-100' : 'opacity-0'} transition-all duration-300 transform ${(isHovered || isTouched) ? 'translate-y-0' : 'translate-y-4'} flex items-center gap-2`}>
               <Button
                 onClick={handleDecrement}
-                className="text-white px-2 py-1 text-xs bg-red-600 hover:bg-red-700 min-w-[32px] h-8"
+                className="text-white px-2 py-1 text-xs bg-red-600 hover:bg-red-700 min-w-[40px] sm:min-w-[32px] h-10 sm:h-8"
               >
-                <Minus className="w-3 h-3" />
+                <Minus className="w-4 h-4 sm:w-3 sm:h-3" />
               </Button>
               
-              <span className="text-white font-bold text-sm bg-black bg-opacity-50 px-3 py-1 rounded min-w-[40px] text-center">
+              <span className="text-white font-bold text-sm bg-black bg-opacity-50 px-3 py-1 rounded min-w-[50px] sm:min-w-[40px] text-center">
                 {quantityInCart}
               </span>
               
               <Button
                 onClick={handleIncrement}
                 disabled={!isAvailable}
-                className="text-white px-2 py-1 text-xs bg-green-600 hover:bg-green-700 min-w-[32px] h-8"
+                className="text-white px-2 py-1 text-xs bg-green-600 hover:bg-green-700 min-w-[40px] sm:min-w-[32px] h-10 sm:h-8"
               >
-                <Plus className="w-3 h-3" />
+                <Plus className="w-4 h-4 sm:w-3 sm:h-3" />
               </Button>
             </div>
           )}
           
           {/* Pulsante "Vai al Carrello" - appare solo se il prodotto è nel carrello */}
           {isInCart && (
-            <Link to="/cart">
-              <Button
-                className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0 text-white px-2 py-1 text-xs"
-                style={{ backgroundColor: '#1B5AAB' }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#154a9a'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1B5AAB'}
-              >
-                <ShoppingCart className="w-3 h-3 mr-1" />
-                Vai al Carrello
-              </Button>
-            </Link>
+            <div className="mt-2">
+              <Link to="/cart">
+                <Button
+                  className={`${(isHovered || isTouched) ? 'opacity-100' : 'opacity-0'} transition-all duration-300 transform ${(isHovered || isTouched) ? 'translate-y-0' : 'translate-y-4'} text-white px-2 py-1 text-xs`}
+                  style={{ backgroundColor: '#1B5AAB' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#154a9a'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1B5AAB'}
+                >
+                  <ShoppingCart className="w-3 h-3 mr-1" />
+                  Vai al Carrello
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
       </div>

@@ -117,7 +117,7 @@ const Header = () => {
                   Shop
                 </Link>
                 <Link 
-                  to="/prodotti?category=acqua" 
+                  to="/prodotti/categoria/acqua" 
                   className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
                   onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
                   onMouseLeave={(e) => e.currentTarget.style.color = ''}
@@ -125,7 +125,7 @@ const Header = () => {
                   Acqua
                 </Link>
                 <Link 
-                  to="/prodotti?category=bevande" 
+                  to="/prodotti/categoria/bevande" 
                   className="text-gray-700 transition-all duration-200 font-medium px-2 py-2 rounded-md hover:bg-blue-50 hover:font-bold hover:text-lg"
                   onMouseEnter={(e) => e.currentTarget.style.color = '#1B5AAB'}
                   onMouseLeave={(e) => e.currentTarget.style.color = ''}
@@ -290,19 +290,19 @@ const Header = () => {
                       </div>
                       Acqua
                     </Link>
-                    <Link to="/prodotti?category=birra" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                    <Link to="/prodotti/categoria/birra" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
                       <div className="w-3 h-3 mr-2 flex items-center justify-center">
                         <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></div>
                       </div>
                       Birra
                     </Link>
-                    <Link to="/prodotti?category=bevande" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                    <Link to="/prodotti/categoria/bevande" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
                       <div className="w-3 h-3 mr-2 flex items-center justify-center">
                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                       </div>
                       Bevande
                     </Link>
-                    <Link to="/prodotti?category=vino" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                    <Link to="/prodotti/categoria/vino" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
                       <div className="w-3 h-3 mr-2 flex items-center justify-center">
                         <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
                       </div>
@@ -340,6 +340,12 @@ const Header = () => {
                   Il mio account
                 </Link>
               )}
+              <Link to="/admin" className="flex items-center text-gray-500 hover:text-gray-700 transition-colors py-2 text-sm">
+                <div className="w-4 h-4 mr-2 flex items-center justify-center">
+                  <div className="text-xs">⚙️</div>
+                </div>
+                Admin
+              </Link>
             </nav>
           </div>
         )}
@@ -457,19 +463,19 @@ const Header = () => {
                       </div>
                       Acqua
                     </Link>
-                    <Link to="/prodotti?category=birra" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                    <Link to="/prodotti/categoria/birra" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
                       <div className="w-3 h-3 mr-2 flex items-center justify-center">
                         <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full"></div>
                       </div>
                       Birra
                     </Link>
-                    <Link to="/prodotti?category=bevande" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                    <Link to="/prodotti/categoria/bevande" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
                       <div className="w-3 h-3 mr-2 flex items-center justify-center">
                         <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
                       </div>
                       Bevande
                     </Link>
-                    <Link to="/prodotti?category=vino" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
+                    <Link to="/prodotti/categoria/vino" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors py-1">
                       <div className="w-3 h-3 mr-2 flex items-center justify-center">
                         <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
                       </div>
@@ -513,7 +519,7 @@ const Header = () => {
       </div>
 
       {/* Bottom Navigation for Mobile */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t z-50">
         <div className="flex justify-around">
           <Link to="/" className="flex flex-col items-center py-2 px-3 text-gray-600">
             <Home className="w-6 h-6" />

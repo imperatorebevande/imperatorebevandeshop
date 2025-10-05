@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Save, Plus, Trash2, Download, Copy, Map, Edit, Clock } from 'lucide-react';
+import { Save, Plus, Trash2, Download, Copy, Map, Edit, Clock, Eye, EyeOff } from 'lucide-react';
 import { getAllZones, DeliveryZone, saveZonesToFile } from '@/config/deliveryZones';
 import LeafletMap from '@/components/LeafletMap';
 
@@ -36,7 +36,7 @@ interface ZoneConfig {
   };
 }
 
-const ADMIN_PASSWORD = 'imperatore2024';
+const ADMIN_PASSWORD = 'ImperatoreBev26';
 
 // Slot orari disponibili nel sistema
 const AVAILABLE_TIME_SLOTS = [
@@ -53,6 +53,7 @@ const AVAILABLE_TIME_SLOTS = [
 
 const AdminZoneManager: React.FC = () => {
   const [auth, setAuth] = useState<AdminAuth>({ isAuthenticated: false, password: '' });
+  const [showPassword, setShowPassword] = useState(false);
   const [zones, setZones] = useState<ZoneConfig[]>([]);
   const [selectedZone, setSelectedZone] = useState<ZoneConfig | null>(null);
   const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
@@ -287,13 +288,29 @@ const AdminZoneManager: React.FC = () => {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={auth.password}
-                onChange={(e) => setAuth({ ...auth, password: e.target.value })}
-                onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={auth.password}
+                  onChange={(e) => setAuth({ ...auth, password: e.target.value })}
+                  onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+                  className="pr-10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </Button>
+              </div>
             </div>
             <Button onClick={handleLogin} className="w-full">
               Accedi

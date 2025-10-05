@@ -296,7 +296,7 @@ const Cart = () => {
           </div>
 
           {/* Order Summary */}
-          <div className="lg:order-last mb-8 lg:mb-0">
+          <div className="lg:order-last mb-8 lg:mb-0 hidden md:block">
             <Card className="lg:sticky lg:top-32 mb-20 md:mb-0">
               <CardHeader>
                 <CardTitle className="text-lg sm:text-xl">Riepilogo Ordine</CardTitle>

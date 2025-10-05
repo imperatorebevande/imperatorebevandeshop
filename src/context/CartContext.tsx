@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect } from 'react';
 
 export interface CartItem {
   id: number;
@@ -77,8 +77,40 @@ const CartContext = createContext<{
   dispatch: React.Dispatch<CartAction>;
 } | null>(null);
 
+// Funzioni per gestire il localStorage
+const CART_STORAGE_KEY = 'imperatore-bevande-cart';
+
+const saveCartToStorage = (cartState: CartState) => {
+  try {
+    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartState));
+  } catch (error) {
+    console.error('Errore nel salvare il carrello nel localStorage:', error);
+  }
+};
+
+const loadCartFromStorage = (): CartState => {
+  try {
+    const savedCart = localStorage.getItem(CART_STORAGE_KEY);
+    if (savedCart) {
+      const parsedCart = JSON.parse(savedCart);
+      // Verifica che i dati siano validi
+      if (parsedCart && Array.isArray(parsedCart.items) && typeof parsedCart.total === 'number') {
+        return parsedCart;
+      }
+    }
+  } catch (error) {
+    console.error('Errore nel caricare il carrello dal localStorage:', error);
+  }
+  return { items: [], total: 0 };
+};
+
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(cartReducer, { items: [], total: 0 });
+  const [state, dispatch] = useReducer(cartReducer, loadCartFromStorage());
+
+  // Salva il carrello nel localStorage ogni volta che cambia
+  useEffect(() => {
+    saveCartToStorage(state);
+  }, [state]);
 
   return (
     <CartContext.Provider value={{ state, dispatch }}>
