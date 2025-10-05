@@ -1,140 +1,215 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
   CardElement,
   useStripe,
   useElements
 } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
+import { Button } from '@/components/ui/button';
+import { Loader2, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-
-// Chiave pubblicabile Stripe aggiornata
-const stripePromise = loadStripe('pk_test_q2T6zSXCsZgSDBoczp5ESl9I');
+import { configService } from '@/services/configService';
 
 interface StripeCheckoutProps {
-  amount: string;
-  currency?: string;
+  amount: number;
+  currency: string;
+  customerId?: string;
+  billingAddress?: {
+    firstName: string;
+    lastName: string;
+    address: string;
+    city: string;
+    province: string;
+    postalCode: string;
+    country: string;
+    email: string;
+    phone: string;
+  };
   onSuccess: (paymentIntent: any) => void;
-  onError: (error: any) => void;
+  onError?: (error: any) => void;
+  onCancel?: () => void;
 }
 
-const CheckoutForm: React.FC<{
-  amount: string;
-  currency: string;
-  onSuccess: (paymentIntent: any) => void;
-  onError: (error: any) => void;
-}> = ({ amount, currency, onSuccess, onError }) => {
+// Configurazione dello stile per CardElement
+const cardElementOptions = {
+  style: {
+    base: {
+      fontSize: '16px',
+      color: '#424770',
+      '::placeholder': {
+        color: '#aab7c4',
+      },
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+    },
+    invalid: {
+      color: '#9e2146',
+    },
+  },
+  hidePostalCode: false,
+};
+
+// Componente interno per il form di pagamento
+const CheckoutForm: React.FC<StripeCheckoutProps> = ({
+  amount,
+  currency,
+  customerId,
+  billingAddress,
+  onSuccess,
+  onError,
+  onCancel
+}) => {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
-  const { authState } = useAuth(); // Aggiungi questo
+  const [cardComplete, setCardComplete] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!stripe || !elements) {
+      console.error('Stripe non è ancora caricato');
       return;
     }
 
     const cardElement = elements.getElement(CardElement);
     if (!cardElement) {
+      console.error('CardElement non trovato');
+      return;
+    }
+
+    if (!cardComplete) {
+      toast.error('Completa i dettagli della carta');
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      // Costruisci il nome completo dall'utente loggato
-      const userName = authState.user 
-        ? `${authState.user.first_name} ${authState.user.last_name}`.trim()
-        : 'Cliente Imperatore Bevande';
+      // Crea payment intent
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: Math.round(amount * 100), // Converti in centesimi
+          currency: currency.toLowerCase(),
+          customerId,
+          billingAddress
+        }),
+      });
 
-      // Con il plugin WooCommerce Stripe, non serve il backend personalizzato
-      // Semplicemente validiamo la carta e creiamo il payment method
-      const { error, paymentMethod } = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-        billing_details: {
-          name: userName, // Usa il nome dell'utente loggato
-          email: authState.user?.email || undefined, // Aggiungi anche l'email se disponibile
+      if (!response.ok) {
+        throw new Error('Errore nella creazione del payment intent');
+      }
+
+      const { client_secret } = await response.json();
+
+      // Conferma il pagamento
+      const { error, paymentIntent } = await stripe.confirmCardPayment(client_secret, {
+        payment_method: {
+          card: cardElement,
+          billing_details: billingAddress ? {
+            name: `${billingAddress.firstName} ${billingAddress.lastName}`,
+            email: billingAddress.email,
+            phone: billingAddress.phone,
+            address: {
+              line1: billingAddress.address,
+              city: billingAddress.city,
+              state: billingAddress.province,
+              postal_code: billingAddress.postalCode,
+              country: billingAddress.country,
+            },
+          } : undefined,
         },
       });
 
       if (error) {
-        console.error('Errore validazione carta:', error);
-        toast.error('Errore nella validazione della carta: ' + error.message);
-        onError(error);
-      } else {
-        console.log('Metodo di pagamento creato:', paymentMethod);
-        toast.success('Carta validata con successo!');
-        // Il plugin WooCommerce Stripe gestirà il resto automaticamente
-        onSuccess(paymentMethod);
+        console.error('Errore Stripe:', error);
+        toast.error(error.message || 'Errore durante il pagamento');
+        if (onError) onError(error);
+      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+        toast.success('Pagamento completato con successo!');
+        onSuccess(paymentIntent);
       }
     } catch (error) {
-      console.error('Errore:', error);
-      toast.error('Errore durante la validazione della carta');
-      onError(error);
+      console.error('Errore durante il pagamento:', error);
+      toast.error('Errore durante il pagamento. Riprova.');
+      if (onError) onError(error);
     } finally {
       setIsProcessing(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="p-4 border border-gray-300 rounded-lg">
-        <CardElement
-          options={{
-            hidePostalCode: true, // Aggiunge questa opzione per nascondere il CAP
-            style: {
-              base: {
-                fontSize: '16px',
-                color: '#424770',
-                '::placeholder': {
-                  color: '#aab7c4',
-                },
-              },
-              invalid: {
-                color: '#9e2146',
-              },
-            },
-          }}
-        />
+    <div className="space-y-4">
+      {/* Form per carta */}
+      <div className="p-4 border border-gray-200 rounded-lg bg-gray-50">
+        <div className="flex items-center gap-2 mb-3">
+          <CreditCard className="w-5 h-5 text-gray-600" />
+          <span className="text-sm font-medium text-gray-700">Dettagli Carta</span>
+        </div>
+        <div className="bg-white p-4 rounded border min-h-[50px]">
+          <CardElement
+            options={cardElementOptions}
+            onChange={(event) => {
+              console.log('CardElement onChange:', event);
+              setCardComplete(event.complete);
+            }}
+          />
+        </div>
       </div>
-      
-      <button
-        type="submit"
-        disabled={!stripe || isProcessing}
-        className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            Elaborazione...
-          </>
-        ) : (
-          `Paga €${amount}`
+
+      <div className="flex gap-3">
+        {onCancel && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel}
+            disabled={isProcessing}
+            className="flex-1"
+          >
+            Annulla
+          </Button>
         )}
-      </button>
-    </form>
+        <Button
+          onClick={handleSubmit}
+          disabled={!stripe || isProcessing || !cardComplete}
+          className="flex-1"
+        >
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Elaborazione...
+            </>
+          ) : (
+            `Paga €${amount.toFixed(2)}`
+          )}
+        </Button>
+      </div>
+    </div>
   );
 };
 
-const StripeCheckout: React.FC<StripeCheckoutProps> = ({
-  amount,
-  currency = 'EUR',
-  onSuccess,
-  onError
-}) => {
+// Componente principale che wrappa tutto con Elements
+const StripeCheckout: React.FC<StripeCheckoutProps> = (props) => {
+  const config = configService.getStripeConfig();
+  
+  // Inizializza Stripe con la chiave pubblica
+  const stripePromise = loadStripe(config.publishableKey);
+
+  if (!config.enabled) {
+    return (
+      <div className="text-center p-4 text-gray-500">
+        I pagamenti con carta di credito non sono attualmente disponibili.
+      </div>
+    );
+  }
+
   return (
     <Elements stripe={stripePromise}>
-      <CheckoutForm
-        amount={amount}
-        currency={currency}
-        onSuccess={onSuccess}
-        onError={onError}
-      />
+      <CheckoutForm {...props} />
     </Elements>
   );
 };

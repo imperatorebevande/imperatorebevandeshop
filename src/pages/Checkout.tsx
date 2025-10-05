@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import DeliveryCalendar from '@/components/DeliveryCalendar/DeliveryCalendar';
-import PaymentSection from '@/components/PaymentSection';
+import WooCommercePaymentSection from '@/components/WooCommercePaymentSection';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
@@ -1659,7 +1659,7 @@ const Checkout = () => {
           );
         }
         return (
-          <PaymentSection
+          <WooCommercePaymentSection
             paymentGatewaysLoading={paymentGatewaysLoading}
             filteredPaymentGateways={filteredPaymentGateways}
             paymentMethod={paymentMethod}

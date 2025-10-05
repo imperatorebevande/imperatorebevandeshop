@@ -1,6 +1,8 @@
 {
   "type": "module",
   "dependencies": {
+    "@paypal/paypal-server-sdk": "^1.0.0",
+    "openai": "^4.20.1",
     "stripe": "^16.12.0"
   }
 }
