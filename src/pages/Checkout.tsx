@@ -103,11 +103,18 @@ const CheckoutMainAddressZone: React.FC<{ customer: any; onZoneDetected?: (zone:
       </span>
     </div>
   ) : (
-    <div className="flex items-center mt-2">
-      <div className="w-3 h-3 rounded-full mr-2 bg-gray-400"></div>
-      <span className="text-xs font-medium text-gray-500">
-        Zona non identificata - Debug: {addressString}
-      </span>
+    <div className="mt-2">
+      <div className="flex items-center">
+        <div className="w-3 h-3 rounded-full mr-2 bg-red-500"></div>
+        <span className="text-xs font-medium text-red-600">
+          Zona non identificata - Debug: {addressString}
+        </span>
+      </div>
+      <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded-md">
+        <span className="text-xs text-red-700">
+          ⚠️ Inserisci correttamente l'indirizzo per identificare la zona di consegna
+        </span>
+      </div>
     </div>
   );
 };
@@ -2399,7 +2406,18 @@ const Checkout = () => {
     if (currentStep === steps.length - 1) {
       // Se siamo all'ultimo step (Pagamento), chiama handleSubmit
       handleSubmit();
-    } else if (currentStep < steps.length - 1 && validateStep(currentStep)) {
+    } else if (currentStep < steps.length - 1) {
+      // Validazione specifica per il campo telefono nel primo step
+      if (currentStep === 0 && selectedAddressId === 'main' && !formData.phone.trim()) {
+        toast({
+          title: "Campo obbligatorio",
+          description: "Il numero di telefono è obbligatorio per completare l'ordine.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (validateStep(currentStep)) {
         setIsNextStepLoading(true);
         
         try {
@@ -2421,6 +2439,7 @@ const Checkout = () => {
         } finally {
           setIsNextStepLoading(false);
         }
+      }
     }
   };
 
