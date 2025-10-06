@@ -112,7 +112,7 @@ const CheckoutMainAddressZone: React.FC<{ customer: any; onZoneDetected?: (zone:
       </div>
       <div className="mt-1 p-2 bg-red-50 border border-red-200 rounded-md">
         <span className="text-xs text-red-700">
-          ⚠️ Inserisci correttamente l'indirizzo per identificare la zona di consegna
+          ⚠️ Inserisci nuovamente l'indirizzo per identificare correttamente la zona di consegna
         </span>
       </div>
     </div>
@@ -893,14 +893,17 @@ const Checkout = () => {
   const validateStep = (step: number) => {
     switch (step) {
       case 0: // INDIRIZZO
+        // Validazione dei dati personali sempre richiesta (per tutti gli indirizzi)
+        const personalDataValid = formData.firstName && formData.lastName && formData.email && formData.phone;
+        
         if (selectedAddressId === 'main') {
           // Validazione per indirizzo principale
-          return formData.firstName && formData.lastName && formData.email && formData.phone &&
+          return personalDataValid &&
                  formData.address && formData.city && formData.postalCode && formData.province;
         } else {
-          // Validazione per indirizzo salvato selezionato - FIX: Add null check for id
+          // Validazione per indirizzo salvato selezionato - richiede sempre i dati personali
           const selectedAddress = savedAddresses.find(addr => addr.id && addr.id.toString() === selectedAddressId);
-          return selectedAddress !== undefined;
+          return personalDataValid && selectedAddress !== undefined;
         }
       case 1: // DATA CONSEGNA
         return formData.deliveryDate !== '' && formData.deliveryTimeSlot !== '';
@@ -932,23 +935,10 @@ const Checkout = () => {
                 {customer && (
                   <div 
                     className={`relative border-2 p-3 md:p-4 rounded-xl cursor-pointer transition-all hover:shadow-md ${
-                      selectedAddressId === 'main' 
+                      selectedAddressId === 'main' && mainAddressZone 
                         ? 'border-green-500 bg-green-50 shadow-sm' 
-                        : 'hover:border-blue-300'
+                        : 'border-gray-300 hover:border-blue-300'
                     }`}
-                    style={{
-                      borderColor: selectedAddressId === 'main' 
-                        ? '#10b981' 
-                        : (() => {
-                          const zone = determineZoneFromAddress({
-                            city: customer.shipping?.city || customer.billing?.city || '',
-                            province: customer.shipping?.state || customer.billing?.state || '',
-                            postalCode: customer.shipping?.postcode || customer.billing?.postcode || '',
-                            address: customer.shipping?.address_1 || customer.billing?.address_1 || ''
-                          });
-                          return zone?.color || '#d1d5db';
-                        })()
-                    }}
                     onClick={() => setSelectedAddressId('main')}
                   >
                     {/* Pulsante Modifica nell'angolo */}
@@ -1290,8 +1280,19 @@ const Checkout = () => {
                     onChange={handleInputChange}
                     onFocus={() => setIsEditingPersonalData(true)}
                     onBlur={() => setIsEditingPersonalData(false)}
+                    className={!formData.phone?.trim() ? "border-red-500 focus:border-red-500 focus:ring-red-500" : ""}
                     required
                   />
+                  {!formData.phone?.trim() && (
+                    <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
+                      <div className="flex items-center">
+                        <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
+                        <p className="text-sm text-red-700 font-medium">
+                          Inserisci il numero di telefono per completare l'ordine
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -2408,7 +2409,7 @@ const Checkout = () => {
       handleSubmit();
     } else if (currentStep < steps.length - 1) {
       // Validazione specifica per il campo telefono nel primo step
-      if (currentStep === 0 && selectedAddressId === 'main' && !formData.phone.trim()) {
+      if (currentStep === 0 && !formData.phone.trim()) {
         toast({
           title: "Campo obbligatorio",
           description: "Il numero di telefono è obbligatorio per completare l'ordine.",

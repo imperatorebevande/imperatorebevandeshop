@@ -176,7 +176,9 @@ export function determineZoneFromAddress(address: {
       const zoneName = feature.properties?.name;
       const zoneId = feature.properties?.id;
       
-      if (zoneName && zoneId && zoneName.toLowerCase().includes(address.city.toLowerCase())) {
+      if (zoneName && zoneId && 
+          (zoneName.toLowerCase().includes(address.city.toLowerCase()) ||
+           address.city.toLowerCase().includes(zoneName.toLowerCase()))) {
         return {
           id: zoneId,
           name: zoneName,
@@ -185,6 +187,25 @@ export function determineZoneFromAddress(address: {
           provinces: [],
           postalCodes: [],
           color: feature.properties?.color || '#3B82F6'
+        };
+      }
+    }
+  }
+
+  // Nuovo fallback: cerca direttamente nell'array JSON se non è in formato GeoJSON
+  if (address.city && Array.isArray(deliveryZonesData)) {
+    for (const zone of deliveryZonesData as any[]) {
+      if (zone.name && 
+          (zone.name.toLowerCase().includes(address.city.toLowerCase()) ||
+           address.city.toLowerCase().includes(zone.name.toLowerCase()))) {
+        return {
+          id: zone.id,
+          name: zone.name,
+          description: zone.description || '',
+          cities: zone.cities || [],
+          provinces: zone.provinces || [],
+          postalCodes: zone.postalCodes || [],
+          color: zone.color || '#3B82F6'
         };
       }
     }
