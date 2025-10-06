@@ -9,7 +9,40 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- Patch PRECOCE per querySelector: evita crash da selettori non validi (PayPal SDK) -->
+    <script>
+      (function() {
+        try {
+          var origDocQS = Document.prototype.querySelector;
+          var origDocQSA = Document.prototype.querySelectorAll;
+          var origElQS = Element.prototype.querySelector;
+          var origElQSA = Element.prototype.querySelectorAll;
+          function isPayPalSelector(sel){ return typeof sel==='string' && sel.indexOf('script[src=')>-1 && sel.indexOf('paypal.com/sdk/js')>-1 }
+          function fallbackFind(root){
+            var scripts = (root.getElementsByTagName ? root.getElementsByTagName('script') : document.getElementsByTagName('script'));
+            for(var i=0;i<scripts.length;i++){ var sc = scripts[i]; var src = sc.getAttribute('src')||''; if(src.indexOf('paypal.com/sdk/js')>-1){ return sc; } }
+            return null;
+          }
+          Document.prototype.querySelector = function(sel){
+            try { return origDocQS.call(this, sel); } catch(e){ if(isPayPalSelector(sel)){ console.warn('[EarlyPatch] querySelector PayPal non valido, uso fallback'); return fallbackFind(this); } throw e; }
+          };
+          Document.prototype.querySelectorAll = function(sel){
+            try { return origDocQSA.call(this, sel); } catch(e){ if(isPayPalSelector(sel)){ console.warn('[EarlyPatch] querySelectorAll PayPal non valido, uso fallback'); var scripts=this.getElementsByTagName('script'); var arr=[]; for(var i=0;i<scripts.length;i++){ if((scripts[i].getAttribute('src')||'').indexOf('paypal.com/sdk/js')>-1){ arr.push(scripts[i]); } } var list={ length: arr.length, item: function(i){ return arr[i]||null; } }; for(var j=0;j<arr.length;j++){ list[j]=arr[j]; } return list; } throw e; }
+          };
+          Element.prototype.querySelector = function(sel){
+            try { return origElQS.call(this, sel); } catch(e){ if(isPayPalSelector(sel)){ return fallbackFind(this); } throw e; }
+          };
+          Element.prototype.querySelectorAll = function(sel){
+            try { return origElQSA.call(this, sel); } catch(e){ if(isPayPalSelector(sel)){ var scripts=this.getElementsByTagName('script'); var arr=[]; for(var i=0;i<scripts.length;i++){ if((scripts[i].getAttribute('src')||'').indexOf('paypal.com/sdk/js')>-1){ arr.push(scripts[i]); } } var list={ length: arr.length, item: function(i){ return arr[i]||null; } }; for(var j=0;j<arr.length;j++){ list[j]=arr[j]; } return list; } throw e; }
+          };
+        } catch(e) { console.warn('[EarlyPatch] Impossibile applicare la patch querySelector:', e); }
+      })();
+    </script>
+    
+    <!-- CSP gestita da vercel.json per evitare conflitti -->
+    
     <title>Imperatore Bevande</title>
     <meta name="description" content="Imperatore Bevande - Vendita e consegna bevande a domicilio" />
     <meta name="author" content="Imperatore Bevande" />

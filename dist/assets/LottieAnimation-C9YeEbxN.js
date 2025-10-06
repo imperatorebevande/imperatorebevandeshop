@@ -1,0 +1,1 @@
+import{j as p}from"./ui-vendor-BbdbCsUZ.js";import{L as x}from"./animation-vendor-C6M_rq1e.js";const j=({animationData:t,width:o=200,height:e=200,loop:r=!0,autoplay:s=!0,className:i="",style:m={},onComplete:n,speed:a=1})=>{const u={width:o,height:e,...m};return p.jsx(x,{animationData:t,loop:r,autoplay:s,style:u,className:i,onComplete:n,speed:a})};export{j as L};

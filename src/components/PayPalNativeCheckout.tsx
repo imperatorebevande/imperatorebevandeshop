@@ -48,7 +48,7 @@ const PayPalNativeCheckout: React.FC<PayPalNativeCheckoutProps> = ({
 
   return (
     <PayPalScriptProvider options={initialOptions}>
-      <div className="paypal-container relative">
+      <div className="paypal-container paypal-buttons-container pwa-optimized relative">
         {isProcessing && (
           <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-10 rounded-lg">
             <div className="flex items-center gap-2">

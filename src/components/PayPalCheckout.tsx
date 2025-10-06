@@ -300,7 +300,7 @@ const PayPalCheckout: React.FC<PayPalCheckoutProps> = ({
       )}
       <div 
         ref={paypalRef} 
-        className={`paypal-buttons-container ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
+        className={`paypal-buttons-container pwa-optimized ${isLoading ? 'opacity-0' : 'opacity-100'} transition-opacity duration-300`}
         style={{ minHeight: isLoading ? '0' : '50px' }}
       />
     </div>

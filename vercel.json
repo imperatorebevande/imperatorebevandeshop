@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/**/*.js": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -8,5 +13,31 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
-  ]
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization" }
+      ]
+    },
+    {
+      "source": "/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, must-revalidate" }
+      ]
+    }
+  ],
+  "public": false,
+  "github": {
+    "silent": true
+  }
 }

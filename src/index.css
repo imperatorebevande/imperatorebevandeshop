@@ -106,6 +106,13 @@
     position: relative !important;
     z-index: 9999 !important;
     isolation: isolate !important;
+    /* Miglioramenti per webapp touch */
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
   }
   
   .paypal-buttons-container.pwa-optimized iframe {
@@ -115,6 +122,10 @@
     -webkit-user-select: none !important;
     user-select: none !important;
     -webkit-backface-visibility: hidden !important;
+    /* Forza l'accelerazione hardware */
+    -webkit-transform: translateZ(0) !important;
+    transform: translateZ(0) !important;
+    will-change: transform !important;
   }
 }
 

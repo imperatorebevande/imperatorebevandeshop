@@ -19,7 +19,7 @@ export default defineConfig({
           'router-vendor': ['react-router-dom'],
           'ui-vendor': ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-toast'],
           'query-vendor': ['@tanstack/react-query'],
-          'payment-vendor': ['@stripe/stripe-js', '@stripe/react-stripe-js'],
+
           'animation-vendor': ['lottie-react'],
           'form-vendor': ['react-hook-form', '@hookform/resolvers'],
           'chart-vendor': ['recharts'],
@@ -48,7 +48,20 @@ export default defineConfig({
             console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
           });
         },
-      }
+      },
+      '/api/delivery': {
+        target: 'https://imperatorebevande.it',
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(/^\/api\/delivery/, '/wp-json/orddd/v1/delivery_schedule'),
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            proxyReq.setHeader('User-Agent', 'ImperatoreBevande-App/1.0');
+            proxyReq.setHeader('Accept', 'application/json');
+            proxyReq.setHeader('Cache-Control', 'no-cache');
+          });
+        }
+      },
     }
   }
 })
