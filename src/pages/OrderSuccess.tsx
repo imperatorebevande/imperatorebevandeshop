@@ -4,7 +4,9 @@ import { useLocation, Link } from 'react-router-dom';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, Package, Truck, Home } from 'lucide-react';
+import { Package, Truck, Home } from 'lucide-react';
+import Lottie from 'lottie-react';
+import successAnimation from '@/assets/animations/Success.json';
 
 const OrderSuccess = () => {
   const location = useLocation();
@@ -26,7 +28,14 @@ const OrderSuccess = () => {
       <div className="container mx-auto px-4 py-16">
         <Card className="max-w-2xl mx-auto text-center">
           <CardContent className="pt-12 pb-8">
-            <CheckCircle className="w-20 h-20 text-green-500 mx-auto mb-6" />
+            <div className="w-32 h-32 mx-auto mb-6">
+              <Lottie 
+                animationData={successAnimation} 
+                loop={false}
+                autoplay={true}
+                style={{ width: '100%', height: '100%' }}
+              />
+            </div>
             
             <h1 className="text-3xl font-bold text-green-700 mb-4">
               Ordine Completato!

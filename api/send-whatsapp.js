@@ -129,7 +129,7 @@ const formatPhoneNumber = (phone) => {
 /**
  * Handler principale
  */
-module.exports = async (req, res) => {
+export default async (req, res) => {
   // Gestione CORS
   if (req.method === 'OPTIONS') {
     return res.status(200).json({ message: 'OK' });

@@ -7,9 +7,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
 import { useWooCommerceProduct, useWooCommerceProducts } from '@/hooks/useWooCommerce';
-import { ShoppingBag, Heart, Star, ArrowLeft, Truck, Shield, RotateCcw, Loader2, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Heart, Star, ArrowLeft, Truck, Shield, RotateCcw, Loader2, ChevronDown, FileText, Minus, Plus, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
 import { getBorderColor } from "../lib/utils";
+import { chatGPTService, ProductTechnicalSheet } from '@/services/chatgptService';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -19,6 +20,9 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(0);
   const [hasInitialized, setHasInitialized] = useState(false);
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
+  const [technicalSheet, setTechnicalSheet] = useState<ProductTechnicalSheet | null>(null);
+  const [isLoadingTechnicalSheet, setIsLoadingTechnicalSheet] = useState(false);
+  const [technicalSheetError, setTechnicalSheetError] = useState<string | null>(null);
 
   // Hooks personalizzati - sempre nello stesso ordine
   const { data: wooProduct, isLoading, error } = useWooCommerceProduct(parseInt(id || '0'));
@@ -194,6 +198,33 @@ const ProductDetail = () => {
     ? Math.round((product.originalPrice - product.price) / product.originalPrice * 100) 
     : null;
 
+  // Funzione per generare la scheda tecnica
+  const handleGenerateTechnicalSheet = async () => {
+    if (!chatGPTService.isConfigured()) {
+      toast.error('Servizio scheda tecnica non configurato');
+      return;
+    }
+
+    setIsLoadingTechnicalSheet(true);
+    setTechnicalSheetError(null);
+
+    try {
+      const sheet = await chatGPTService.generateTechnicalSheet(
+        product.name,
+        product.description,
+        product.category || 'Bevanda'
+      );
+      setTechnicalSheet(sheet);
+      toast.success('Scheda tecnica generata con successo!');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Errore nella generazione della scheda tecnica';
+      setTechnicalSheetError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setIsLoadingTechnicalSheet(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -294,7 +325,24 @@ const ProductDetail = () => {
 
                 {/* Description */}
                 <div className="mb-4">
-                  <h3 className="text-lg font-semibold mb-2">Descrizione</h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-lg font-semibold">Descrizione</h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateTechnicalSheet}
+                      disabled={isLoadingTechnicalSheet}
+                      className="flex items-center space-x-2 text-[#1B5AAB] border-[#1B5AAB] hover:bg-[#1B5AAB] hover:text-white transition-all duration-300 shadow-sm hover:shadow-md transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                      style={{ fontFamily: 'Inter, sans-serif' }}
+                    >
+                      {isLoadingTechnicalSheet ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <FileText className="w-4 h-4" />
+                      )}
+                      <span>{isLoadingTechnicalSheet ? 'Generando...' : 'Scheda Tecnica'}</span>
+                    </Button>
+                  </div>
                   <div 
                     className="text-gray-600 text-sm" 
                     dangerouslySetInnerHTML={{
@@ -302,6 +350,143 @@ const ProductDetail = () => {
                     }} 
                   />
                 </div>
+
+                {/* Technical Sheet Display */}
+                {technicalSheet && (
+                  <div className="mb-4">
+                    <Card className="border-[#1B5AAB] border-opacity-30 bg-gradient-to-br from-blue-50 to-indigo-50">
+                      <CardContent className="p-4">
+                        <h4 className="text-lg font-semibold text-[#1B5AAB] mb-3 flex items-center" style={{ fontFamily: 'Inter, sans-serif' }}>
+                          <FileText className="w-5 h-5 mr-2" />
+                          Scheda Tecnica e Benefici
+                        </h4>
+                        
+                        {/* Technical Specifications */}
+                        <div className="mb-4">
+                          <h5 className="font-semibold text-[#164a99] mb-2" style={{ fontFamily: 'Inter, sans-serif' }}>Specifiche Tecniche</h5>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            {Object.entries(technicalSheet.technicalSpecs).map(([key, value]) => {
+                              if (!value) return null;
+                              const label = {
+                                category: 'Categoria',
+                                ingredients: 'Ingredienti',
+                                alcoholContent: 'Gradazione Alcolica',
+                                volume: 'Volume',
+                                producer: 'Produttore',
+                                vintage: 'Annata',
+                                servingTemperature: 'Temperatura di Servizio',
+                                storageConditions: 'Conservazione',
+                                fixedResidue: 'Residuo Fisso',
+                                ph: 'pH',
+                                calcium: 'Calcio',
+                                magnesium: 'Magnesio',
+                                sodium: 'Sodio',
+                                potassium: 'Potassio',
+                                bicarbonate: 'Bicarbonato',
+                                chlorides: 'Cloruri',
+                                sulfates: 'Solfati',
+                                nitrates: 'Nitrati',
+                                fluorides: 'Fluoruri'
+                              }[key] || key;
+                              
+                              return (
+                                <div key={key} className="flex">
+                                  <span className="font-medium text-purple-700 min-w-[120px]">{label}:</span>
+                                  <span className="text-gray-700">{value}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Benefits */}
+                        {(technicalSheet.benefits.healthBenefits.length > 0 || 
+                          technicalSheet.benefits.nutritionalInfo.length > 0 || 
+                          technicalSheet.benefits.recommendations.length > 0) && (
+                          <div className="mb-4">
+                            <h5 className="font-semibold text-purple-700 mb-2">Benefici e Informazioni Nutrizionali</h5>
+                            
+                            {technicalSheet.benefits.healthBenefits.length > 0 && (
+                              <div className="mb-2">
+                                <h6 className="font-medium text-purple-600 text-sm mb-1">Benefici per la Salute:</h6>
+                                <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                                  {technicalSheet.benefits.healthBenefits.map((benefit, index) => (
+                                    <li key={index}>{benefit}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {technicalSheet.benefits.nutritionalInfo.length > 0 && (
+                              <div className="mb-2">
+                                <h6 className="font-medium text-purple-600 text-sm mb-1">Informazioni Nutrizionali:</h6>
+                                <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                                  {technicalSheet.benefits.nutritionalInfo.map((info, index) => (
+                                    <li key={index}>{info}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {technicalSheet.benefits.recommendations.length > 0 && (
+                              <div className="mb-2">
+                                <h6 className="font-medium text-purple-600 text-sm mb-1">Raccomandazioni:</h6>
+                                <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+                                  {technicalSheet.benefits.recommendations.map((rec, index) => (
+                                    <li key={index}>{rec}</li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Pairings */}
+                        {technicalSheet.pairingsSuggestions.length > 0 && (
+                          <div className="mb-4">
+                            <h5 className="font-semibold text-purple-700 mb-2">Abbinamenti Consigliati</h5>
+                            <div className="flex flex-wrap gap-2">
+                              {technicalSheet.pairingsSuggestions.map((pairing, index) => (
+                                <Badge key={index} variant="outline" className="bg-purple-100 text-purple-700 border-purple-300">
+                                  {pairing}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Enhanced Description */}
+                        <div>
+                          <h5 className="font-semibold text-purple-700 mb-2">Descrizione Dettagliata</h5>
+                          <p className="text-sm text-gray-700 leading-relaxed">{technicalSheet.description}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+
+                {/* Technical Sheet Error */}
+                {technicalSheetError && (
+                  <div className="mb-4">
+                    <Card className="border-red-200 bg-red-50">
+                      <CardContent className="p-4">
+                        <div className="flex items-center text-red-700">
+                          <FileText className="w-5 h-5 mr-2" />
+                          <span className="font-medium">Errore nella generazione della scheda tecnica</span>
+                        </div>
+                        <p className="text-sm text-red-600 mt-2">{technicalSheetError}</p>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGenerateTechnicalSheet}
+                          className="mt-2 text-red-600 border-red-300 hover:bg-red-100"
+                        >
+                          Riprova
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
 
                {/* Quantity Selector */}
                 <div className="flex flex-col space-y-4">

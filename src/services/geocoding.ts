@@ -60,24 +60,49 @@ export function getCurrentPosition(): Promise<GeocodeResult | null> {
       resolve(null);
       return;
     }
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        resolve({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          formatted_address: 'Posizione corrente'
-        });
-      },
-      (error) => {
-        console.warn('Errore nell\'ottenere la posizione corrente:', error);
+
+    // Controlla se le permissions sono disponibili
+    if ('permissions' in navigator) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'denied') {
+          console.warn('Permessi di geolocalizzazione negati');
+          resolve(null);
+          return;
+        }
+        
+        // Procedi con la geolocalizzazione solo se i permessi sono concessi o prompt
+        requestGeolocation(resolve);
+      }).catch(() => {
+        // Fallback se l'API permissions non è supportata
+        console.warn('API permissions non supportata, tentativo di geolocalizzazione senza controllo permessi');
         resolve(null);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5 minuti
-      }
-    );
+      });
+    } else {
+      // Fallback per browser che non supportano l'API permissions
+      console.warn('API permissions non disponibile, geolocalizzazione disabilitata per sicurezza');
+      resolve(null);
+    }
   });
+}
+
+// Funzione helper per la richiesta di geolocalizzazione
+function requestGeolocation(resolve: (value: GeocodeResult | null) => void) {
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      resolve({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+        formatted_address: 'Posizione corrente'
+      });
+    },
+    (error) => {
+      console.warn('Errore nell\'ottenere la posizione corrente:', error);
+      resolve(null);
+    },
+    {
+      enableHighAccuracy: false, // Ridotto per migliorare performance
+      timeout: 5000, // Ridotto timeout
+      maximumAge: 600000 // 10 minuti
+    }
+  );
 }

@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Header from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { User, MapPin, Package, Heart, Settings, LogOut, Loader2, Eye, EyeOff, Edit, Trash2, Plus, Key } from 'lucide-react';
+import { User, MapPin, Package, Heart, Settings, LogOut, Loader2, Eye, EyeOff, Edit, Trash2, Plus, Key, CreditCard } from 'lucide-react';
 import { useWooCommerceCustomer, useWooCommerceCustomerOrders, useWooCommerceCustomerByEmail, useUpdateWooCommerceCustomer } from '@/hooks/useWooCommerce';
 import { wooCommerceService } from '@/services/woocommerce';
 import { toast } from 'sonner'; // This is the one we keep
@@ -684,6 +684,7 @@ const Account: React.FC = () => {
               { id: 'profile', label: 'Profilo', icon: User },
               { id: 'orders', label: 'Ordini', icon: Package },
               { id: 'address', label: 'Indirizzo', icon: MapPin },
+              { id: 'payments', label: 'Pagamenti', icon: CreditCard },
               { id: 'settings', label: 'Impostazioni', icon: Settings }
             ].map(tab => {
               const Icon = tab.icon;
@@ -1124,6 +1125,25 @@ const Account: React.FC = () => {
                         </div>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {activeTab === 'payments' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-[#1B5AAB]">
+                      <CreditCard className="w-5 h-5" />
+                      Metodi di Pagamento
+                    </CardTitle>
+                    <CardDescription>
+                      La gestione delle carte salvate è stata rimossa per semplificare l'applicazione
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600">
+                      I pagamenti vengono ora gestiti direttamente durante il checkout senza salvare le carte.
+                    </p>
                   </CardContent>
                 </Card>
               )}
